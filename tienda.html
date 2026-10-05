@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda | Dropea</title>
+    <meta name="description" content="Catálogo online">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="shortcut icon" href="favicon-96x96.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* "clip" en vez de "hidden": bloquea igual el scroll horizontal pero no crea un
+           contenedor de scroll en html/body, así el buscador puede quedar pegado (sticky). */
+        html, body { overflow-x: clip; max-width: 100%; }
+        @supports not (overflow: clip) { html, body { overflow-x: hidden; } }
+        /* Las clases propias definen "display"; esto garantiza que "hidden" siempre gane */
+        .hidden { display: none !important; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn .5s ease-out forwards; }
+
+        /* Barra de anuncio: cinta amarilla con rayas sutiles + megáfono que "suena" al aparecer */
+        .anuncio-cinta {
+            background-color: #facc15;
+            background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.055) 0 10px, transparent 10px 20px);
+        }
+        @keyframes anuncioSonar {
+            0%, 100% { transform: rotate(0); }
+            15% { transform: rotate(-16deg) scale(1.12); }
+            30% { transform: rotate(10deg) scale(1.12); }
+            45% { transform: rotate(-10deg); }
+            60% { transform: rotate(6deg); }
+            75% { transform: rotate(0); }
+        }
+        .anuncio-icono { animation: anuncioSonar 1.1s ease-in-out .5s 2; transform-origin: 30% 70%; }
+        @keyframes anuncioEntra { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        .anuncio-entra { animation: anuncioEntra .45s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .anuncio-icono, .anuncio-entra { animation: none; } }
+
+        /* Skeleton con shimmer (igual que emprendedor.html) */
+        .cp-skeleton { position: relative; overflow: hidden; background-color: #e2e4e8; }
+        .cp-skeleton::after {
+            content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.75) 50%, rgba(255,255,255,0) 100%);
+            animation: cpShimmer 1.4s ease-in-out infinite;
+        }
+        @keyframes cpShimmer { 100% { transform: translateX(100%); } }
+        @media (prefers-reduced-motion: reduce) { .cp-skeleton::after { animation: none; } }
+
+
+        @media (max-width: 767px) { #catalogo-buscar { font-size: 16px !important; } }
+
+        #modal-producto-overlay {
+            background: rgba(9, 9, 11, 0.55);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s ease;
+        }
+        #modal-producto-overlay.abierto { opacity: 1; pointer-events: auto; }
+
+        #modal-producto {
+            left: 0; right: 0; bottom: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -12px 40px rgba(9, 9, 11, .22);
+            max-height: 92vh;
+            max-height: 92dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(100%);
+            transition: transform .3s ease, opacity .25s ease, visibility 0s linear .3s;
+            pointer-events: none;
+        }
+        #modal-producto.abierto {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+            transition: transform .3s ease, opacity .25s ease, visibility 0s linear 0s;
+        }
+
+        @media (min-width: 640px) {
+            #modal-producto {
+                left: 50%; right: auto; bottom: auto; top: 50%;
+                width: 92%; max-width: 920px; max-height: 88vh;
+                max-height: 88dvh;
+                border-radius: 20px;
+                box-shadow: 0 30px 80px -12px rgba(9, 9, 11, .45), 0 0 0 1px rgba(9, 9, 11, .06);
+                transform: translate(-50%, -48%) scale(0.97);
+            }
+            #modal-producto.abierto { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* LIGHTBOX IMAGEN PRODUCTO */
+        /* Mismo fondo plano y liviano que el overlay del modal de producto
+           (#modal-producto-overlay): antes tenía un backdrop-filter con blur
+           de 22px + saturate, que obliga al navegador a recalcular el
+           desenfoque de todo lo que hay detrás en cada frame y generaba lag
+           notorio al abrir la imagen en pantalla completa. Sin blur, la
+           apertura es instantánea y el fondo se ve igual de oscuro. */
+        #lightbox-imagen-overlay {
+            background: rgba(0,0,0,0.75);
+            opacity: 0;
+            transition: opacity .25s ease;
+        }
+        #lightbox-imagen-overlay.abierto { opacity: 1; }
+
+        /* Escenario: ocupa toda la pantalla y recibe los gestos (zoom / arrastre) */
+        #lightbox-imagen-viewport {
+            position: relative;
+            z-index: 5;
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: calc(4.5rem + env(safe-area-inset-top)) 1rem calc(5.75rem + env(safe-area-inset-bottom));
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Marco: se ajusta al tamaño real de la imagen, sin bordes ni relleno sobrantes */
+        #lightbox-imagen-marco {
+            position: relative;
+            display: flex;
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(12px) scale(0.97);
+            transition: opacity .35s ease, transform .45s cubic-bezier(.16,1,.3,1);
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.08),
+                0 24px 60px rgba(0,0,0,0.45);
+        }
+        #lightbox-imagen.abierto #lightbox-imagen-marco {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        #lightbox-imagen-img {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: min(calc(100vw - 2rem), 1100px);
+            max-height: calc(100vh - 10.5rem);
+            max-height: calc(100dvh - 10.5rem);
+            min-width: min(78vw, 360px);
+            min-height: min(46vh, 300px);
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity .32s ease;
+            touch-action: none;
+            will-change: transform;
+        }
+        #lightbox-imagen-img.abierto { opacity: 1; }
+        #lightbox-imagen-img.lb-transicion { transition: opacity .28s ease, transform .28s cubic-bezier(.16,1,.3,1); }
+
+        /* Barra superior: título a la izquierda, cerrar a la derecha */
+        .lightbox-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: calc(0.9rem + env(safe-area-inset-top)) 1rem 0.9rem 1rem;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity .3s ease .05s, transform .4s cubic-bezier(.16,1,.3,1) .05s;
+        }
+        #lightbox-imagen.abierto .lightbox-header { opacity: 1; transform: translateY(0); }
+        .lightbox-titulo {
+            min-width: 0;
+            max-width: calc(100% - 3.5rem);
+            padding: 0.55rem 1rem;
+            border-radius: 9999px;
+            color: #fff;
+            background: rgba(24,24,27,0.82);
+            border: 1px solid rgba(255,255,255,0.14);
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .lightbox-titulo:empty { display: none; }
+        .lightbox-btn-cerrar {
+            pointer-events: auto;
+            flex-shrink: 0;
+            width: 2.5rem; height: 2.5rem;
+            border-radius: 9999px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            background: rgba(24,24,27,0.78);
+            border: 1px solid rgba(255,255,255,0.16);
+            transition: background .2s ease, transform .2s ease;
+        }
+        .lightbox-btn-cerrar:hover { background: rgba(63,63,70,0.95); }
+        .lightbox-btn-cerrar:active { transform: scale(0.92); }
+        .lightbox-btn-cerrar:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+        /* Barra de zoom flotante abajo, centrada */
+        .lightbox-chrome {
+            position: absolute;
+            left: 0; right: 0;
+            bottom: calc(1.25rem + env(safe-area-inset-bottom));
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity .35s ease .08s, transform .4s cubic-bezier(.16,1,.3,1) .08s;
+        }
+        #lightbox-imagen.abierto .lightbox-chrome { opacity: 1; transform: translateY(0); }
+        .lightbox-zoom-bar {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 4px;
+            border-radius: 9999px;
+            background: rgba(24,24,27,0.82);
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .lightbox-zoom-btn {
+            width: 2.5rem; height: 2.5rem;
+            border-radius: 9999px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            transition: background .2s ease, transform .2s ease, opacity .2s ease;
+        }
+        .lightbox-zoom-btn:hover { background: rgba(255,255,255,0.12); }
+        .lightbox-zoom-btn:active { transform: scale(0.9); }
+        .lightbox-zoom-btn:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+        .lightbox-zoom-sep { width: 1px; height: 1.25rem; background: rgba(255,255,255,0.16); margin: 0 2px; }
+        #lightbox-zoom-reset {
+            min-width: 3.5rem;
+            padding: 0 0.5rem;
+            width: auto;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 640px) {
+            #lightbox-imagen-marco { border-radius: 14px; }
+            .lightbox-titulo { font-size: 0.8125rem; padding: 0.5rem 0.9rem; }
+        }
+
+        .zoom-badge { transition: opacity .25s ease, transform .25s ease; }
+        @media (hover: hover) {
+            .zoom-trigger:hover .zoom-badge { opacity: 1; transform: scale(1); }
+            .zoom-trigger:hover .zoom-img { transform: scale(1.035); }
+        }
+
+        /* Con "recibe pedidos" apagado la tienda es solo catálogo: nada de carrito */
+        .modo-catalogo .solo-pedidos { display: none !important; }
+
+        /* Panel de info: separador solo entre ítems visibles */
+        .perfil-info-item:not(.hidden) { display: flex; }
+
+        /* MOBILE: ubicación + envío lado a lado; atención y medios de pago a todo el ancho */
+        @media (max-width: 767px) {
+            .perfil-info-item { flex: 1 1 100%; min-width: 0; }
+            .perfil-info-item.info-ubicacion { flex: 1 1 0; order: 0; }
+            .perfil-info-item.info-envio { flex: 0 1 auto; order: 1; }
+            .perfil-info-item.info-horario { order: 2; }
+            .perfil-info-item.info-medios { order: 3; flex-wrap: wrap; }
+            .info-ubicacion:not(.hidden) ~ .info-envio:not(.hidden) { border-left: 1px solid #e5e7eb; padding-left: 1rem; }
+            .info-grid:has(.info-ubicacion:not(.hidden), .info-envio:not(.hidden)) .info-horario:not(.hidden) { border-top: 1px solid #e5e7eb; padding-top: .875rem; }
+            .info-grid:has(.perfil-info-item:not(.info-medios):not(.hidden)) .info-medios:not(.hidden) { border-top: 1px solid #e5e7eb; padding-top: .875rem; }
+        }
+
+        /* PC: ubicación · atención · envío en una fila; "Acepta" abajo, a todo el ancho */
+        @media (min-width: 768px) {
+            .perfil-info-item { flex: 1 1 13rem; min-width: 0; }
+            .perfil-info-item.info-horario { flex-grow: 1.6; }
+            .perfil-info-item:not(.hidden):not(.info-medios) ~ .perfil-info-item:not(.hidden):not(.info-medios) { border-left: 1px solid #e5e7eb; padding-left: 1.5rem; }
+            .perfil-info-item.info-medios { flex-basis: 100%; }
+            .perfil-info-item:not(.hidden) ~ .info-medios:not(.hidden) { border-top: 1px solid #e5e7eb; padding-top: 1.25rem; }
+        }
+
+        /* Chips (medios de pago, los arma el JS) */
+        .chip {
+            white-space: nowrap;
+            display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .65rem;
+            border-radius: 9999px; background: #fff; border: 1px solid #e5e7eb;
+            font-size: 11px; font-weight: 700; color: #18181b;
+        }
+
+        /* Categorías */
+        .cat-chip {
+            flex-shrink: 0; padding: .55rem 1.1rem; border-radius: 9999px; background: #fff;
+            border: 1px solid #e5e7eb; font-size: 11px; font-weight: 900; letter-spacing: .1em;
+            text-transform: uppercase; color: #6b7280; transition: all .15s ease;
+        }
+        .cat-chip:hover { border-color: #000; color: #000; }
+        .cat-chip:active { transform: scale(.95); }
+        .cat-chip.activa { background: #000; color: #facc15; border-color: #000; }
+        .cat-chip { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+        .cat-chip.abierta { border-color: #000; color: #000; }
+        .cat-chip.activa.abierta { color: #facc15; }
+        .cat-chevron { display: inline-flex; transition: transform .2s ease; }
+        .cat-chip.abierta .cat-chevron { transform: rotate(180deg); }
+        .cat-chip-sub {
+            max-width: 9rem; overflow: hidden; text-overflow: ellipsis; padding-left: .4rem;
+            border-left: 1px solid rgba(250,204,21,.45); font-weight: 700; letter-spacing: .05em;
+        }
+
+        /* Panel de subcategorías */
+        .cat-panel {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 1.25rem; padding: 1rem;
+            box-shadow: 0 6px 20px -12px rgba(0,0,0,.25); animation: cat-panel-in .18s ease-out;
+        }
+        @keyframes cat-panel-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+        .cat-panel-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+        .cat-panel-titulo {
+            font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+            color: #18181b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cat-panel-cerrar {
+            width: 1.75rem; height: 1.75rem; border-radius: 9999px; display: inline-flex; align-items: center;
+            justify-content: center; color: #6b7280; background: #f3f4f6; flex-shrink: 0; transition: all .15s ease;
+        }
+        .cat-panel-cerrar:hover { background: #000; color: #facc15; }
+        .cat-panel-lista, .cat-panel-anidado { display: flex; flex-wrap: wrap; gap: .5rem; }
+        .cat-panel-anidado { flex-basis: 100%; padding-left: .75rem; border-left: 2px solid #f3f4f6; }
+        .cat-sub {
+            display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .85rem; border-radius: .75rem;
+            background: #f9fafb; border: 1px solid #e5e7eb; font-size: 12px; font-weight: 700; color: #374151;
+            transition: all .15s ease;
+        }
+        .cat-sub:hover { border-color: #000; color: #000; background: #fff; }
+        .cat-sub:active { transform: scale(.96); }
+        .cat-sub.activa { background: #000; color: #facc15; border-color: #000; }
+        .cat-sub-n { font-size: 10px; font-weight: 900; color: #9ca3af; }
+        .cat-sub.activa .cat-sub-n { color: rgba(250,204,21,.7); }
+        .cat-sub-todo { padding: .35rem .75rem; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+
+        /* Portada por defecto (comercio sin foto): mismo lenguaje que el footer y el logo.
+           Negro de marca, un resplandor amarillo suave, puntos finos y destellos de 4 puntas. */
+        .banner-default {
+            background:
+                radial-gradient(55% 130% at 90% -15%, rgba(250,204,21,.20), transparent 62%),
+                radial-gradient(45% 100% at 5% 120%, rgba(255,255,255,.07), transparent 65%),
+                linear-gradient(180deg, #18181b 0%, #09090b 100%);
+        }
+        .banner-default::before {
+            content: ''; position: absolute; inset: 0;
+            background-image: radial-gradient(rgba(255,255,255,.16) 1.2px, transparent 1.4px);
+            background-size: 24px 24px;
+            -webkit-mask-image: radial-gradient(ellipse 75% 95% at 85% 0%, #000 0%, transparent 70%);
+            mask-image: radial-gradient(ellipse 75% 95% at 85% 0%, #000 0%, transparent 70%);
+        }
+        .banner-default::after {
+            content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 50%;
+            background: linear-gradient(to top, rgba(0,0,0,.45), transparent);
+        }
+        .banner-default .bn-destello { position: absolute; z-index: 1; pointer-events: none; }
+        @keyframes bnTitilar { 0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); } 50% { opacity: .55; transform: scale(.88) rotate(12deg); } }
+        .banner-default .bn-titilar { animation: bnTitilar 5s ease-in-out infinite; }
+        .banner-default .bn-titilar-2 { animation-delay: -2.4s; animation-duration: 6.5s; }
+        @media (prefers-reduced-motion: reduce) { .banner-default .bn-titilar { animation: none; } }
+
+        /* Tarjeta de producto */
+        .prod-card { transition: box-shadow .25s ease, border-color .25s ease; }
+        @media (hover: hover) {
+            .prod-card:hover { border-color: #d1d5db; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
+        }
+
+        /* Botón flotante "subir": aparece mientras se scrollea y se oculta al frenar.
+           Usa las propiedades individuales translate/scale para no pisar el hover (transform) */
+        #btn-subir {
+            right: .75rem;
+            bottom: calc(1.25rem + env(safe-area-inset-bottom));
+            opacity: 0; translate: 14px 0; scale: .9;
+            pointer-events: none;
+            transition: opacity .25s ease, translate .25s ease, scale .25s ease, transform .15s ease, box-shadow .15s ease;
+        }
+        #btn-subir.visible { opacity: 1; translate: 0 0; scale: 1; pointer-events: auto; }
+        @media (min-width: 640px) { #btn-subir { right: 1.5rem; bottom: 1.5rem; } }
+        @media (prefers-reduced-motion: reduce) { #btn-subir { transition: opacity .2s ease; translate: 0 0; scale: 1; } }
+    </style>
+</head>
+<body class="bg-white text-black overflow-x-clip modo-catalogo">
+
+    <!-- HEADER · Dropea (el logo es /dropea-logo.png; si falta se ve el texto) -->
+    <header id="site-header" class="relative z-50 bg-white border-b-2 border-black">
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 h-16 sm:h-[72px] relative flex items-center justify-center">
+
+            <!-- Etiqueta de ciudad: solo en pantallas anchas, a la izquierda para no tapar el logo centrado -->
+            <span class="hidden md:inline-flex absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 items-center gap-1.5 px-3.5 py-2 rounded-full bg-zinc-100 text-zinc-700 text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-5.686 7-11a7 7 0 10-14 0c0 5.314 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                Villa Ángela
+            </span>
+
+            <!-- Logo centrado: es el único acceso a la web de presentación (index.html) -->
+            <a href="index.html" aria-label="Dropea, conocé más sobre Dropea" title="Conocé Dropea" class="group flex items-center select-none">
+                <img src="dropea-logo.png" alt="Dropea"
+                     class="h-11 sm:h-[52px] w-auto object-contain transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105 group-active:scale-95"
+                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                <span class="hidden text-2xl font-black italic tracking-tight uppercase">Dropea</span>
+            </a>
+
+        </div>
+    </header>
+
+    <!-- BARRA DE ANUNCIO (solo si el comercio cargó un texto) -->
+    <div id="perfil-anuncio-wrap" class="hidden anuncio-cinta anuncio-entra border-b-2 border-black text-black" role="status" aria-live="polite">
+        <div class="container mx-auto max-w-5xl px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-center gap-2 sm:gap-3">
+            <span class="inline-flex items-center justify-center flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black text-yellow-400 shadow-[2px_2px_0_0_rgba(255,255,255,.9)]" aria-hidden="true">
+                <svg class="anuncio-icono w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+            </span>
+            <p id="perfil-anuncio-texto" class="min-w-0 text-[12.5px] sm:text-[15px] font-extrabold leading-snug text-center break-words [text-wrap:balance]"></p>
+        </div>
+    </div>
+
+    <!-- CABECERA DE PERFIL -->
+    <section class="relative bg-white pb-8">
+
+        <!-- Portada: imagen del comercio (JS) o, si no cargó una, un fondo sobrio por defecto.
+             emprendedor.js oculta #perfil-banner-patron cuando hay banner. -->
+        <div class="relative w-full h-56 sm:h-80 overflow-hidden bg-zinc-900 border-b border-zinc-200">
+            <div id="perfil-banner" class="absolute inset-0 bg-cover bg-center" role="img" aria-label="Portada"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent pointer-events-none"></div>
+
+            <!-- Portada por defecto -->
+            <div id="perfil-banner-patron" class="banner-default absolute inset-0 overflow-hidden" aria-hidden="true">
+                <svg class="bn-destello bn-titilar top-8 right-8 sm:top-12 sm:right-24 w-12 h-12 sm:w-20 sm:h-20 text-yellow-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+                <svg class="bn-destello bn-titilar bn-titilar-2 top-24 right-24 sm:top-32 sm:right-52 w-5 h-5 sm:w-7 sm:h-7 text-white/60" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+                <svg class="bn-destello bn-titilar top-10 left-8 sm:top-14 sm:left-20 w-4 h-4 sm:w-6 sm:h-6 text-yellow-400/70" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-4 sm:px-6 max-w-5xl relative z-10 text-center">
+
+            <!-- ESTADO: cargando -->
+            <div id="estado-cargando" class="flex flex-col items-center -mt-20 sm:-mt-24" aria-live="polite" aria-busy="true">
+                <div class="relative z-20 mb-6 p-1.5 bg-white rounded-full shadow-sm ring-1 ring-gray-100/50">
+                    <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full cp-skeleton"></div>
+                </div>
+                <div class="h-10 sm:h-12 w-64 sm:w-96 max-w-full rounded-xl cp-skeleton"></div>
+                <div class="h-4 w-full max-w-2xl rounded-full cp-skeleton mt-5"></div>
+                <div class="h-4 w-2/3 max-w-lg rounded-full cp-skeleton mt-2"></div>
+                <div class="flex items-center justify-center gap-3 mt-8">
+                    <div class="h-[46px] w-40 rounded-full cp-skeleton"></div>
+                    <div class="h-12 w-12 rounded-full cp-skeleton"></div>
+                </div>
+                <span class="sr-only">Cargando tienda…</span>
+            </div>
+
+            <!-- ESTADO: error / no existe -->
+            <div id="estado-error" class="hidden mt-12 bg-white rounded-[2rem] shadow-xl border border-gray-100 p-10 sm:p-16 flex flex-col items-center justify-center text-center">
+                <span class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 ring-4 ring-gray-50">
+                    <svg class="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75l1.264-4.42A2.25 2.25 0 016.427 3.6h11.146a2.25 2.25 0 012.163 1.73L21 9.75M3 9.75v8.55A1.7 1.7 0 004.7 20h14.6a1.7 1.7 0 001.7-1.7V9.75M3 9.75h18"/>
+                        <path stroke-linecap="round" d="M15 20v-4.5a1.5 1.5 0 00-1.5-1.5h-3A1.5 1.5 0 009 15.5V20"/>
+                        <path stroke-linecap="round" d="M19.5 19.5l-15-15"/>
+                    </svg>
+                </span>
+                <h1 id="error-titulo" class="text-2xl sm:text-3xl font-black uppercase italic">Esta tienda no existe</h1>
+                <p id="error-texto" class="text-gray-500 mt-3 text-sm sm:text-base max-w-sm">Revisá que el link esté bien escrito o pedile uno nuevo al comercio.</p>
+                <button id="error-reintentar" type="button" onclick="location.reload()" class="hidden inline-flex items-center gap-2 mt-8 bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95 shadow-xl">Reintentar</button>
+                <a href="index.html" class="inline-flex items-center gap-2 mt-4 text-gray-500 font-black uppercase text-[11px] tracking-widest hover:text-black transition-colors">Volver al inicio</a>
+            </div>
+
+            <!-- ESTADO: perfil cargado -->
+            <div id="perfil-contenido" class="hidden flex flex-col items-center -mt-20 sm:-mt-24 animate-fade-in">
+
+                <!-- Avatar -->
+                <div class="relative z-20 mb-6">
+                    <div class="relative w-fit p-1.5 bg-white rounded-full shadow-sm ring-1 ring-gray-100/50">
+                        <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-black text-white flex items-center justify-center">
+                            <img id="perfil-logo" src="" alt="" class="hidden w-full h-full object-cover">
+                            <span id="perfil-logo-inicial" class="text-5xl sm:text-6xl font-black" aria-hidden="true"></span>
+                        </div>
+                    </div>
+                    <span class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-10 w-7 h-7 bg-black text-yellow-400 rounded-full border-[3px] border-white shadow-sm flex items-center justify-center pointer-events-none" title="Emprendedor Verificado">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                    </span>
+                </div>
+
+                <!-- Modo: catálogo / recibe pedidos -->
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">
+                    <span id="perfil-modo-punto" class="punto w-2 h-2 rounded-full bg-gray-300"></span>
+                    <span id="perfil-modo-texto">Catálogo online</span>
+                </span>
+
+                <!-- Identidad -->
+                <h1 id="perfil-nombre" class="text-4xl sm:text-5xl font-black uppercase italic tracking-tighter leading-none text-zinc-900 px-4 break-words max-w-full"></h1>
+                <p id="perfil-bio" class="hidden text-gray-500 text-[15px] sm:text-base font-medium leading-relaxed mt-5 max-w-2xl px-4 whitespace-pre-line break-words"></p>
+
+                <!-- Acciones -->
+                <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
+                    <a id="perfil-whatsapp" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-2.5 bg-black text-white px-8 py-3.5 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95 shadow-md shadow-black/10">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm5.8 14.1c-.25.69-1.43 1.32-1.97 1.38-.5.06-1.14.09-3.7-.97-3.28-1.36-5.4-4.7-5.56-4.92-.16-.22-1.32-1.76-1.32-3.36s.84-2.39 1.14-2.72c.3-.33.65-.41.87-.41h.63c.2 0 .47-.08.73.55.27.65.91 2.25.99 2.41.08.16.13.35.03.57-.1.22-.16.35-.31.54-.16.19-.33.42-.47.56-.16.16-.32.33-.14.65.19.32.82 1.35 1.76 2.18 1.2 1.07 2.22 1.4 2.54 1.56.32.16.5.14.69-.08.19-.22.8-.93 1.01-1.25.22-.32.43-.27.73-.16.3.11 1.9.9 2.22 1.06.32.16.54.24.62.37.08.13.08.76-.17 1.45z"/></svg>
+                        Contactar
+                    </a>
+                    <a id="perfil-instagram" href="#" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram" class="hidden w-12 h-12 rounded-full items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-all active:scale-95"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg></a>
+                    <a id="perfil-facebook" href="#" target="_blank" rel="noopener" title="Facebook" aria-label="Facebook" class="hidden w-12 h-12 rounded-full items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-all active:scale-95"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M22 12.06C22 6.505 17.523 2 12 2S2 6.505 2 12.06c0 5.022 3.657 9.184 8.438 9.94v-7.03H7.898v-2.91h2.54V9.845c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.459h-1.26c-1.243 0-1.63.771-1.63 1.562v1.876h2.773l-.443 2.91h-2.33V22c4.78-.756 8.437-4.918 8.437-9.94z"/></svg></a>
+                    <a id="perfil-tiktok" href="#" target="_blank" rel="noopener" title="TikTok" aria-label="TikTok" class="hidden w-12 h-12 rounded-full items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-all active:scale-95"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M16.6 5.82A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
+                </div>
+
+                <!-- Panel de información: cada ítem aparece solo si el comercio cargó el dato -->
+                <div id="perfil-info-panel" class="hidden w-full max-w-4xl mx-auto mt-8 sm:mt-12 px-4 sm:px-0">
+                    <div class="bg-gray-50/70 border border-gray-100 rounded-2xl sm:rounded-3xl p-4 sm:px-7 sm:py-6 info-grid flex flex-wrap md:items-start gap-x-4 gap-y-3.5 md:gap-x-6 md:gap-y-5">
+                        <div id="perfil-ubicacion-wrap" class="perfil-info-item info-ubicacion hidden items-start gap-3 sm:gap-4 text-left">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="2.5"/></svg></div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Ubicación</span>
+                                <span id="perfil-ubicacion" class="text-sm font-semibold text-gray-900 leading-snug break-words line-clamp-2"></span>
+                                <a id="perfil-mapa" href="#" target="_blank" rel="noopener" class="hidden text-yellow-600 text-[10px] font-black uppercase tracking-wider hover:underline mt-1.5 w-fit">Ver en mapa →</a>
+                            </div>
+                        </div>
+                        <div id="perfil-horario-wrap" class="perfil-info-item hidden items-start gap-3 sm:gap-4 text-left info-horario">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3.5 2"/></svg></div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Atención</span>
+                                <span id="perfil-horario" class="text-sm font-semibold text-gray-900 leading-snug whitespace-pre-line break-words"></span>
+                            </div>
+                        </div>
+                        <div id="perfil-envio-wrap" class="perfil-info-item info-envio hidden items-start gap-3 sm:gap-4 text-left">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M1 3h13v13H1zM14 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg></div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Envío</span>
+                                <span id="perfil-envio" class="text-sm font-semibold text-gray-900"></span>
+                            </div>
+                        </div>
+                        <div id="perfil-medios-pago-wrap" class="perfil-info-item hidden items-start gap-3 sm:gap-4 text-left info-medios">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path stroke-linecap="round" d="M2.5 9.5h19"/></svg></div>
+                            <div class="contents md:flex md:flex-row md:items-center md:gap-4 md:min-w-0 md:flex-1">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 h-9 flex items-center md:h-auto">Acepta</span>
+                                <div id="perfil-medios-pago" class="flex flex-wrap gap-1.5 basis-full md:basis-auto"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATÁLOGO -->
+    <main id="seccion-catalogo" class="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl hidden">
+
+        <!-- BUSCADOR FLOTANTE (buscador + carrito). Hijo directo de <main> para que el
+             position:sticky tenga recorrido por toda la grilla y acompañe el scroll.
+             Funciona como el de la home: al escribir se muestran sugerencias; el catálogo
+             se filtra recién con Enter o con "Ver los N resultados" (ver emprendedor.js). -->
+        <div id="catalogo-filtros" class="hidden sticky z-[45] max-w-3xl mx-auto mb-5 sm:mb-6" style="top: .75rem;">
+
+            <div class="flex items-center gap-2 p-1.5 pr-1.5 bg-white border-2 border-black rounded-full shadow-[4px_4px_0_0_#000] transition-shadow duration-200 focus-within:shadow-[4px_4px_0_0_#facc15]">
+
+                <span class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-yellow-400 border-2 border-black flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                    <svg class="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+                </span>
+
+                <input type="text" id="catalogo-buscar" inputmode="search" enterkeyhint="search" autocomplete="off"
+                       placeholder="Buscar en esta tienda" aria-label="Buscar productos" aria-controls="catalogo-sugerencias"
+                       class="flex-1 min-w-0 bg-transparent border-0 focus:outline-none focus:ring-0 px-1 py-2 text-sm font-black text-zinc-900 placeholder:text-zinc-400 placeholder:font-bold">
+
+                <button type="button" id="catalogo-buscar-clear" aria-label="Borrar búsqueda"
+                        class="hidden w-7 h-7 rounded-full bg-zinc-100 hover:bg-zinc-200 items-center justify-center text-zinc-600 transition-colors flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg>
+                </button>
+
+                <!-- Carrito: solo en tiendas que reciben pedidos (.solo-pedidos lo oculta en modo catálogo) -->
+                <button type="button" onclick="abrirCarrito()" aria-label="Abrir carrito"
+                        class="solo-pedidos relative inline-flex items-center justify-center gap-2 h-9 sm:h-10 min-w-[2.25rem] px-2.5 sm:px-4 rounded-full bg-black text-white text-[11px] font-black uppercase tracking-widest transition-all hover:bg-zinc-800 active:scale-95 flex-shrink-0">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/>
+                        <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                        <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                    </svg>
+                    <span class="max-sm:hidden">Carrito</span>
+                    <span id="badge-carrito" class="hidden absolute -top-2 -right-1.5 bg-yellow-400 text-black text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-black">0</span>
+                </button>
+            </div>
+
+            <!-- Sugerencias en vivo: flotan debajo de la píldora -->
+            <div id="catalogo-sugerencias" role="listbox" aria-label="Sugerencias"
+                 class="hidden absolute left-0 right-0 top-[calc(100%+10px)] bg-white border-2 border-black rounded-3xl shadow-[4px_4px_0_0_#000] overflow-hidden overflow-y-auto max-h-[70vh] z-10"></div>
+        </div>
+
+        <div id="catalogo-categorias" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mb-6 sm:mb-8"></div>
+
+        <div id="catalogo-contenido" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+            <div class="rounded-2xl cp-skeleton aspect-[4/5]"></div>
+            <div class="rounded-2xl cp-skeleton aspect-[4/5]"></div>
+            <div class="rounded-2xl cp-skeleton aspect-[4/5] hidden md:block"></div>
+            <div class="rounded-2xl cp-skeleton aspect-[4/5] hidden lg:block"></div>
+        </div>
+        <!-- Tienda recién creada (todavía sin productos) -->
+        <div id="catalogo-armando" class="hidden flex flex-col items-center text-center bg-white border-2 border-black rounded-3xl shadow-[6px_6px_0_0_#000] px-6 py-10 sm:py-14 max-w-xl mx-auto animate-fade-in">
+            <svg viewBox="10 10 160 150" class="w-44 sm:w-52 h-auto" role="img" aria-label="Engranajes">
+                <!-- Engranaje grande (amarillo) -->
+                <g transform="translate(70 70)">
+                    <g>
+                        <path d="M29.68 16.59 L38.60 25.92 L32.23 33.52 L21.49 26.35 A34 34 0 0 1 14.26 30.86 L16.00 43.66 L6.38 46.06 L1.90 33.95 A34 34 0 0 1 -6.60 33.35 L-12.72 44.73 L-21.92 41.01 L-18.42 28.58 A34 34 0 0 1 -24.95 23.10 L-36.58 28.70 L-41.84 20.30 L-31.70 12.30 A34 34 0 0 1 -33.76 4.03 L-46.47 1.72 L-45.78 -8.17 L-32.87 -8.69 A34 34 0 0 1 -29.68 -16.59 L-38.60 -25.92 L-32.23 -33.52 L-21.49 -26.35 A34 34 0 0 1 -14.26 -30.86 L-16.00 -43.66 L-6.38 -46.06 L-1.90 -33.95 A34 34 0 0 1 6.60 -33.35 L12.72 -44.73 L21.92 -41.01 L18.42 -28.58 A34 34 0 0 1 24.95 -23.10 L36.58 -28.70 L41.84 -20.30 L31.70 -12.30 A34 34 0 0 1 33.76 -4.03 L46.47 -1.72 L45.78 8.17 L32.87 8.69 A34 34 0 0 1 29.68 16.59 Z" fill="#facc15" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+                        <circle r="17" fill="#fff" stroke="#000" stroke-width="3"/>
+                        <circle r="6" fill="#000"/>
+                    </g>
+                </g>
+                <!-- Engranaje chico (negro), engranado con el grande -->
+                <g transform="translate(124.4 115.6)">
+                    <g>
+                        <path d="M-14.06 -16.92 L-18.80 -28.92 L-9.24 -33.24 L-3.39 -21.74 A22 22 0 0 1 4.47 -21.54 L10.89 -32.74 L20.22 -27.95 L14.88 -16.20 A22 22 0 0 1 19.63 -9.94 L32.38 -11.90 L34.46 -1.62 L21.95 1.53 A22 22 0 0 1 20.01 9.15 L29.49 17.90 L22.75 25.94 L12.48 18.12 A22 22 0 0 1 5.32 21.35 L4.39 34.22 L-6.09 33.96 L-6.38 21.05 A22 22 0 0 1 -13.37 17.47 L-24.02 24.77 L-30.35 16.41 L-20.44 8.14 A22 22 0 0 1 -22.00 0.44 L-34.34 -3.33 L-31.75 -13.50 L-19.11 -10.90 A22 22 0 0 1 -14.06 -16.92 Z" fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+                        <circle r="11" fill="#fff" stroke="#000" stroke-width="3"/>
+                        <circle r="4" fill="#facc15"/>
+                    </g>
+                </g>
+                <!-- Chispas -->
+                <path d="M148 28v14M141 35h14" stroke="#000" stroke-width="3" stroke-linecap="round" fill="none"/>
+                <path d="M30 128v8M26 132h8" stroke="#facc15" stroke-width="3" stroke-linecap="round" fill="none"/>
+                <circle cx="150" cy="70" r="3" fill="#facc15" stroke="#000" stroke-width="1.5"/>
+            </svg>
+            <span class="mt-5 inline-flex items-center gap-2 bg-yellow-400 border-2 border-black rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+                <span class="w-1.5 h-1.5 rounded-full bg-black"></span>En preparación
+            </span>
+            <h2 class="mt-4 text-xl sm:text-2xl font-black uppercase italic leading-tight text-zinc-900">Este comercio está armando su catálogo</h2>
+            <p class="mt-2.5 text-sm sm:text-base text-zinc-500 font-medium max-w-sm leading-relaxed">Estamos dejando todo a punto. Volvé mas tarde y vas a encontrar sus productos acá.</p>
+        </div>
+        <p id="catalogo-vacio" class="hidden bg-gray-50/80 border border-gray-100 rounded-3xl p-10 text-center text-gray-400 text-xs font-black uppercase tracking-widest"></p>
+    </main>
+
+    <!-- MODAL DE DETALLE DE PRODUCTO -->
+    <div id="modal-producto-overlay" class="fixed inset-0 z-[60]" onclick="cerrarModal()"></div>
+    <div id="modal-producto" class="fixed z-[61]" role="dialog" aria-modal="true" aria-labelledby="modal-nombre">
+        <div class="sm:hidden flex justify-center pt-2.5 pb-1 flex-shrink-0">
+            <span class="w-10 h-1 rounded-full bg-zinc-300"></span>
+        </div>
+
+        <button onclick="cerrarModal()" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/95 border border-zinc-200 shadow-sm flex items-center justify-center text-zinc-600 hover:text-zinc-900 hover:bg-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900" aria-label="Cerrar">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <!-- Copiar enlace del producto (para compartirlo) -->
+        <button type="button" id="modal-btn-copiar-enlace" onclick="copiarEnlaceProductoModal()" class="absolute top-3 right-14 z-10 w-9 h-9 rounded-full bg-white/95 border border-zinc-200 shadow-sm flex items-center justify-center text-zinc-600 hover:text-zinc-900 hover:bg-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900" aria-label="Copiar enlace del producto" title="Copiar enlace">
+            <svg class="icono-enlace w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1M10.5 13.5a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/></svg>
+            <svg class="icono-copiado hidden w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </button>
+
+        <div class="overflow-y-auto flex-1 min-h-0 sm:grid sm:grid-cols-2">
+            <!-- Imagen -->
+            <div class="zoom-trigger group relative aspect-[3/2] sm:aspect-auto sm:self-stretch sm:min-h-[440px] bg-zinc-50 border-b border-zinc-100 sm:border-b-0 sm:border-r flex-shrink-0 flex items-center justify-center cursor-zoom-in overflow-hidden" onclick="abrirLightboxImagen()" role="button" tabindex="0" aria-label="Ampliar imagen del producto" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirLightboxImagen();}">
+                <img id="modal-img" src="" alt="" class="zoom-img w-full h-full object-contain p-4 sm:p-8 transition-transform duration-300 pointer-events-none">
+                <span class="zoom-badge opacity-90 sm:opacity-0 scale-100 sm:scale-90 absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/95 border border-zinc-200 shadow-sm text-zinc-700 flex items-center justify-center pointer-events-none">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <circle cx="10.5" cy="10.5" r="6.5"/>
+                        <path stroke-linecap="round" d="M20 20l-4.35-4.35"/>
+                        <path stroke-linecap="round" d="M10.5 8v5M8 10.5h5"/>
+                    </svg>
+                </span>
+            </div>
+
+            <!-- Detalle -->
+            <div class="p-5 sm:p-8 flex flex-col sm:justify-center min-w-0">
+                <!-- Tienda -->
+                <div class="flex items-center gap-1.5 min-w-0 sm:pr-20 text-zinc-500">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"/></svg>
+                    <span id="modal-tienda" class="text-[13px] font-medium truncate">Tienda</span>
+                </div>
+
+                <h2 id="modal-nombre" class="mt-2 text-2xl sm:text-[1.75rem] font-semibold tracking-tight leading-tight text-zinc-900 break-words [overflow-wrap:anywhere]">Nombre</h2>
+
+                <!-- Categoría + etiquetas -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-3 empty:hidden">
+                    <span id="modal-categoria" class="empty:hidden px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-600 text-xs font-medium"></span>
+                    <span id="modal-badge-nuevo" class="hidden px-2.5 py-1 rounded-md bg-zinc-900 text-white text-xs font-medium">Nuevo</span>
+                    <span id="modal-badge-sin-stock" class="hidden px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-500 text-xs font-medium">Sin stock</span>
+                    <span id="modal-badge-destacado" class="hidden items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium">
+                        <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 2.5z"/></svg>
+                        Destacado
+                    </span>
+                </div>
+
+                <!-- Precio -->
+                <div class="mt-5">
+                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <p id="modal-precio" class="text-3xl font-semibold tracking-tight leading-none text-zinc-900 tabular-nums">$0.00</p>
+                        <p id="modal-precio-anterior" class="hidden text-base text-zinc-400 line-through tabular-nums">$0.00</p>
+                        <span id="modal-badge-oferta" class="hidden px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold">-0%</span>
+                    </div>
+                    <button type="button" id="modal-medios-pago-wrap" onclick="abrirModalMediosPago()" class="hidden items-center gap-1.5 mt-3 text-[13px] font-medium text-zinc-600 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/>
+                            <path stroke-linecap="round" d="M2.5 9.5h19"/>
+                        </svg>
+                        <span class="underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900">Ver medios de pago</span>
+                    </button>
+                </div>
+
+                <div id="modal-variantes" class="mt-5 space-y-4 empty:hidden"></div>
+
+                <div id="modal-desc-wrap" class="mt-6 pt-5 border-t border-zinc-100">
+                    <h3 class="text-sm font-semibold text-zinc-900">Descripción</h3>
+                    <p id="modal-desc" class="mt-2 text-zinc-600 leading-relaxed text-sm break-words [overflow-wrap:anywhere]">Descripción...</p>
+                </div>
+
+                <div id="modal-acciones" class="mt-6 -mx-5 sm:-mx-8 -mb-5 sm:-mb-8 px-5 sm:px-8 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-6 sticky bottom-0 bg-white border-t border-zinc-100 shadow-[0_-8px_16px_-12px_rgba(9,9,11,.14)]">
+                    <div class="flex items-stretch gap-3">
+                        <div class="inline-flex items-center rounded-xl border border-zinc-300 bg-white flex-shrink-0">
+                            <button onclick="modificarCantidadModal(-1)" class="w-10 h-12 rounded-l-xl text-xl leading-none text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900" aria-label="Menos">−</button>
+                            <span id="modal-cantidad" class="w-8 text-center text-sm font-semibold text-zinc-900 tabular-nums" aria-live="polite">1</span>
+                            <button onclick="modificarCantidadModal(1)" class="w-10 h-12 rounded-r-xl text-xl leading-none text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900" aria-label="Más">+</button>
+                        </div>
+                        <button id="modal-btn-agregar" onclick="agregarAlCarrito()" class="flex-1 inline-flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-zinc-900 text-white text-sm font-semibold transition-colors enabled:hover:bg-zinc-800 enabled:active:scale-[.99] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2">
+                            <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/></svg>
+                            <span id="modal-btn-agregar-texto">Agregar al carrito</span>
+                        </button>
+                    </div>
+                    <a id="modal-whatsapp" href="#" target="_blank" rel="noopener" class="mt-3 inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-zinc-300 bg-white text-zinc-800 text-sm font-semibold hover:bg-zinc-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2">
+                        <svg class="w-[18px] h-[18px] flex-shrink-0 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+                        <span>Consultar por WhatsApp</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX: imagen de producto ampliada, con zoom y desplazamiento -->
+    <div id="lightbox-imagen" class="fixed inset-0 z-[120] hidden flex-col" role="dialog" aria-modal="true" aria-label="Imagen ampliada del producto">
+        <div id="lightbox-imagen-overlay" class="absolute inset-0" onclick="cerrarLightboxImagen()"></div>
+
+        <!-- Barra superior -->
+        <div class="lightbox-header">
+            <p id="lightbox-imagen-titulo" class="lightbox-titulo"></p>
+            <button type="button" onclick="cerrarLightboxImagen()" aria-label="Cerrar imagen" class="lightbox-btn-cerrar">
+                <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Escenario: pinch para zoom, arrastre para desplazar, doble toque para alternar zoom -->
+        <div id="lightbox-imagen-viewport">
+            <div id="lightbox-imagen-marco">
+                <img id="lightbox-imagen-img" src="" alt="" draggable="false">
+            </div>
+        </div>
+
+        <!-- Controles de zoom -->
+        <div class="lightbox-chrome">
+            <div class="lightbox-zoom-bar" role="group" aria-label="Controles de zoom">
+                <button type="button" onclick="lightboxZoomOut()" aria-label="Alejar" class="lightbox-zoom-btn">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25">
+                        <path stroke-linecap="round" d="M5 12h14" />
+                    </svg>
+                </button>
+                <span class="lightbox-zoom-sep" aria-hidden="true"></span>
+                <button type="button" id="lightbox-zoom-reset" onclick="lightboxZoomReset()" aria-label="Restablecer zoom" class="lightbox-zoom-btn opacity-40 pointer-events-none">
+                    100%
+                </button>
+                <span class="lightbox-zoom-sep" aria-hidden="true"></span>
+                <button type="button" onclick="lightboxZoomIn()" aria-label="Acercar" class="lightbox-zoom-btn">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25">
+                        <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER CARRITO -->
+    <div id="carrito-overlay" class="fixed inset-0 bg-black/85 z-[80] hidden" onclick="cerrarCarrito()"></div>
+    <div id="carrito-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[90] shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <span class="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6" />
+                        <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                        <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                    </svg>
+                </span>
+                <div>
+                    <h2 class="text-xl font-black uppercase italic leading-none">Tu carrito</h2>
+                    <p id="carrito-subtitulo" class="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">Vacío</p>
+                </div>
+            </div>
+            <button onclick="cerrarCarrito()" aria-label="Cerrar carrito" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-black hover:text-white flex items-center justify-center text-gray-500 transition-colors flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="carrito-items" class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3"></div>
+
+        <div class="border-t border-gray-100 px-4 sm:px-6 py-5 flex-shrink-0 bg-gray-50/60">
+            <div id="carrito-modalidad-envio" class="mb-4 hidden">
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">¿Cómo lo recibís?</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="btn-modalidad-envio" onclick="seleccionarModalidadEntrega(true)"
+                        class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-gray-200 bg-white text-gray-500 py-2.5 px-2 text-[11px] font-bold uppercase tracking-wide transition-all">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v8H3V7zm11 3h4l3 3v2h-7v-5zM5.5 20a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm12 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                        </svg>
+                        Envío a domicilio
+                    </button>
+                    <button type="button" id="btn-modalidad-retiro" onclick="seleccionarModalidadEntrega(false)"
+                        class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-gray-200 bg-white text-gray-500 py-2.5 px-2 text-[11px] font-bold uppercase tracking-wide transition-all">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1v-9.5z" />
+                        </svg>
+                        Retiro en el local
+                    </button>
+                </div>
+            </div>
+            <div class="mb-4 space-y-1.5">
+                <div id="carrito-fila-subtotal" class="flex items-center justify-between hidden">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Subtotal</span>
+                    <span id="carrito-subtotal" class="text-sm font-bold text-gray-600">$0.00</span>
+                </div>
+                <div id="carrito-fila-envio" class="flex items-center justify-between hidden">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Envío</span>
+                    <span id="carrito-envio" class="text-sm font-bold text-gray-600">$0.00</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total</span>
+                    <span id="carrito-total" class="text-2xl font-black">$0.00</span>
+                </div>
+            </div>
+            <button id="carrito-whatsapp-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-3 bg-black text-white w-full py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4l16 8-16 8 4-8-4-8z" />
+                </svg>
+                Enviar pedido
+            </button>
+            <button onclick="vaciarCarrito()" class="w-full mt-3 text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">
+                Vaciar carrito
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL MEDIOS DE PAGO (secundario, se abre desde el modal de producto) -->
+    <div id="modal-medios-pago-modal" class="fixed inset-0 z-[65] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarModalMediosPago()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-black uppercase italic leading-tight">Medios de pago disponibles</h3>
+                <button onclick="cerrarModalMediosPago()" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors" aria-label="Cerrar">✕</button>
+            </div>
+            <div id="modal-medios-pago-lista" class="flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+
+    <!-- MODAL QR PEDIDO: en PC, escaneás con el celular para abrir WhatsApp -->
+    <div id="modal-qr-pedido" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85" onclick="intentarCerrarModalQr()"></div>
+        <div class="bg-white w-full max-w-[440px] rounded-3xl relative z-10 p-8 shadow-2xl animate-fade-in text-center">
+            <button onclick="intentarCerrarModalQr()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
+
+            <h3 class="text-xl font-black uppercase italic leading-tight pr-6">Escaneá y enviá tu pedido</h3>
+            <p class="text-gray-400 text-xs font-semibold leading-snug mt-1.5">
+                Apuntá la cámara del celular al código
+            </p>
+
+            <div class="mt-6 flex items-center justify-center">
+                <!-- Marco decorativo tipo "visor de escaneo" alrededor del QR -->
+                <div class="relative p-5 bg-white rounded-2xl border border-gray-100">
+                    <span class="absolute -top-0.5 -left-0.5 w-7 h-7 border-t-[3px] border-l-[3px] border-black rounded-tl-xl"></span>
+                    <span class="absolute -top-0.5 -right-0.5 w-7 h-7 border-t-[3px] border-r-[3px] border-black rounded-tr-xl"></span>
+                    <span class="absolute -bottom-0.5 -left-0.5 w-7 h-7 border-b-[3px] border-l-[3px] border-black rounded-bl-xl"></span>
+                    <span class="absolute -bottom-0.5 -right-0.5 w-7 h-7 border-b-[3px] border-r-[3px] border-black rounded-br-xl"></span>
+                    <div id="qr-pedido-canvas" class="w-[260px] h-[260px] flex items-center justify-center bg-white rounded-lg">
+                        <!-- loader o canvas del QR, generado por JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 my-6">
+                <div class="flex-1 h-px bg-gray-100"></div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-300">o</span>
+                <div class="flex-1 h-px bg-gray-100"></div>
+            </div>
+
+            <button onclick="abrirWhatsappWebPedido()" class="w-full inline-flex items-center justify-center gap-2 border-2 border-black py-3 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-gray-50 transition-all active:scale-95">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4l16 8-16 8 4-8-4-8z" />
+                </svg>
+                Ya tengo WhatsApp Web abierto
+            </button>
+
+            <button onclick="confirmarPedidoEnviadoDesdeQr()" class="mt-3 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+                Ya envié el pedido
+            </button>
+
+            <button onclick="volverAlCarritoDesdeQr()" class="mt-3.5 text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">
+                Me olvidé de agregar algo
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL CONFLICTO CARRITO -->
+    <div id="modal-conflicto-carrito" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarConflictoCarrito()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
+            <span class="w-14 h-14 rounded-full bg-yellow-400 text-black inline-flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6" />
+                    <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                    <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                </svg>
+            </span>
+            <h3 class="text-xl font-black uppercase italic mt-4 leading-tight">Un emprendedor<br>por carrito</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mt-3">
+                Tu carrito ya tiene productos de <strong id="conflicto-tienda-actual" class="text-black">otra tienda</strong>. Para pedirle a otro emprendedor termina tu compra actual.
+            </p>
+            <div class="mt-7 flex flex-col gap-3">
+                <button onclick="confirmarReemplazoCarrito()" class="w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+                    Vaciar carrito y agregar este
+                </button>
+                <button onclick="cerrarConflictoCarrito()" class="w-full border-2 border-black py-3.5 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-gray-50 transition-all active:scale-95">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SIN WHATSAPP: el emprendedor todavía no cargó un número para recibir pedidos -->
+    <div id="modal-sin-whatsapp" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="sin-whatsapp-titulo">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarModalSinWhatsapp()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
+            <button type="button" onclick="cerrarModalSinWhatsapp()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
+
+            <span class="w-16 h-16 rounded-full bg-yellow-400 text-black inline-flex items-center justify-center ring-8 ring-yellow-400/20">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                    <path d="M12 8v3.5"/>
+                    <path d="M12 14.6h.01"/>
+                </svg>
+            </span>
+
+            <h3 id="sin-whatsapp-titulo" class="text-xl font-black uppercase italic mt-5 leading-tight">Todavía no recibe<br>pedidos por acá</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mt-3">
+                <strong id="sin-whatsapp-tienda" class="text-black">Este emprendedor</strong> todavía no cargó un número de WhatsApp para recibir pedidos.
+            </p>
+
+            <div class="mt-5 flex items-start gap-3 bg-gray-50 border border-gray-100 rounded-2xl p-3.5 text-left">
+                <span class="w-6 h-6 rounded-full bg-black text-yellow-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+                </span>
+                <p class="text-xs text-gray-500 font-semibold leading-snug">
+                    Tu carrito no se borró. Fijate si tiene redes u otra forma de contacto en su perfil, o probá de nuevo más tarde.
+                </p>
+            </div>
+
+            <button type="button" id="sin-whatsapp-btn-ok" onclick="cerrarModalSinWhatsapp()" class="mt-6 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast-carrito" class="fixed bottom-6 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 mx-auto max-w-sm sm:max-w-md w-fit bg-black text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-2xl sm:rounded-full font-bold text-xs sm:text-sm uppercase tracking-widest shadow-2xl z-[110] hidden items-center justify-center text-center gap-2">
+        <svg class="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <span id="toast-carrito-texto" class="leading-snug">Agregado al carrito</span>
+    </div>
+
+
+    <!-- FOOTER · Dropea -->
+    <footer class="relative overflow-hidden bg-zinc-950 text-white mt-12 sm:mt-20 rounded-t-3xl sm:rounded-t-[2.5rem]">
+
+        <!-- Destellos decorativos (mismo lenguaje que el logo). En mobile queda solo uno, chico. -->
+        <svg class="pointer-events-none absolute top-5 right-5 sm:top-8 sm:right-16 w-7 h-7 sm:w-12 sm:h-12 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+        <svg class="max-sm:hidden pointer-events-none absolute top-24 right-36 w-5 h-5 text-white/50" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+
+        <div class="container mx-auto max-w-7xl px-5 sm:px-6 pt-9 sm:pt-14 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-8">
+
+            <!-- Marca + llamado a la acción -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 sm:gap-10">
+                <div class="max-w-sm sm:max-w-md pr-10 sm:pr-0">
+                    <img src="dropea-logo.png" alt="Dropea" loading="lazy"
+                         class="h-12 sm:h-20 w-auto object-contain -ml-1 invert"
+                         onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                    <span class="hidden text-3xl sm:text-5xl font-black italic tracking-tight uppercase">Dropea</span>
+                    <p class="mt-3 sm:mt-4 text-sm sm:text-base font-semibold text-zinc-400 leading-relaxed">
+                        Un catalogo para cada negocio. Pedí el tuyo y empeza a dropearlo.
+                    </p>
+                </div>
+
+                <a href="index.html"
+                   class="w-full sm:w-auto flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-full bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_0_#facc15] sm:shadow-[5px_5px_0_0_#facc15] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_#facc15] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
+                    Ver más tiendas
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                </a>
+            </div>
+
+            <!-- Enlaces del pie -->
+            <nav aria-label="Enlaces del pie" class="mt-7 sm:mt-10 pt-5 border-t border-white/10 flex flex-wrap items-center gap-x-5 sm:gap-x-6 gap-y-3">
+                <a href="index.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-yellow-400 transition-colors">Inicio</a>
+                <a href="registro.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-yellow-400 transition-colors">Quiero mi perfil</a>
+                <a href="legales.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-yellow-400 transition-colors">Legales</a>
+            </nav>
+
+            <!-- Créditos: texto normal (no mayúsculas) para que no se parta en 3 líneas -->
+            <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-[11px] sm:text-xs font-medium text-zinc-500">
+                <p>© 2026 Dropea. Todos los derechos reservados.</p>
+                <p>Diseñado y desarrollado por Hostara</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- BOTÓN FLOTANTE: SUBIR (aparece al scrollear, se oculta al frenar) -->
+    <button type="button" id="btn-subir" aria-label="Volver arriba" aria-hidden="true" tabindex="-1"
+            class="fixed z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white border-2 border-black text-black shadow-[3px_3px_0_0_#facc15] flex items-center justify-center hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0_0_#facc15] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/></svg>
+    </button>
+    <script>
+        (function () {
+            var btn = document.getElementById('btn-subir');
+            if (!btn) return;
+            var UMBRAL = 400;   // px scrolleados para que pueda aparecer
+            var ESPERA = 1200;  // ms sin scrollear para ocultarlo
+            var timer = null, visible = false, retenido = false;
+
+            function mostrar() {
+                if (visible) return;
+                visible = true;
+                btn.classList.add('visible');
+                btn.tabIndex = 0;
+                btn.removeAttribute('aria-hidden');
+            }
+            function ocultar() {
+                if (!visible) return;
+                visible = false;
+                btn.classList.remove('visible');
+                btn.tabIndex = -1;
+                btn.setAttribute('aria-hidden', 'true');
+            }
+            function programar() {
+                clearTimeout(timer);
+                timer = setTimeout(function () { if (!retenido) ocultar(); }, ESPERA);
+            }
+            function retener() { retenido = true; clearTimeout(timer); }
+            function soltar() { retenido = false; programar(); }
+
+            window.addEventListener('scroll', function () {
+                if (window.scrollY > UMBRAL) { mostrar(); if (!retenido) programar(); }
+                else { clearTimeout(timer); ocultar(); }
+            }, { passive: true });
+
+            // En PC no se esconde mientras el mouse está encima o tiene el foco (para poder clickearlo)
+            btn.addEventListener('mouseenter', retener);
+            btn.addEventListener('mouseleave', soltar);
+            btn.addEventListener('focus', retener);
+            btn.addEventListener('blur', soltar);
+
+            btn.addEventListener('click', function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
+    </script>
+
+    <!-- Rutas absolutas ("/"): esta página se sirve desde /tienda/<usuario> -->
+    <script src="supabase-client.js"></script>
+    <script src="emprendedor.js"></script>
+</body>
+</html>
