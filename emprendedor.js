@@ -234,6 +234,7 @@ function renderPerfil(e) {
     configurarRedSocial('perfil-tiktok', e.tiktok);
 
     renderInfoLocal(e, pedidos);
+    cargarCarritoDeTienda(e.id);
     if (typeof actualizarCarritoUI === 'function') actualizarCarritoUI();
 }
 
@@ -1218,22 +1219,34 @@ function iniciarLightbox() {
 }
 
 // ------------------------------------------------------------
-// CARRITO (se guarda en el navegador; un solo comercio por carrito)
+// CARRITO (se guarda en el navegador; cada comercio tiene su propio carrito)
 // ------------------------------------------------------------
 const CLAVE_CARRITO = 'ce_carrito_tienda';
-let carrito = leerCarrito();         // { emprendedorId, tienda, items: [...] }
+let carrito = { emprendedorId: null, tienda: '', items: [] };  // { emprendedorId, tienda, items: [...] }
+let carritoCargadoDe = null;         // id del comercio cuyo carrito está en memoria
 let modalidadEnvio = null;           // null = sin elegir, true = envío, false = retiro
 let conflictoPendiente = null;
 
-function leerCarrito() {
+function claveCarrito(id) { return `${CLAVE_CARRITO}:${id}`; }
+function leerCarrito(id) {
     try {
-        const c = JSON.parse(localStorage.getItem(CLAVE_CARRITO) || 'null');
+        const c = JSON.parse(localStorage.getItem(claveCarrito(id)) || 'null');
         if (c && Array.isArray(c.items)) return c;
     } catch { /* noop */ }
-    return { emprendedorId: null, tienda: '', items: [] };
+    return { emprendedorId: id, tienda: '', items: [] };
 }
 function guardarCarrito() {
-    try { localStorage.setItem(CLAVE_CARRITO, JSON.stringify(carrito)); } catch { /* noop */ }
+    const id = carritoCargadoDe;
+    if (id == null) return;
+    try { localStorage.setItem(claveCarrito(id), JSON.stringify(carrito)); } catch { /* noop */ }
+}
+// Carga el carrito del comercio que se está viendo (al cambiar de tienda
+// aparece el de esa tienda, no el de la anterior)
+function cargarCarritoDeTienda(id) {
+    if (String(carritoCargadoDe) === String(id)) return;
+    carritoCargadoDe = id;
+    carrito = leerCarrito(id);
+    modalidadEnvio = null;
 }
 
 // Devuelve true si el producto quedó en el carrito
@@ -1308,7 +1321,7 @@ async function vaciarCarrito() {
     limpiarCarrito();
 }
 function limpiarCarrito() {
-    carrito = { emprendedorId: null, tienda: '', items: [] };
+    carrito = { emprendedorId: carritoCargadoDe, tienda: '', items: [] };
     modalidadEnvio = null;
     guardarCarrito();
     actualizarCarritoUI();
