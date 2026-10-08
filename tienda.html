@@ -27,9 +27,9 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn .5s ease-out forwards; }
 
-        /* Barra de anuncio: cinta amarilla con rayas sutiles + megáfono que "suena" al aparecer */
+        /* Barra de anuncio: cinta azul con rayas sutiles + megáfono que "suena" al aparecer */
         .anuncio-cinta {
-            background-color: #facc15;
+            background-color: #1e40af;
             background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.055) 0 10px, transparent 10px 20px);
         }
         @keyframes anuncioSonar {
@@ -318,15 +318,15 @@
         }
         .cat-chip:hover { border-color: #000; color: #000; }
         .cat-chip:active { transform: scale(.95); }
-        .cat-chip.activa { background: #000; color: #facc15; border-color: #000; }
+        .cat-chip.activa { background: #000; color: #60a5fa; border-color: #000; }
         .cat-chip { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
         .cat-chip.abierta { border-color: #000; color: #000; }
-        .cat-chip.activa.abierta { color: #facc15; }
+        .cat-chip.activa.abierta { color: #60a5fa; }
         .cat-chevron { display: inline-flex; transition: transform .2s ease; }
         .cat-chip.abierta .cat-chevron { transform: rotate(180deg); }
         .cat-chip-sub {
             max-width: 9rem; overflow: hidden; text-overflow: ellipsis; padding-left: .4rem;
-            border-left: 1px solid rgba(250,204,21,.45); font-weight: 700; letter-spacing: .05em;
+            border-left: 1px solid rgba(96,165,250,.45); font-weight: 700; letter-spacing: .05em;
         }
 
         /* Panel de subcategorías */
@@ -344,7 +344,7 @@
             width: 1.75rem; height: 1.75rem; border-radius: 9999px; display: inline-flex; align-items: center;
             justify-content: center; color: #6b7280; background: #f3f4f6; flex-shrink: 0; transition: all .15s ease;
         }
-        .cat-panel-cerrar:hover { background: #000; color: #facc15; }
+        .cat-panel-cerrar:hover { background: #000; color: #60a5fa; }
         .cat-panel-lista, .cat-panel-anidado { display: flex; flex-wrap: wrap; gap: .5rem; }
         .cat-panel-anidado { flex-basis: 100%; padding-left: .75rem; border-left: 2px solid #f3f4f6; }
         .cat-sub {
@@ -354,16 +354,16 @@
         }
         .cat-sub:hover { border-color: #000; color: #000; background: #fff; }
         .cat-sub:active { transform: scale(.96); }
-        .cat-sub.activa { background: #000; color: #facc15; border-color: #000; }
+        .cat-sub.activa { background: #000; color: #60a5fa; border-color: #000; }
         .cat-sub-n { font-size: 10px; font-weight: 900; color: #9ca3af; }
-        .cat-sub.activa .cat-sub-n { color: rgba(250,204,21,.7); }
+        .cat-sub.activa .cat-sub-n { color: rgba(96,165,250,.7); }
         .cat-sub-todo { padding: .35rem .75rem; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 
         /* Portada por defecto (comercio sin foto): mismo lenguaje que el footer y el logo.
            Negro de marca, un resplandor amarillo suave, puntos finos y destellos de 4 puntas. */
         .banner-default {
             background:
-                radial-gradient(55% 130% at 90% -15%, rgba(250,204,21,.20), transparent 62%),
+                radial-gradient(55% 130% at 90% -15%, rgba(96,165,250,.20), transparent 62%),
                 radial-gradient(45% 100% at 5% 120%, rgba(255,255,255,.07), transparent 65%),
                 linear-gradient(180deg, #18181b 0%, #09090b 100%);
         }
@@ -428,9 +428,9 @@
     </header>
 
     <!-- BARRA DE ANUNCIO (solo si el comercio cargó un texto) -->
-    <div id="perfil-anuncio-wrap" class="hidden anuncio-cinta anuncio-entra border-b-2 border-black text-black" role="status" aria-live="polite">
+    <div id="perfil-anuncio-wrap" class="hidden anuncio-cinta anuncio-entra border-b-2 border-black text-white" role="status" aria-live="polite">
         <div class="container mx-auto max-w-5xl px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-center gap-2 sm:gap-3">
-            <span class="inline-flex items-center justify-center flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black text-yellow-400 shadow-[2px_2px_0_0_rgba(255,255,255,.9)]" aria-hidden="true">
+            <span class="inline-flex items-center justify-center flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black text-blue-400 shadow-[2px_2px_0_0_rgba(255,255,255,.9)]" aria-hidden="true">
                 <svg class="anuncio-icono w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
             </span>
             <p id="perfil-anuncio-texto" class="min-w-0 text-[12.5px] sm:text-[15px] font-extrabold leading-snug text-center break-words [text-wrap:balance]"></p>
@@ -448,9 +448,9 @@
 
             <!-- Portada por defecto -->
             <div id="perfil-banner-patron" class="banner-default absolute inset-0 overflow-hidden" aria-hidden="true">
-                <svg class="bn-destello bn-titilar top-8 right-8 sm:top-12 sm:right-24 w-12 h-12 sm:w-20 sm:h-20 text-yellow-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+                <svg class="bn-destello bn-titilar top-8 right-8 sm:top-12 sm:right-24 w-12 h-12 sm:w-20 sm:h-20 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
                 <svg class="bn-destello bn-titilar bn-titilar-2 top-24 right-24 sm:top-32 sm:right-52 w-5 h-5 sm:w-7 sm:h-7 text-white/60" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
-                <svg class="bn-destello bn-titilar top-10 left-8 sm:top-14 sm:left-20 w-4 h-4 sm:w-6 sm:h-6 text-yellow-400/70" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+                <svg class="bn-destello bn-titilar top-10 left-8 sm:top-14 sm:left-20 w-4 h-4 sm:w-6 sm:h-6 text-blue-400/70" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
             </div>
         </div>
 
@@ -482,7 +482,7 @@
                 </span>
                 <h1 id="error-titulo" class="text-2xl sm:text-3xl font-black uppercase italic">Esta tienda no existe</h1>
                 <p id="error-texto" class="text-gray-500 mt-3 text-sm sm:text-base max-w-sm">Revisá que el link esté bien escrito o pedile uno nuevo al comercio.</p>
-                <button id="error-reintentar" type="button" onclick="location.reload()" class="hidden inline-flex items-center gap-2 mt-8 bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95 shadow-xl">Reintentar</button>
+                <button id="error-reintentar" type="button" onclick="location.reload()" class="hidden inline-flex items-center gap-2 mt-8 bg-black text-white px-8 py-4 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95 shadow-xl">Reintentar</button>
                 <a href="index.html" class="inline-flex items-center gap-2 mt-4 text-gray-500 font-black uppercase text-[11px] tracking-widest hover:text-black transition-colors">Volver al inicio</a>
             </div>
 
@@ -497,7 +497,7 @@
                             <span id="perfil-logo-inicial" class="text-5xl sm:text-6xl font-black" aria-hidden="true"></span>
                         </div>
                     </div>
-                    <span class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-10 w-7 h-7 bg-black text-yellow-400 rounded-full border-[3px] border-white shadow-sm flex items-center justify-center pointer-events-none" title="Emprendedor Verificado">
+                    <span class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-10 w-7 h-7 bg-black text-blue-400 rounded-full border-[3px] border-white shadow-sm flex items-center justify-center pointer-events-none" title="Emprendedor Verificado">
                         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                     </span>
                 </div>
@@ -514,7 +514,7 @@
 
                 <!-- Acciones -->
                 <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
-                    <a id="perfil-whatsapp" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-2.5 bg-black text-white px-8 py-3.5 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95 shadow-md shadow-black/10">
+                    <a id="perfil-whatsapp" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-2.5 bg-black text-white px-8 py-3.5 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95 shadow-md shadow-black/10">
                         <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm5.8 14.1c-.25.69-1.43 1.32-1.97 1.38-.5.06-1.14.09-3.7-.97-3.28-1.36-5.4-4.7-5.56-4.92-.16-.22-1.32-1.76-1.32-3.36s.84-2.39 1.14-2.72c.3-.33.65-.41.87-.41h.63c.2 0 .47-.08.73.55.27.65.91 2.25.99 2.41.08.16.13.35.03.57-.1.22-.16.35-.31.54-.16.19-.33.42-.47.56-.16.16-.32.33-.14.65.19.32.82 1.35 1.76 2.18 1.2 1.07 2.22 1.4 2.54 1.56.32.16.5.14.69-.08.19-.22.8-.93 1.01-1.25.22-.32.43-.27.73-.16.3.11 1.9.9 2.22 1.06.32.16.54.24.62.37.08.13.08.76-.17 1.45z"/></svg>
                         Contactar
                     </a>
@@ -531,7 +531,7 @@
                             <div class="flex flex-col min-w-0">
                                 <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Ubicación</span>
                                 <span id="perfil-ubicacion" class="text-sm font-semibold text-gray-900 leading-snug break-words line-clamp-2"></span>
-                                <a id="perfil-mapa" href="#" target="_blank" rel="noopener" class="hidden text-yellow-600 text-[10px] font-black uppercase tracking-wider hover:underline mt-1.5 w-fit">Ver en mapa →</a>
+                                <a id="perfil-mapa" href="#" target="_blank" rel="noopener" class="hidden text-blue-800 text-[10px] font-black uppercase tracking-wider hover:underline mt-1.5 w-fit">Ver en mapa →</a>
                             </div>
                         </div>
                         <div id="perfil-horario-wrap" class="perfil-info-item hidden items-start gap-3 sm:gap-4 text-left info-horario">
@@ -570,9 +570,9 @@
              se filtra recién con Enter o con "Ver los N resultados" (ver emprendedor.js). -->
         <div id="catalogo-filtros" class="hidden sticky z-[45] max-w-3xl mx-auto mb-5 sm:mb-6" style="top: .75rem;">
 
-            <div class="flex items-center gap-2 p-1.5 pr-1.5 bg-white border-2 border-black rounded-full shadow-[4px_4px_0_0_#000] transition-shadow duration-200 focus-within:shadow-[4px_4px_0_0_#facc15]">
+            <div class="flex items-center gap-2 p-1.5 pr-1.5 bg-white border-2 border-black rounded-full shadow-[4px_4px_0_0_#000] transition-shadow duration-200 focus-within:shadow-[4px_4px_0_0_#1e40af]">
 
-                <span class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-yellow-400 border-2 border-black flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                <span class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-800 border-2 border-black flex items-center justify-center flex-shrink-0 text-white" aria-hidden="true">
                     <svg class="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
                 </span>
 
@@ -594,7 +594,7 @@
                         <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                     </svg>
                     <span class="max-sm:hidden">Carrito</span>
-                    <span id="badge-carrito" class="hidden absolute -top-2 -right-1.5 bg-yellow-400 text-black text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-black">0</span>
+                    <span id="badge-carrito" class="hidden absolute -top-2 -right-1.5 bg-blue-800 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-black">0</span>
                 </button>
             </div>
 
@@ -617,7 +617,7 @@
                 <!-- Engranaje grande (amarillo) -->
                 <g transform="translate(70 70)">
                     <g>
-                        <path d="M29.68 16.59 L38.60 25.92 L32.23 33.52 L21.49 26.35 A34 34 0 0 1 14.26 30.86 L16.00 43.66 L6.38 46.06 L1.90 33.95 A34 34 0 0 1 -6.60 33.35 L-12.72 44.73 L-21.92 41.01 L-18.42 28.58 A34 34 0 0 1 -24.95 23.10 L-36.58 28.70 L-41.84 20.30 L-31.70 12.30 A34 34 0 0 1 -33.76 4.03 L-46.47 1.72 L-45.78 -8.17 L-32.87 -8.69 A34 34 0 0 1 -29.68 -16.59 L-38.60 -25.92 L-32.23 -33.52 L-21.49 -26.35 A34 34 0 0 1 -14.26 -30.86 L-16.00 -43.66 L-6.38 -46.06 L-1.90 -33.95 A34 34 0 0 1 6.60 -33.35 L12.72 -44.73 L21.92 -41.01 L18.42 -28.58 A34 34 0 0 1 24.95 -23.10 L36.58 -28.70 L41.84 -20.30 L31.70 -12.30 A34 34 0 0 1 33.76 -4.03 L46.47 -1.72 L45.78 8.17 L32.87 8.69 A34 34 0 0 1 29.68 16.59 Z" fill="#facc15" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+                        <path d="M29.68 16.59 L38.60 25.92 L32.23 33.52 L21.49 26.35 A34 34 0 0 1 14.26 30.86 L16.00 43.66 L6.38 46.06 L1.90 33.95 A34 34 0 0 1 -6.60 33.35 L-12.72 44.73 L-21.92 41.01 L-18.42 28.58 A34 34 0 0 1 -24.95 23.10 L-36.58 28.70 L-41.84 20.30 L-31.70 12.30 A34 34 0 0 1 -33.76 4.03 L-46.47 1.72 L-45.78 -8.17 L-32.87 -8.69 A34 34 0 0 1 -29.68 -16.59 L-38.60 -25.92 L-32.23 -33.52 L-21.49 -26.35 A34 34 0 0 1 -14.26 -30.86 L-16.00 -43.66 L-6.38 -46.06 L-1.90 -33.95 A34 34 0 0 1 6.60 -33.35 L12.72 -44.73 L21.92 -41.01 L18.42 -28.58 A34 34 0 0 1 24.95 -23.10 L36.58 -28.70 L41.84 -20.30 L31.70 -12.30 A34 34 0 0 1 33.76 -4.03 L46.47 -1.72 L45.78 8.17 L32.87 8.69 A34 34 0 0 1 29.68 16.59 Z" fill="#2563eb" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
                         <circle r="17" fill="#fff" stroke="#000" stroke-width="3"/>
                         <circle r="6" fill="#000"/>
                     </g>
@@ -627,15 +627,15 @@
                     <g>
                         <path d="M-14.06 -16.92 L-18.80 -28.92 L-9.24 -33.24 L-3.39 -21.74 A22 22 0 0 1 4.47 -21.54 L10.89 -32.74 L20.22 -27.95 L14.88 -16.20 A22 22 0 0 1 19.63 -9.94 L32.38 -11.90 L34.46 -1.62 L21.95 1.53 A22 22 0 0 1 20.01 9.15 L29.49 17.90 L22.75 25.94 L12.48 18.12 A22 22 0 0 1 5.32 21.35 L4.39 34.22 L-6.09 33.96 L-6.38 21.05 A22 22 0 0 1 -13.37 17.47 L-24.02 24.77 L-30.35 16.41 L-20.44 8.14 A22 22 0 0 1 -22.00 0.44 L-34.34 -3.33 L-31.75 -13.50 L-19.11 -10.90 A22 22 0 0 1 -14.06 -16.92 Z" fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
                         <circle r="11" fill="#fff" stroke="#000" stroke-width="3"/>
-                        <circle r="4" fill="#facc15"/>
+                        <circle r="4" fill="#2563eb"/>
                     </g>
                 </g>
                 <!-- Chispas -->
                 <path d="M148 28v14M141 35h14" stroke="#000" stroke-width="3" stroke-linecap="round" fill="none"/>
-                <path d="M30 128v8M26 132h8" stroke="#facc15" stroke-width="3" stroke-linecap="round" fill="none"/>
-                <circle cx="150" cy="70" r="3" fill="#facc15" stroke="#000" stroke-width="1.5"/>
+                <path d="M30 128v8M26 132h8" stroke="#2563eb" stroke-width="3" stroke-linecap="round" fill="none"/>
+                <circle cx="150" cy="70" r="3" fill="#2563eb" stroke="#000" stroke-width="1.5"/>
             </svg>
-            <span class="mt-5 inline-flex items-center gap-2 bg-yellow-400 border-2 border-black rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+            <span class="mt-5 inline-flex items-center gap-2 bg-blue-800 border-2 border-black rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
                 <span class="w-1.5 h-1.5 rounded-full bg-black"></span>En preparación
             </span>
             <h2 class="mt-4 text-xl sm:text-2xl font-black uppercase italic leading-tight text-zinc-900">Este comercio está armando su catálogo</h2>
@@ -688,7 +688,7 @@
                     <span id="modal-categoria" class="empty:hidden px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-600 text-xs font-medium"></span>
                     <span id="modal-badge-nuevo" class="hidden px-2.5 py-1 rounded-md bg-zinc-900 text-white text-xs font-medium">Nuevo</span>
                     <span id="modal-badge-sin-stock" class="hidden px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-500 text-xs font-medium">Sin stock</span>
-                    <span id="modal-badge-destacado" class="hidden items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium">
+                    <span id="modal-badge-destacado" class="hidden items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 text-blue-800 text-xs font-medium">
                         <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 2.5z"/></svg>
                         Destacado
                     </span>
@@ -841,7 +841,7 @@
                     <span id="carrito-total" class="text-2xl font-black">$0.00</span>
                 </div>
             </div>
-            <button id="carrito-whatsapp-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-3 bg-black text-white w-full py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+            <button id="carrito-whatsapp-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-3 bg-black text-white w-full py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 4l16 8-16 8 4-8-4-8z" />
                 </svg>
@@ -902,7 +902,7 @@
                 Ya tengo WhatsApp Web abierto
             </button>
 
-            <button onclick="confirmarPedidoEnviadoDesdeQr()" class="mt-3 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+            <button onclick="confirmarPedidoEnviadoDesdeQr()" class="mt-3 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                 Ya envié el pedido
             </button>
 
@@ -916,7 +916,7 @@
     <div id="modal-conflicto-carrito" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/85" onclick="cerrarConflictoCarrito()"></div>
         <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
-            <span class="w-14 h-14 rounded-full bg-yellow-400 text-black inline-flex items-center justify-center">
+            <span class="w-14 h-14 rounded-full bg-blue-800 text-white inline-flex items-center justify-center">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6" />
                     <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
@@ -928,7 +928,7 @@
                 Tu carrito ya tiene productos de <strong id="conflicto-tienda-actual" class="text-black">otra tienda</strong>. Para pedirle a otro emprendedor termina tu compra actual.
             </p>
             <div class="mt-7 flex flex-col gap-3">
-                <button onclick="confirmarReemplazoCarrito()" class="w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+                <button onclick="confirmarReemplazoCarrito()" class="w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                     Vaciar carrito y agregar este
                 </button>
                 <button onclick="cerrarConflictoCarrito()" class="w-full border-2 border-black py-3.5 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-gray-50 transition-all active:scale-95">
@@ -944,7 +944,7 @@
         <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
             <button type="button" onclick="cerrarModalSinWhatsapp()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
 
-            <span class="w-16 h-16 rounded-full bg-yellow-400 text-black inline-flex items-center justify-center ring-8 ring-yellow-400/20">
+            <span class="w-16 h-16 rounded-full bg-blue-800 text-white inline-flex items-center justify-center ring-8 ring-blue-800/20">
                 <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                     <path d="M12 8v3.5"/>
@@ -958,7 +958,7 @@
             </p>
 
             <div class="mt-5 flex items-start gap-3 bg-gray-50 border border-gray-100 rounded-2xl p-3.5 text-left">
-                <span class="w-6 h-6 rounded-full bg-black text-yellow-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="w-6 h-6 rounded-full bg-black text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
                 </span>
                 <p class="text-xs text-gray-500 font-semibold leading-snug">
@@ -966,7 +966,7 @@
                 </p>
             </div>
 
-            <button type="button" id="sin-whatsapp-btn-ok" onclick="cerrarModalSinWhatsapp()" class="mt-6 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-yellow-400 hover:text-black transition-all active:scale-95">
+            <button type="button" id="sin-whatsapp-btn-ok" onclick="cerrarModalSinWhatsapp()" class="mt-6 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                 Entendido
             </button>
         </div>
@@ -974,7 +974,7 @@
 
     <!-- TOAST -->
     <div id="toast-carrito" class="fixed bottom-6 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 mx-auto max-w-sm sm:max-w-md w-fit bg-black text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-2xl sm:rounded-full font-bold text-xs sm:text-sm uppercase tracking-widest shadow-2xl z-[110] hidden items-center justify-center text-center gap-2">
-        <svg class="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+        <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
         </svg>
         <span id="toast-carrito-texto" class="leading-snug">Agregado al carrito</span>
@@ -985,7 +985,7 @@
     <footer class="relative overflow-hidden bg-zinc-950 text-white mt-12 sm:mt-20 rounded-t-3xl sm:rounded-t-[2.5rem]">
 
         <!-- Destellos decorativos (mismo lenguaje que el logo). En mobile queda solo uno, chico. -->
-        <svg class="pointer-events-none absolute top-5 right-5 sm:top-8 sm:right-16 w-7 h-7 sm:w-12 sm:h-12 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
+        <svg class="pointer-events-none absolute top-5 right-5 sm:top-8 sm:right-16 w-7 h-7 sm:w-12 sm:h-12 text-blue-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
         <svg class="max-sm:hidden pointer-events-none absolute top-24 right-36 w-5 h-5 text-white/50" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
 
         <div class="container mx-auto max-w-7xl px-5 sm:px-6 pt-9 sm:pt-14 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-8">
@@ -1003,7 +1003,7 @@
                 </div>
 
                 <a href="index.html"
-                   class="w-full sm:w-auto flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-full bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_0_#facc15] sm:shadow-[5px_5px_0_0_#facc15] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_#facc15] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
+                   class="w-full sm:w-auto flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-full bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_0_#60a5fa] sm:shadow-[5px_5px_0_0_#60a5fa] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_#60a5fa] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
                     Ver más tiendas
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                 </a>
@@ -1011,9 +1011,9 @@
 
             <!-- Enlaces del pie -->
             <nav aria-label="Enlaces del pie" class="mt-7 sm:mt-10 pt-5 border-t border-white/10 flex flex-wrap items-center gap-x-5 sm:gap-x-6 gap-y-3">
-                <a href="index.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-yellow-400 transition-colors">Inicio</a>
-                <a href="registro.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-yellow-400 transition-colors">Quiero mi perfil</a>
-                <a href="legales.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-yellow-400 transition-colors">Legales</a>
+                <a href="index.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-blue-400 transition-colors">Inicio</a>
+                <a href="registro.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-blue-400 transition-colors">Quiero mi perfil</a>
+                <a href="legales.html" class="text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest text-zinc-300 hover:text-blue-400 transition-colors">Legales</a>
             </nav>
 
             <!-- Créditos: texto normal (no mayúsculas) para que no se parta en 3 líneas -->
@@ -1026,7 +1026,7 @@
 
     <!-- BOTÓN FLOTANTE: SUBIR (aparece al scrollear, se oculta al frenar) -->
     <button type="button" id="btn-subir" aria-label="Volver arriba" aria-hidden="true" tabindex="-1"
-            class="fixed z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white border-2 border-black text-black shadow-[3px_3px_0_0_#facc15] flex items-center justify-center hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0_0_#facc15] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2">
+            class="fixed z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white border-2 border-black text-black shadow-[3px_3px_0_0_#1e40af] flex items-center justify-center hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0_0_#1e40af] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/></svg>
     </button>
     <script>
