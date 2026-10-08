@@ -21,6 +21,15 @@
         @supports not (overflow: clip) { html, body { overflow-x: hidden; } }
         /* Las clases propias definen "display"; esto garantiza que "hidden" siempre gane */
         .hidden { display: none !important; }
+        /* Barras de scroll finas y discretas (Chrome, Edge, Safari). El "thumb" lleva un borde
+           transparente para que se vea más fino sin perder zona de agarre. */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #d4d4d8; border: 3px solid transparent; background-clip: content-box; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #a1a1aa; }
+        ::-webkit-scrollbar-corner { background: transparent; }
+        /* Firefox no soporta los pseudo-elementos de arriba: usa las propiedades estándar */
+        @supports (-moz-appearance: none) { * { scrollbar-width: thin; scrollbar-color: #d4d4d8 transparent; } }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -57,6 +66,19 @@
 
 
         @media (max-width: 767px) { #catalogo-buscar { font-size: 16px !important; } }
+
+        /* Campos del paso 2 del carrito (datos del cliente) */
+        .co-input {
+            width: 100%; border: 1px solid #e5e7eb; background: #fff; border-radius: .75rem;
+            padding: .75rem 1rem; font-size: .875rem; font-weight: 500; color: #18181b;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .co-input::placeholder { color: #a1a1aa; }
+        .co-input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,.06); }
+        .co-input.co-error { border-color: #f87171; }
+        .co-label { display: block; margin-bottom: .375rem; font-size: 12px; font-weight: 600; color: #52525b; }
+        .co-label small { font-weight: 500; color: #a1a1aa; }
+        @media (max-width: 767px) { .co-input { font-size: 16px; } }
 
         #modal-producto-overlay {
             background: rgba(9, 9, 11, 0.55);
@@ -318,15 +340,15 @@
         }
         .cat-chip:hover { border-color: #000; color: #000; }
         .cat-chip:active { transform: scale(.95); }
-        .cat-chip.activa { background: #000; color: #60a5fa; border-color: #000; }
+        .cat-chip.activa { background: #000; color: #fff; border-color: #000; }
         .cat-chip { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
         .cat-chip.abierta { border-color: #000; color: #000; }
-        .cat-chip.activa.abierta { color: #60a5fa; }
+        .cat-chip.activa.abierta { color: #fff; }
         .cat-chevron { display: inline-flex; transition: transform .2s ease; }
         .cat-chip.abierta .cat-chevron { transform: rotate(180deg); }
         .cat-chip-sub {
             max-width: 9rem; overflow: hidden; text-overflow: ellipsis; padding-left: .4rem;
-            border-left: 1px solid rgba(96,165,250,.45); font-weight: 700; letter-spacing: .05em;
+            border-left: 1px solid rgba(255,255,255,.35); font-weight: 700; letter-spacing: .05em;
         }
 
         /* Panel de subcategorías */
@@ -344,7 +366,7 @@
             width: 1.75rem; height: 1.75rem; border-radius: 9999px; display: inline-flex; align-items: center;
             justify-content: center; color: #6b7280; background: #f3f4f6; flex-shrink: 0; transition: all .15s ease;
         }
-        .cat-panel-cerrar:hover { background: #000; color: #60a5fa; }
+        .cat-panel-cerrar:hover { background: #000; color: #fff; }
         .cat-panel-lista, .cat-panel-anidado { display: flex; flex-wrap: wrap; gap: .5rem; }
         .cat-panel-anidado { flex-basis: 100%; padding-left: .75rem; border-left: 2px solid #f3f4f6; }
         .cat-sub {
@@ -354,9 +376,9 @@
         }
         .cat-sub:hover { border-color: #000; color: #000; background: #fff; }
         .cat-sub:active { transform: scale(.96); }
-        .cat-sub.activa { background: #000; color: #60a5fa; border-color: #000; }
+        .cat-sub.activa { background: #000; color: #fff; border-color: #000; }
         .cat-sub-n { font-size: 10px; font-weight: 900; color: #9ca3af; }
-        .cat-sub.activa .cat-sub-n { color: rgba(96,165,250,.7); }
+        .cat-sub.activa .cat-sub-n { color: rgba(255,255,255,.65); }
         .cat-sub-todo { padding: .35rem .75rem; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 
         /* Portada por defecto (comercio sin foto): mismo lenguaje que el footer y el logo.
@@ -570,37 +592,35 @@
              se filtra recién con Enter o con "Ver los N resultados" (ver emprendedor.js). -->
         <div id="catalogo-filtros" class="hidden sticky z-[45] max-w-3xl mx-auto mb-5 sm:mb-6" style="top: .75rem;">
 
-            <div class="flex items-center gap-2 p-1.5 pr-1.5 bg-white border-2 border-black rounded-full shadow-[4px_4px_0_0_#000] transition-shadow duration-200 focus-within:shadow-[4px_4px_0_0_#1e40af]">
+            <div class="flex items-center gap-2 pl-4 pr-1.5 py-1.5 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-zinc-200/80 rounded-full shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] transition-all duration-200 focus-within:bg-white/90 focus-within:border-zinc-400 focus-within:shadow-[0_10px_34px_-12px_rgba(0,0,0,0.32)]">
 
-                <span class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-800 border-2 border-black flex items-center justify-center flex-shrink-0 text-white" aria-hidden="true">
-                    <svg class="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
-                </span>
+                <svg class="w-[18px] h-[18px] flex-shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
 
                 <input type="text" id="catalogo-buscar" inputmode="search" enterkeyhint="search" autocomplete="off"
                        placeholder="Buscar en esta tienda" aria-label="Buscar productos" aria-controls="catalogo-sugerencias"
-                       class="flex-1 min-w-0 bg-transparent border-0 focus:outline-none focus:ring-0 px-1 py-2 text-sm font-black text-zinc-900 placeholder:text-zinc-400 placeholder:font-bold">
+                       class="flex-1 min-w-0 h-9 sm:h-10 bg-transparent border-0 focus:outline-none focus:ring-0 px-0.5 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 placeholder:font-medium">
 
                 <button type="button" id="catalogo-buscar-clear" aria-label="Borrar búsqueda"
-                        class="hidden w-7 h-7 rounded-full bg-zinc-100 hover:bg-zinc-200 items-center justify-center text-zinc-600 transition-colors flex-shrink-0">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg>
+                        class="hidden w-7 h-7 rounded-full bg-zinc-900/5 hover:bg-zinc-900/10 items-center justify-center text-zinc-500 hover:text-zinc-800 transition-colors flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg>
                 </button>
 
                 <!-- Carrito: solo en tiendas que reciben pedidos (.solo-pedidos lo oculta en modo catálogo) -->
                 <button type="button" onclick="abrirCarrito()" aria-label="Abrir carrito"
-                        class="solo-pedidos relative inline-flex items-center justify-center gap-2 h-9 sm:h-10 min-w-[2.25rem] px-2.5 sm:px-4 rounded-full bg-black text-white text-[11px] font-black uppercase tracking-widest transition-all hover:bg-zinc-800 active:scale-95 flex-shrink-0">
-                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        class="solo-pedidos relative inline-flex items-center justify-center gap-2 h-9 sm:h-10 min-w-[2.25rem] px-2.5 sm:px-4 rounded-full bg-zinc-900 text-white text-[11px] font-bold uppercase tracking-[0.12em] transition-all hover:bg-zinc-700 active:scale-95 flex-shrink-0">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/>
                         <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                         <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                     </svg>
                     <span class="max-sm:hidden">Carrito</span>
-                    <span id="badge-carrito" class="hidden absolute -top-2 -right-1.5 bg-blue-800 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-black">0</span>
+                    <span id="badge-carrito" class="hidden absolute -top-1.5 -right-1 bg-blue-700 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
                 </button>
             </div>
 
             <!-- Sugerencias en vivo: flotan debajo de la píldora -->
             <div id="catalogo-sugerencias" role="listbox" aria-label="Sugerencias"
-                 class="hidden absolute left-0 right-0 top-[calc(100%+10px)] bg-white border-2 border-black rounded-3xl shadow-[4px_4px_0_0_#000] overflow-hidden overflow-y-auto max-h-[70vh] z-10"></div>
+                 class="hidden absolute left-0 right-0 top-[calc(100%+8px)] bg-white/85 backdrop-blur-xl backdrop-saturate-150 border border-zinc-200/80 rounded-2xl shadow-[0_20px_50px_-20px_rgba(0,0,0,0.35)] overflow-hidden overflow-y-auto max-h-[70vh] z-10"></div>
         </div>
 
         <div id="catalogo-categorias" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mb-6 sm:mb-8"></div>
@@ -782,73 +802,131 @@
     </div>
 
     <!-- DRAWER CARRITO -->
-    <div id="carrito-overlay" class="fixed inset-0 bg-black/85 z-[80] hidden" onclick="cerrarCarrito()"></div>
-    <div id="carrito-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[90] shadow-2xl translate-x-full transition-transform duration-300 flex flex-col">
-        <div class="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex-shrink-0">
-            <div class="flex items-center gap-3">
-                <span class="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0">
-                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+    <div id="carrito-overlay" class="fixed inset-0 bg-zinc-950/45 backdrop-blur-[3px] z-[80] hidden" onclick="cerrarCarrito()"></div>
+    <div id="carrito-drawer" class="fixed top-0 right-0 h-full w-full max-w-[440px] bg-white z-[90] shadow-[-24px_0_60px_-24px_rgba(0,0,0,0.35)] sm:rounded-l-[28px] translate-x-full transition-transform duration-300 flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between gap-3 px-5 sm:px-6 h-[72px] border-b border-zinc-100 flex-shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" id="carrito-volver" onclick="volverAlCarrito()" aria-label="Volver al carrito" class="hidden w-9 h-9 rounded-full border border-zinc-200 hover:bg-zinc-100 items-center justify-center text-zinc-600 transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <span id="carrito-icono" class="w-9 h-9 rounded-xl bg-zinc-100 text-zinc-800 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6" />
                         <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                         <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                     </svg>
                 </span>
-                <div>
-                    <h2 class="text-xl font-black uppercase italic leading-none">Tu carrito</h2>
-                    <p id="carrito-subtitulo" class="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">Vacío</p>
+                <div class="min-w-0">
+                    <h2 id="carrito-titulo" class="text-[17px] font-semibold tracking-tight text-zinc-900 leading-none">Tu carrito</h2>
+                    <p id="carrito-subtitulo" class="text-xs font-medium text-zinc-500 mt-1.5 truncate">Vacío</p>
                 </div>
             </div>
-            <button onclick="cerrarCarrito()" aria-label="Cerrar carrito" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-black hover:text-white flex items-center justify-center text-gray-500 transition-colors flex-shrink-0">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <button onclick="cerrarCarrito()" aria-label="Cerrar carrito" class="w-9 h-9 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 transition-colors flex-shrink-0">
+                <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
                 </svg>
             </button>
         </div>
 
-        <div id="carrito-items" class="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3"></div>
+        <div id="carrito-items" class="flex-1 overflow-y-auto px-5 sm:px-6 divide-y divide-zinc-100"></div>
 
-        <div class="border-t border-gray-100 px-4 sm:px-6 py-5 flex-shrink-0 bg-gray-50/60">
+        <div id="carrito-footer-paso1" class="border-t border-zinc-100 px-5 sm:px-6 pt-4 pb-5 flex-shrink-0 bg-white shadow-[0_-16px_32px_-24px_rgba(0,0,0,0.25)]">
             <div id="carrito-modalidad-envio" class="mb-4 hidden">
-                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">¿Cómo lo recibís?</p>
+                <p class="text-xs font-semibold text-zinc-500 mb-2">¿Cómo lo recibís?</p>
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" id="btn-modalidad-envio" onclick="seleccionarModalidadEntrega(true)"
-                        class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-gray-200 bg-white text-gray-500 py-2.5 px-2 text-[11px] font-bold uppercase tracking-wide transition-all">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        class="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 py-3 px-2 text-xs font-semibold transition-all hover:border-zinc-400">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v8H3V7zm11 3h4l3 3v2h-7v-5zM5.5 20a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm12 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
                         </svg>
                         Envío a domicilio
                     </button>
                     <button type="button" id="btn-modalidad-retiro" onclick="seleccionarModalidadEntrega(false)"
-                        class="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-gray-200 bg-white text-gray-500 py-2.5 px-2 text-[11px] font-bold uppercase tracking-wide transition-all">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        class="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 py-3 px-2 text-xs font-semibold transition-all hover:border-zinc-400">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1v-9.5z" />
                         </svg>
                         Retiro en el local
                     </button>
                 </div>
             </div>
-            <div class="mb-4 space-y-1.5">
+            <div class="mb-4 space-y-2">
                 <div id="carrito-fila-subtotal" class="flex items-center justify-between hidden">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Subtotal</span>
-                    <span id="carrito-subtotal" class="text-sm font-bold text-gray-600">$0.00</span>
+                    <span class="text-sm text-zinc-500">Subtotal</span>
+                    <span id="carrito-subtotal" class="text-sm font-medium text-zinc-700 tabular-nums">$0.00</span>
                 </div>
                 <div id="carrito-fila-envio" class="flex items-center justify-between hidden">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Envío</span>
-                    <span id="carrito-envio" class="text-sm font-bold text-gray-600">$0.00</span>
+                    <span class="text-sm text-zinc-500">Envío</span>
+                    <span id="carrito-envio" class="text-sm font-medium text-zinc-700 tabular-nums">$0.00</span>
                 </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total</span>
-                    <span id="carrito-total" class="text-2xl font-black">$0.00</span>
+                <div class="flex items-baseline justify-between pt-3 border-t border-zinc-100">
+                    <span class="text-sm font-medium text-zinc-900">Total</span>
+                    <span id="carrito-total" class="text-xl font-semibold tracking-tight text-zinc-900 tabular-nums">$0.00</span>
                 </div>
             </div>
-            <button id="carrito-whatsapp-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-3 bg-black text-white w-full py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4l16 8-16 8 4-8-4-8z" />
+            <button id="carrito-whatsapp-btn" onclick="irACheckout()" class="inline-flex items-center justify-center gap-2 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+                Continuar
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6" />
                 </svg>
-                Enviar pedido
             </button>
-            <button onclick="vaciarCarrito()" class="w-full mt-3 text-center text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors">
+            <button onclick="vaciarCarrito()" class="w-full mt-3 text-center text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
                 Vaciar carrito
+            </button>
+        </div>
+
+        <!-- PASO 2: datos del cliente (se muestra al tocar "Continuar") -->
+        <div id="carrito-checkout" class="hidden flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5">
+            <div id="co-resumen" class="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-2"></div>
+
+            <div>
+                <label for="co-nombre" class="co-label">Nombre y apellido</label>
+                <input id="co-nombre" type="text" maxlength="60" autocomplete="name" placeholder="Ej: Juan Pérez" class="co-input">
+                <p id="co-error-nombre" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+            </div>
+
+            <div id="co-bloque-envio" class="hidden space-y-5">
+                <div>
+                    <label for="co-calle" class="co-label">Calle y número</label>
+                    <input id="co-calle" type="text" maxlength="80" autocomplete="address-line1" placeholder="Ej: Belgrano 450" class="co-input">
+                    <p id="co-error-calle" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+                </div>
+                <div>
+                    <label for="co-localidad" class="co-label">Localidad o barrio</label>
+                    <input id="co-localidad" type="text" maxlength="60" autocomplete="address-level2" placeholder="Ej: Sáenz Peña" class="co-input">
+                    <p id="co-error-localidad" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+                </div>
+                <div>
+                    <label for="co-referencia" class="co-label">Piso, depto o referencias <small>(opcional)</small></label>
+                    <input id="co-referencia" type="text" maxlength="100" autocomplete="address-line2" placeholder="Ej: 3°B, portón negro" class="co-input">
+                </div>
+            </div>
+
+            <div id="co-pago-wrap" class="hidden">
+                <span class="co-label">¿Cómo vas a pagar?</span>
+                <div id="co-pago-opciones" role="radiogroup" aria-label="Medio de pago" class="grid grid-cols-2 gap-2"></div>
+                <p id="co-error-pago" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+            </div>
+
+            <div>
+                <label for="co-notas" class="co-label">Aclaraciones <small>(opcional)</small></label>
+                <textarea id="co-notas" rows="2" maxlength="200" placeholder="Ej: tocar timbre, entregar después de las 18" class="co-input resize-none"></textarea>
+            </div>
+
+            <div class="pt-1">
+                <label class="flex items-start gap-2.5 cursor-pointer">
+                    <input id="co-recordar" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-black focus:ring-black">
+                    <span class="text-xs font-medium text-gray-500 leading-snug">Recordar mis datos en este dispositivo para la próxima compra.</span>
+                </label>
+                <button type="button" id="co-borrar-datos" onclick="borrarDatosGuardados()" class="hidden mt-2 ml-6 text-[11px] font-bold text-gray-400 hover:text-black underline underline-offset-2 transition-colors">Borrar mis datos guardados</button>
+                <p class="mt-3 text-[11px] font-medium text-gray-400 leading-snug">Tus datos no se guardan en nuestros servidores: se envían únicamente al comercio dentro del mensaje de WhatsApp.</p>
+            </div>
+        </div>
+
+        <div id="carrito-footer-paso2" class="hidden border-t border-zinc-100 px-5 sm:px-6 pt-4 pb-5 flex-shrink-0 bg-white shadow-[0_-16px_32px_-24px_rgba(0,0,0,0.25)]">
+            <button id="co-enviar-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-2.5 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+                <svg class="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+                Enviar pedido por WhatsApp
             </button>
         </div>
     </div>
