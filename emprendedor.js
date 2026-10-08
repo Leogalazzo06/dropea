@@ -584,7 +584,7 @@ document.addEventListener('keydown', (ev) => {
 // de abajo no se toca. Se filtra recién con Enter o con "Ver los N resultados".
 // ------------------------------------------------------------
 const MAX_SUGERENCIAS = 6;
-const SVG_FLECHA = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
+const SVG_FLECHA = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
 
 const inputBuscar = $('catalogo-buscar');
 const panelSugerencias = $('catalogo-sugerencias');
@@ -608,7 +608,7 @@ function cerrarSugerencias() {
 // Bloques grises "pulsando" al instante, para que se vea que el buscador reaccionó
 function mostrarSkeletonBusqueda() {
     panelSugerencias.replaceChildren();
-    const lista = el('div', 'divide-y divide-zinc-100');
+    const lista = el('div', 'divide-y divide-zinc-200/60');
     for (let i = 0; i < 3; i++) {
         const fila = el('div', 'flex items-center gap-3 px-3.5 py-3');
         fila.appendChild(el('div', 'cp-skeleton w-11 h-11 rounded-xl flex-shrink-0'));
@@ -622,12 +622,12 @@ function mostrarSkeletonBusqueda() {
 }
 
 function crearFilaSugerencia(p) {
-    const fila = el('button', 'group/sug w-full flex items-center gap-3 px-3.5 py-3 hover:bg-blue-50 focus-visible:bg-blue-50 focus-visible:outline-none transition-colors text-left');
+    const fila = el('button', 'group/sug w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-900/[0.04] focus-visible:bg-zinc-900/[0.04] focus-visible:outline-none transition-colors text-left');
     fila.type = 'button';
     fila.setAttribute('role', 'option');
     fila.onclick = () => { cerrarSugerencias(); abrirModalProducto(p.id); };
 
-    const img = el('img', 'w-11 h-11 rounded-xl object-contain p-0.5 flex-shrink-0 bg-gray-50');
+    const img = el('img', 'w-11 h-11 rounded-lg object-contain p-0.5 flex-shrink-0 bg-zinc-100/70');
     img.alt = '';
     img.loading = 'lazy';
     img.src = urlSegura(urlGrillaProducto(p, 60)) || IMAGEN_PRODUCTO_DEFAULT;
@@ -636,16 +636,16 @@ function crearFilaSugerencia(p) {
     const textos = el('div', 'flex-1 min-w-0');
     const sinStock = productoSinStock(p);
     if (sinStock) img.className += ' grayscale opacity-50';
-    textos.appendChild(el('p', 'text-[13px] font-black uppercase italic leading-tight truncate ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), p.nombre || ''));
+    textos.appendChild(el('p', 'text-[13px] font-semibold leading-tight truncate ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), p.nombre || ''));
     const cat = nombreCategoriaProducto(p);
-    if (cat) textos.appendChild(el('p', 'text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate mt-0.5', cat));
+    if (cat) textos.appendChild(el('p', 'text-[11px] font-medium text-zinc-500 truncate mt-0.5', cat));
 
-    const flecha = el('span', 'text-gray-300 group-hover/sug:text-black group-hover/sug:translate-x-0.5 transition-all flex-shrink-0');
+    const flecha = el('span', 'text-zinc-300 group-hover/sug:text-zinc-700 group-hover/sug:translate-x-0.5 transition-all flex-shrink-0');
     flecha.innerHTML = SVG_FLECHA;
 
     const derecha = sinStock
-        ? el('span', 'text-[10px] font-black uppercase tracking-wider bg-zinc-900 text-white rounded-full px-2 py-1 flex-shrink-0', 'Sin stock')
-        : el('span', 'text-sm font-black text-zinc-900 flex-shrink-0', formatoPrecio(p.precio));
+        ? el('span', 'text-[10px] font-semibold uppercase tracking-wide bg-zinc-100 text-zinc-600 rounded-md px-2 py-1 flex-shrink-0', 'Sin stock')
+        : el('span', 'text-sm font-semibold text-zinc-900 tabular-nums flex-shrink-0', formatoPrecio(p.precio));
     fila.append(img, textos, derecha, flecha);
     return fila;
 }
@@ -660,22 +660,22 @@ function mostrarSugerencias() {
 
     if (!coincidencias.length) {
         const caja = el('div', 'px-6 py-8 text-center');
-        caja.appendChild(el('p', 'text-sm font-black text-zinc-900 break-words', `Sin resultados para "${original}"`));
-        caja.appendChild(el('p', 'text-xs font-semibold text-gray-400 mt-1', 'Probá con otra palabra o revisá cómo lo escribiste.'));
+        caja.appendChild(el('p', 'text-sm font-semibold text-zinc-900 break-words', `Sin resultados para "${original}"`));
+        caja.appendChild(el('p', 'text-xs font-medium text-zinc-500 mt-1', 'Probá con otra palabra o revisá cómo lo escribiste.'));
         panelSugerencias.appendChild(caja);
         panelSugerencias.classList.remove('hidden');
         return;
     }
 
-    const lista = el('div', 'divide-y divide-zinc-100');
+    const lista = el('div', 'divide-y divide-zinc-200/60');
     coincidencias.slice(0, MAX_SUGERENCIAS).forEach(p => lista.appendChild(crearFilaSugerencia(p)));
     panelSugerencias.appendChild(lista);
 
     const n = coincidencias.length;
-    const pie = el('button', 'w-full flex items-center justify-center gap-1.5 py-3 bg-blue-800 hover:bg-blue-700 border-t-2 border-black font-black text-[11px] uppercase tracking-widest text-white transition-colors');
+    const pie = el('button', 'w-full flex items-center justify-between gap-2 px-4 py-3 bg-zinc-900/[0.03] hover:bg-zinc-900/[0.06] border-t border-zinc-200/70 text-xs font-semibold text-zinc-800 transition-colors');
     pie.type = 'button';
-    pie.append(`Ver ${n === 1 ? 'el' : 'los'} ${n} resultado${n === 1 ? '' : 's'}`);
-    const flecha = el('span', 'inline-flex');
+    pie.appendChild(el('span', null, `Ver ${n === 1 ? 'el' : 'los'} ${n} resultado${n === 1 ? '' : 's'}`));
+    const flecha = el('span', 'inline-flex text-zinc-500');
     flecha.innerHTML = SVG_FLECHA;
     pie.appendChild(flecha);
     pie.onclick = verTodosResultados;
@@ -974,7 +974,7 @@ function abrirModalProducto(id) {
     avisoSinStock.classList.toggle('hidden', !sinStock);
     const link = $('modal-whatsapp');
     if (wsp) {
-        const msg = `Hola ${(e.nombre_tienda || '').trim()}, vi "${p.nombre}" en su catálogo online y quiero consultarles.`;
+        const msg = `Hola ${(e.nombre_tienda || '').trim()}, vi "${p.nombre}" en su catálogo online y quiero consultarles.\n${urlProductoTienda(p.id)}`;
         link.href = `https://wa.me/${wsp}?text=${encodeURIComponent(msg)}`;
         // Con pedidos: botón secundario (la acción principal es "Agregar al carrito").
         // Solo catálogo: la consulta por WhatsApp pasa a ser la acción principal.
@@ -1339,7 +1339,7 @@ function limpiarCarrito() {
     carrito = { emprendedorId: null, tienda: '', items: [] };
     modalidadEnvio = null;
     guardarCarrito();
-    actualizarCarritoUI();
+    mostrarPasoCarrito(1);
 }
 
 function costoEnvio() { return Number(emprendedorActual?.costo_envio) || 0; }
@@ -1357,37 +1357,44 @@ function actualizarCarritoUI() {
     badge.textContent = String(cant);
     badge.classList.toggle('hidden', cant === 0);
 
-    $('carrito-subtitulo').textContent = cant === 0 ? 'Vacío' : `${cant} producto${cant === 1 ? '' : 's'}${carrito.tienda ? ' · ' + carrito.tienda : ''}`;
+    if (cant === 0 && pasoCarrito === 2) { mostrarPasoCarrito(1); return; }
+    $('carrito-subtitulo').textContent = pasoCarrito === 2 ? 'Paso 2 de 2' : cant === 0 ? 'Vacío' : `${cant} producto${cant === 1 ? '' : 's'}${carrito.tienda ? ' · ' + carrito.tienda : ''}`;
 
     const cont = $('carrito-items');
     cont.replaceChildren();
     if (!carrito.items.length) {
-        cont.appendChild(el('p', 'text-center text-gray-400 text-xs font-black uppercase tracking-widest py-16', 'Tu carrito está vacío'));
+        const vacio = el('div', 'flex flex-col items-center justify-center text-center py-20 px-6');
+        const icono = el('span', 'w-12 h-12 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mb-4');
+        icono.innerHTML = '<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/><circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/></svg>';
+        vacio.append(icono, el('p', 'text-sm font-semibold text-zinc-900', 'Tu carrito está vacío'), el('p', 'text-xs text-zinc-500 mt-1', 'Los productos que agregues van a aparecer acá.'));
+        cont.appendChild(vacio);
     }
     carrito.items.forEach(it => {
-        const fila = el('div', 'flex gap-3 bg-white border border-gray-100 rounded-2xl p-3');
-        const img = el('img', 'w-16 h-16 rounded-xl object-contain p-1 bg-gray-50 flex-shrink-0');
+        const fila = el('div', 'flex gap-3.5 py-4');
+        const img = el('img', 'w-[68px] h-[68px] rounded-xl object-contain p-1 bg-zinc-50 border border-zinc-100 flex-shrink-0');
         img.alt = '';
         img.src = it.imagen || IMAGEN_PRODUCTO_DEFAULT;
         img.onerror = () => { img.onerror = null; img.src = IMAGEN_PRODUCTO_DEFAULT; };
 
         const centro = el('div', 'flex-1 min-w-0 flex flex-col');
-        centro.appendChild(el('p', 'text-sm font-black uppercase italic leading-tight line-clamp-2 break-words', it.nombre));
-        if (it.detalle) centro.appendChild(el('p', 'text-[11px] font-semibold text-gray-400 mt-0.5 break-words', it.detalle));
+        centro.appendChild(el('p', 'text-sm font-semibold text-zinc-900 leading-snug line-clamp-2 break-words', it.nombre));
+        if (it.detalle) centro.appendChild(el('p', 'text-xs text-zinc-500 mt-0.5 break-words', it.detalle));
 
-        const pie = el('div', 'mt-auto pt-2 flex items-center justify-between gap-2');
-        const stepper = el('div', 'flex items-center gap-1 bg-gray-100 rounded-full px-1 py-0.5');
-        const menos = el('button', 'w-6 h-6 rounded-full bg-white shadow font-black leading-none hover:bg-blue-800 transition-all active:scale-90 hover:text-white', '−');
-        const mas = el('button', 'w-6 h-6 rounded-full bg-white shadow font-black leading-none hover:bg-blue-800 transition-all active:scale-90 hover:text-white', '+');
+        const pie = el('div', 'mt-auto pt-2.5 flex items-center justify-between gap-2');
+        const stepper = el('div', 'inline-flex items-center rounded-lg border border-zinc-200 h-8 overflow-hidden');
+        const botonStepper = 'w-8 h-full flex items-center justify-center text-base leading-none text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-colors active:bg-zinc-100';
+        const menos = el('button', botonStepper, '−');
+        const mas = el('button', botonStepper, '+');
         menos.type = mas.type = 'button';
         menos.setAttribute('aria-label', 'Menos'); mas.setAttribute('aria-label', 'Más');
         menos.onclick = () => cambiarCantidadItem(it.key, -1);
         mas.onclick = () => cambiarCantidadItem(it.key, 1);
-        stepper.append(menos, el('span', 'font-black text-xs w-5 text-center', String(it.cantidad)), mas);
-        pie.append(stepper, el('span', 'text-sm font-black', formatoPrecio(it.precio * it.cantidad)));
+        stepper.append(menos, el('span', 'min-w-[1.75rem] text-center text-xs font-semibold tabular-nums text-zinc-900', String(it.cantidad)), mas);
+        pie.append(stepper, el('span', 'text-sm font-semibold text-zinc-900 tabular-nums', formatoPrecio(it.precio * it.cantidad)));
         centro.appendChild(pie);
 
-        const quitar = el('button', 'self-start w-7 h-7 rounded-full text-gray-300 hover:bg-gray-100 hover:text-black flex items-center justify-center text-sm flex-shrink-0', '✕');
+        const quitar = el('button', 'self-start w-8 h-8 -mt-1 -mr-1.5 rounded-full text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 flex items-center justify-center flex-shrink-0 transition-colors');
+        quitar.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>';
         quitar.type = 'button';
         quitar.setAttribute('aria-label', `Quitar ${it.nombre}`);
         quitar.onclick = () => quitarItem(it.key);
@@ -1402,12 +1409,12 @@ function actualizarCarritoUI() {
     $('carrito-modalidad-envio').classList.toggle('hidden', !hayEnvio || !carrito.items.length);
     if (!hayEnvio) modalidadEnvio = null;
     const estilo = (btn, activo) => {
-        btn.classList.toggle('border-black', activo);
-        btn.classList.toggle('bg-black', activo);
+        btn.classList.toggle('border-zinc-900', activo);
+        btn.classList.toggle('bg-zinc-900', activo);
         btn.classList.toggle('text-white', activo);
-        btn.classList.toggle('border-gray-200', !activo);
+        btn.classList.toggle('border-zinc-200', !activo);
         btn.classList.toggle('bg-white', !activo);
-        btn.classList.toggle('text-gray-500', !activo);
+        btn.classList.toggle('text-zinc-600', !activo);
     };
     estilo($('btn-modalidad-envio'), modalidadEnvio === true);
     estilo($('btn-modalidad-retiro'), modalidadEnvio === false);
@@ -1423,7 +1430,7 @@ function actualizarCarritoUI() {
 }
 
 function abrirCarrito() {
-    actualizarCarritoUI();
+    mostrarPasoCarrito(1);
     $('carrito-overlay').classList.remove('hidden');
     void $('carrito-drawer').offsetWidth;
     $('carrito-drawer').classList.remove('translate-x-full');
@@ -1436,10 +1443,228 @@ function cerrarCarrito() {
 }
 
 // ------------------------------------------------------------
+// PASO 2 DEL CARRITO: DATOS DEL CLIENTE
+// Los campos son fijos (no se configuran desde el dashboard): nombre siempre;
+// calle y localidad solo con envío a domicilio; medio de pago si el comercio
+// tiene alguno cargado; referencias y aclaraciones son opcionales.
+// ------------------------------------------------------------
+const CLAVE_DATOS_CLIENTE = 'ce_datos_cliente';   // global: es la misma persona en cualquier tienda
+let pasoCarrito = 1;
+let medioPagoElegido = '';
+let checkoutPrecargado = false;
+
+function limpiarTexto(v) {
+    return String(v || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function leerDatosGuardados() {
+    try {
+        const d = JSON.parse(localStorage.getItem(CLAVE_DATOS_CLIENTE) || 'null');
+        return d && typeof d === 'object' ? d : {};
+    } catch { return {}; }
+}
+
+function borrarDatosGuardados() {
+    try { localStorage.removeItem(CLAVE_DATOS_CLIENTE); } catch { /* noop */ }
+    ['co-nombre', 'co-calle', 'co-localidad', 'co-referencia', 'co-notas'].forEach(id => { $(id).value = ''; });
+    medioPagoElegido = '';
+    renderMediosPagoCheckout();
+    $('co-borrar-datos').classList.add('hidden');
+    mostrarToastCarrito('Datos borrados');
+}
+
+function conEnvioADomicilio() { return modalidadEnvio === true && costoEnvio() > 0; }
+
+// Medios de pago aceptados por TODOS los productos del carrito
+// (cada producto puede tener los suyos; si no, usa los del comercio).
+function mediosDelCarrito() {
+    const listas = carrito.items.map(i => {
+        const p = productosTienda.find(x => String(x.id) === String(i.productoId));
+        return p ? mediosDelProducto(p) : (Array.isArray(emprendedorActual?.medios_pago) ? emprendedorActual.medios_pago : []);
+    });
+    if (!listas.length) return [];
+    return listas.reduce((a, b) => a.filter(m => b.includes(m)));
+}
+
+function datosCheckout() {
+    return {
+        nombre: limpiarTexto($('co-nombre').value),
+        calle: limpiarTexto($('co-calle').value),
+        localidad: limpiarTexto($('co-localidad').value),
+        referencia: limpiarTexto($('co-referencia').value),
+        notas: limpiarTexto($('co-notas').value),
+        pago: medioPagoElegido,
+        envio: conEnvioADomicilio(),
+    };
+}
+
+function marcarErrorCheckout(campo, msg) {
+    const p = $('co-error-' + campo);
+    if (p) { p.textContent = msg || ''; p.classList.toggle('hidden', !msg); }
+    const inp = $('co-' + campo);
+    if (inp && inp.tagName !== 'DIV') {
+        inp.classList.toggle('co-error', !!msg);
+        inp.setAttribute('aria-invalid', msg ? 'true' : 'false');
+    }
+}
+
+function validarCheckout() {
+    const d = datosCheckout();
+    const errores = [];
+    if (d.nombre.length < 2) errores.push(['nombre', 'Ingresá tu nombre y apellido.']);
+    if (d.envio) {
+        if (d.calle.length < 3) errores.push(['calle', 'Ingresá la calle y el número.']);
+        if (d.localidad.length < 2) errores.push(['localidad', 'Ingresá tu localidad o barrio.']);
+    }
+    if (mediosDelCarrito().length && !d.pago) errores.push(['pago', 'Elegí cómo vas a pagar.']);
+
+    ['nombre', 'calle', 'localidad', 'pago'].forEach(c => marcarErrorCheckout(c, ''));
+    errores.forEach(([campo, msg]) => marcarErrorCheckout(campo, msg));
+    if (errores.length) {
+        const primero = errores[0][0];
+        const destino = primero === 'pago' ? $('co-pago-opciones') : $('co-' + primero);
+        destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (primero !== 'pago') destino.focus({ preventScroll: true });
+    }
+    return errores.length === 0;
+}
+
+function renderMediosPagoCheckout() {
+    const medios = mediosDelCarrito();
+    $('co-pago-wrap').classList.toggle('hidden', medios.length === 0);
+    if (!medios.includes(medioPagoElegido)) medioPagoElegido = '';
+    const cont = $('co-pago-opciones');
+    cont.replaceChildren();
+    medios.forEach(id => {
+        const activo = medioPagoElegido === id;
+        const b = el('button', 'flex items-center justify-center gap-2 rounded-xl border py-3 px-2 text-xs font-semibold transition-all [&>span>svg]:w-4 [&>span>svg]:h-4 ' +
+            (activo ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'));
+        b.type = 'button';
+        b.setAttribute('role', 'radio');
+        b.setAttribute('aria-checked', activo ? 'true' : 'false');
+        const ic = el('span', 'inline-flex flex-shrink-0');
+        ic.innerHTML = iconoMedioPago(id);
+        b.append(ic, el('span', 'truncate', nombreMedioPago(id)));
+        b.onclick = () => { medioPagoElegido = id; marcarErrorCheckout('pago', ''); renderMediosPagoCheckout(); };
+        cont.appendChild(b);
+    });
+}
+
+function renderResumenCheckout() {
+    const cont = $('co-resumen');
+    cont.replaceChildren();
+    const fila = (etiqueta, valor, fuerte) => {
+        const f = el('div', 'flex items-center justify-between gap-3');
+        f.append(
+            el('span', fuerte ? 'text-sm font-medium text-zinc-900' : 'text-sm text-zinc-500', etiqueta),
+            el('span', fuerte ? 'text-lg font-semibold tracking-tight text-zinc-900 tabular-nums' : 'text-sm font-medium text-zinc-700 text-right tabular-nums', valor)
+        );
+        cont.appendChild(f);
+    };
+    const cant = carrito.items.reduce((s, i) => s + i.cantidad, 0);
+    if (costoEnvio() > 0) fila('Entrega', conEnvioADomicilio() ? 'Envío a domicilio' : 'Retiro en el local');
+    fila(`${cant} producto${cant === 1 ? '' : 's'}`, formatoPrecio(subtotalCarrito()));
+    if (conEnvioADomicilio()) fila('Envío', formatoPrecio(costoEnvio()));
+    fila('Total', formatoPrecio(totalCarrito()), true);
+}
+
+// Rellena el formulario con lo que el cliente guardó la vez anterior (una sola vez por visita)
+function precargarCheckout() {
+    const g = leerDatosGuardados();
+    if (!checkoutPrecargado) {
+        checkoutPrecargado = true;
+        $('co-nombre').value = limpiarTexto(g.nombre);
+        $('co-calle').value = limpiarTexto(g.calle);
+        $('co-localidad').value = limpiarTexto(g.localidad);
+        $('co-referencia').value = limpiarTexto(g.referencia);
+        if (typeof g.pago === 'string') medioPagoElegido = g.pago;
+    }
+    $('co-borrar-datos').classList.toggle('hidden', !Object.keys(g).length);
+}
+
+function mostrarPasoCarrito(n) {
+    pasoCarrito = n;
+    const p2 = n === 2;
+    $('carrito-items').classList.toggle('hidden', p2);
+    $('carrito-footer-paso1').classList.toggle('hidden', p2);
+    $('carrito-checkout').classList.toggle('hidden', !p2);
+    $('carrito-footer-paso2').classList.toggle('hidden', !p2);
+    $('carrito-volver').classList.toggle('hidden', !p2);
+    $('carrito-volver').classList.toggle('inline-flex', p2);
+    $('carrito-icono').classList.toggle('hidden', p2);
+    $('carrito-titulo').textContent = p2 ? 'Tus datos' : 'Tu carrito';
+    if (p2) {
+        precargarCheckout();
+        $('co-bloque-envio').classList.toggle('hidden', !conEnvioADomicilio());
+        renderMediosPagoCheckout();
+        renderResumenCheckout();
+        $('carrito-checkout').scrollTop = 0;
+    }
+    actualizarCarritoUI();
+}
+
+function volverAlCarrito() { mostrarPasoCarrito(1); }
+
+// Misma comprobación que antes se hacía al enviar: se adelanta al paso 1 para que
+// nadie complete el formulario y recién después se entere de que no puede pedir.
+function verificarPedidoPosible() {
+    const e = emprendedorActual;
+    const wsp = soloDigitos(e?.whatsapp);
+    if (!pedidosActivos() || !wsp || String(carrito.emprendedorId) !== String(e.id)) {
+        $('sin-whatsapp-tienda').textContent = (e?.nombre_tienda || '').trim() || 'Este emprendedor';
+        $('modal-sin-whatsapp').classList.remove('hidden');
+        actualizarBloqueoScroll();
+        return false;
+    }
+    return true;
+}
+
+function irACheckout() {
+    if (!carrito.items.length) return;
+    if (!verificarPedidoPosible()) return;
+    if (costoEnvio() > 0 && modalidadEnvio === null) {
+        mostrarToastCarrito('Elegí cómo lo recibís');
+        return;
+    }
+    mostrarPasoCarrito(2);
+}
+
+// Los errores se limpian apenas el cliente corrige el campo
+['nombre', 'calle', 'localidad'].forEach(c => {
+    $('co-' + c).addEventListener('input', () => marcarErrorCheckout(c, ''));
+});
+
+function guardarDatosSiCorresponde() {
+    try {
+        if (!$('co-recordar').checked) { localStorage.removeItem(CLAVE_DATOS_CLIENTE); return; }
+        const d = datosCheckout();
+        localStorage.setItem(CLAVE_DATOS_CLIENTE, JSON.stringify({
+            nombre: d.nombre, calle: d.calle, localidad: d.localidad, referencia: d.referencia, pago: d.pago,
+        }));
+    } catch { /* noop */ }
+}
+
+// ------------------------------------------------------------
 // PEDIDO POR WHATSAPP
 // ------------------------------------------------------------
 let urlPedido = '';
 let urlPedidoWeb = '';
+
+// Link directo a un producto de esta tienda (?producto=<id>), el mismo que abre
+// el modal. Parte de la URL actual para respetar tanto /tienda/<usuario> como
+// el ?t=<usuario> de desarrollo, y descarta cualquier otro parámetro o #hash.
+function urlProductoTienda(id) {
+    try {
+        const actual = new URL(window.location.href);
+        const u = new URL(actual.origin + actual.pathname);
+        const t = actual.searchParams.get('t');
+        if (t) u.searchParams.set('t', t);
+        u.searchParams.set('producto', id);
+        return u.href;
+    } catch {
+        return '';
+    }
+}
 
 function armarMensajePedido() {
     const e = emprendedorActual;
@@ -1447,6 +1672,8 @@ function armarMensajePedido() {
     const lineas = [`Hola ${nombre}! Quiero hacer este pedido:`, ''];
     carrito.items.forEach(i => {
         lineas.push(`• ${i.cantidad}x ${i.nombre}${i.detalle ? ` (${i.detalle})` : ''} — ${formatoPrecio(i.precio * i.cantidad)}`);
+        const link = i.productoId != null ? urlProductoTienda(i.productoId) : '';
+        if (link) lineas.push(`  ${link}`);
     });
     lineas.push('');
     if (costoEnvio() > 0) {
@@ -1457,6 +1684,13 @@ function armarMensajePedido() {
         }
     }
     lineas.push(`Total: ${formatoPrecio(totalCarrito())}`);
+
+    const d = datosCheckout();
+    lineas.push('');
+    lineas.push(`Cliente: ${d.nombre}`);
+    if (d.envio) lineas.push(`Dirección: ${d.calle}, ${d.localidad}${d.referencia ? ` (${d.referencia})` : ''}`);
+    if (d.pago) lineas.push(`Pago: ${nombreMedioPago(d.pago)}`);
+    if (d.notas) lineas.push(`Aclaraciones: ${d.notas}`);
     return lineas.join('\n');
 }
 
@@ -1464,16 +1698,14 @@ function enviarPedidoWhatsapp() {
     if (!carrito.items.length) return;
     const e = emprendedorActual;
     const wsp = soloDigitos(e?.whatsapp);
-    if (!pedidosActivos() || !wsp || String(carrito.emprendedorId) !== String(e.id)) {
-        $('sin-whatsapp-tienda').textContent = (e?.nombre_tienda || '').trim() || 'Este emprendedor';
-        $('modal-sin-whatsapp').classList.remove('hidden');
-        actualizarBloqueoScroll();
-        return;
-    }
+    if (!verificarPedidoPosible()) return;
     if (costoEnvio() > 0 && modalidadEnvio === null) {
         mostrarToastCarrito('Elegí cómo lo recibís');
+        mostrarPasoCarrito(1);
         return;
     }
+    if (!validarCheckout()) return;
+    guardarDatosSiCorresponde();
 
     const texto = encodeURIComponent(armarMensajePedido());
     urlPedido = `https://wa.me/${wsp}?text=${texto}`;
@@ -1489,7 +1721,11 @@ function enviarPedidoWhatsapp() {
     caja.replaceChildren();
     try {
         if (typeof QRCode === 'undefined') throw new Error('QRCode no disponible');
-        new QRCode(caja, { text: urlPedido, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.L });
+        // Con los links de los productos el mensaje es más largo y el QR queda más
+        // denso: lo agrandamos un poco cuando hace falta para que siga escaneando bien.
+        const tamQr = urlPedido.length > 900 ? 300 : 260;
+        caja.style.width = caja.style.height = `${tamQr}px`;
+        new QRCode(caja, { text: urlPedido, width: tamQr, height: tamQr, correctLevel: QRCode.CorrectLevel.L });
     } catch (err) {
         console.error('No se pudo generar el QR:', err);
         caja.appendChild(el('p', 'text-xs font-semibold text-gray-400 px-4', 'No pudimos generar el código. Usá el botón de WhatsApp Web.'));
