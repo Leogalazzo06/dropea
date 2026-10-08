@@ -109,13 +109,13 @@ async function confirmarCerrarSesion() {
 // hay que mirar la fecha de vencimiento: nada vuelve a cambiar el
 // estado solo cuando pasa el mes.
 // ============================================================
-const DIAS_PRUEBA_GRATIS = 30;
+const DIAS_PRUEBA_GRATIS = 10;
 
 // Únicos valores de "suscripcion_estado" que indican que alguna vez hubo
 // un intento real de pago (aprobado, pendiente, rechazado, cancelado o
 // pausado). Cualquier otro valor -'sin_suscripcion', vacío, etc.- significa
 // que la cuenta todavía no pasó por MercadoPago y puede seguir dentro de
-// su mes gratis.
+// su prueba gratis.
 const ESTADOS_SUSCRIPCION_REAL = ['authorized', 'pending', 'pago_rechazado', 'cancelled', 'paused'];
 
 function calcularEstadoAcceso(emprendedor) {
