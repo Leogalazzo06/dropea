@@ -125,6 +125,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!data) { mostrarError('no-encontrada'); return; }
 
     emprendedorActual = data;
+    migrarCarritoAntiguo(data);
+    validarCarritoDeTienda(data);
     iniciarRealtime(data.id);
 
     if (tiendaInactiva(data)) { mostrarTiendaInactiva(); return; }
@@ -234,7 +236,6 @@ function renderPerfil(e) {
     configurarRedSocial('perfil-tiktok', e.tiktok);
 
     renderInfoLocal(e, pedidos);
-    cargarCarritoDeTienda(e.id);
     if (typeof actualizarCarritoUI === 'function') actualizarCarritoUI();
 }
 
@@ -621,7 +622,7 @@ function mostrarSkeletonBusqueda() {
 }
 
 function crearFilaSugerencia(p) {
-    const fila = el('button', 'group/sug w-full flex items-center gap-3 px-3.5 py-3 hover:bg-yellow-50 focus-visible:bg-yellow-50 focus-visible:outline-none transition-colors text-left');
+    const fila = el('button', 'group/sug w-full flex items-center gap-3 px-3.5 py-3 hover:bg-blue-50 focus-visible:bg-blue-50 focus-visible:outline-none transition-colors text-left');
     fila.type = 'button';
     fila.setAttribute('role', 'option');
     fila.onclick = () => { cerrarSugerencias(); abrirModalProducto(p.id); };
@@ -671,7 +672,7 @@ function mostrarSugerencias() {
     panelSugerencias.appendChild(lista);
 
     const n = coincidencias.length;
-    const pie = el('button', 'w-full flex items-center justify-center gap-1.5 py-3 bg-yellow-400 hover:bg-yellow-300 border-t-2 border-black font-black text-[11px] uppercase tracking-widest text-black transition-colors');
+    const pie = el('button', 'w-full flex items-center justify-center gap-1.5 py-3 bg-blue-800 hover:bg-blue-700 border-t-2 border-black font-black text-[11px] uppercase tracking-widest text-white transition-colors');
     pie.type = 'button';
     pie.append(`Ver ${n === 1 ? 'el' : 'los'} ${n} resultado${n === 1 ? '' : 's'}`);
     const flecha = el('span', 'inline-flex');
@@ -820,12 +821,12 @@ function crearCardProducto(p) {
     }
 
     const badges = el('div', 'absolute top-2 left-2 flex flex-col items-start gap-1');
-    if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 'bg-yellow-400 text-black text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
+    if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 'bg-blue-800 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
     if (!sinStock && pct > 0) badges.appendChild(el('span', 'bg-red-600 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm', `-${pct}%`));
     if (badges.children.length) wrap.appendChild(badges);
 
     if (p.destacado && !sinStock) {
-        const star = el('span', 'absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-md shadow-yellow-400/40');
+        const star = el('span', 'absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md shadow-blue-800/40');
         star.title = 'Destacado';
         star.innerHTML = '<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 2.5z"/></svg>';
         wrap.appendChild(star);
@@ -849,7 +850,7 @@ function crearCardProducto(p) {
         return card;
     }
 
-    const add = el('button', 'solo-pedidos flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-yellow-400 hover:text-black transition-all active:scale-90');
+    const add = el('button', 'solo-pedidos flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-blue-800 hover:text-white transition-all active:scale-90');
     add.type = 'button';
     add.setAttribute('aria-label', `Agregar ${p.nombre || 'producto'} al carrito`);
     add.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>';
@@ -1219,34 +1220,48 @@ function iniciarLightbox() {
 }
 
 // ------------------------------------------------------------
-// CARRITO (se guarda en el navegador; cada comercio tiene su propio carrito)
+// CARRITO (se guarda en el navegador; cada tienda tiene el suyo)
 // ------------------------------------------------------------
-const CLAVE_CARRITO = 'ce_carrito_tienda';
-let carrito = { emprendedorId: null, tienda: '', items: [] };  // { emprendedorId, tienda, items: [...] }
-let carritoCargadoDe = null;         // id del comercio cuyo carrito está en memoria
+// Clave antigua (un solo carrito para todas las tiendas): solo se usa para migrar.
+const CLAVE_CARRITO_ANTIGUA = 'ce_carrito_tienda';
+// Clave por tienda: ce_carrito_tienda:<usuario>
+const CLAVE_CARRITO = CLAVE_CARRITO_ANTIGUA + ':' + (obtenerSlug() || '');
+let carrito = leerCarrito();         // { emprendedorId, tienda, items: [...] } de ESTA tienda
 let modalidadEnvio = null;           // null = sin elegir, true = envío, false = retiro
 let conflictoPendiente = null;
 
-function claveCarrito(id) { return `${CLAVE_CARRITO}:${id}`; }
-function leerCarrito(id) {
+function leerCarrito() {
     try {
-        const c = JSON.parse(localStorage.getItem(claveCarrito(id)) || 'null');
+        const c = JSON.parse(localStorage.getItem(CLAVE_CARRITO) || 'null');
         if (c && Array.isArray(c.items)) return c;
     } catch { /* noop */ }
-    return { emprendedorId: id, tienda: '', items: [] };
+    return { emprendedorId: null, tienda: '', items: [] };
 }
 function guardarCarrito() {
-    const id = carritoCargadoDe;
-    if (id == null) return;
-    try { localStorage.setItem(claveCarrito(id), JSON.stringify(carrito)); } catch { /* noop */ }
+    try {
+        if (carrito.items.length) localStorage.setItem(CLAVE_CARRITO, JSON.stringify(carrito));
+        else localStorage.removeItem(CLAVE_CARRITO);
+    } catch { /* noop */ }
 }
-// Carga el carrito del comercio que se está viendo (al cambiar de tienda
-// aparece el de esa tienda, no el de la anterior)
-function cargarCarritoDeTienda(id) {
-    if (String(carritoCargadoDe) === String(id)) return;
-    carritoCargadoDe = id;
-    carrito = leerCarrito(id);
-    modalidadEnvio = null;
+
+// Carrito viejo (compartido entre tiendas): si era de esta tienda, pasa a la clave propia;
+// si era de otra, se deja para que esa tienda lo recupere al abrirse.
+function migrarCarritoAntiguo(e) {
+    try {
+        const viejo = JSON.parse(localStorage.getItem(CLAVE_CARRITO_ANTIGUA) || 'null');
+        if (!viejo || !Array.isArray(viejo.items)) { localStorage.removeItem(CLAVE_CARRITO_ANTIGUA); return; }
+        if (String(viejo.emprendedorId) !== String(e.id)) return;
+        if (!carrito.items.length) { carrito = viejo; guardarCarrito(); }
+        localStorage.removeItem(CLAVE_CARRITO_ANTIGUA);
+    } catch { /* noop */ }
+}
+
+// Si el carrito de esta tienda quedó con productos de otro comercio, se descarta.
+function validarCarritoDeTienda(e) {
+    if (carrito.items.length && carrito.emprendedorId != null && String(carrito.emprendedorId) !== String(e.id)) {
+        carrito = { emprendedorId: null, tienda: '', items: [] };
+        guardarCarrito();
+    }
 }
 
 // Devuelve true si el producto quedó en el carrito
@@ -1321,7 +1336,7 @@ async function vaciarCarrito() {
     limpiarCarrito();
 }
 function limpiarCarrito() {
-    carrito = { emprendedorId: carritoCargadoDe, tienda: '', items: [] };
+    carrito = { emprendedorId: null, tienda: '', items: [] };
     modalidadEnvio = null;
     guardarCarrito();
     actualizarCarritoUI();
@@ -1362,8 +1377,8 @@ function actualizarCarritoUI() {
 
         const pie = el('div', 'mt-auto pt-2 flex items-center justify-between gap-2');
         const stepper = el('div', 'flex items-center gap-1 bg-gray-100 rounded-full px-1 py-0.5');
-        const menos = el('button', 'w-6 h-6 rounded-full bg-white shadow font-black leading-none hover:bg-yellow-400 transition-all active:scale-90', '−');
-        const mas = el('button', 'w-6 h-6 rounded-full bg-white shadow font-black leading-none hover:bg-yellow-400 transition-all active:scale-90', '+');
+        const menos = el('button', 'w-6 h-6 rounded-full bg-white shadow font-black leading-none hover:bg-blue-800 transition-all active:scale-90 hover:text-white', '−');
+        const mas = el('button', 'w-6 h-6 rounded-full bg-white shadow font-black leading-none hover:bg-blue-800 transition-all active:scale-90 hover:text-white', '+');
         menos.type = mas.type = 'button';
         menos.setAttribute('aria-label', 'Menos'); mas.setAttribute('aria-label', 'Más');
         menos.onclick = () => cambiarCantidadItem(it.key, -1);
