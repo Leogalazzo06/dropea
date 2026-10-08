@@ -4,21 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dropea | Un catálogo online para cada comercio</title>
-    <meta name="description" content="Catálogo online o menú digital con QR para tu comercio, con pedidos por WhatsApp si querés vender. Probalo 15 días gratis. Después, $15.000 por mes.">
+    <meta name="description" content="Catálogo online con QR para tu comercio. Mostrá tus productos o recibí pedidos por WhatsApp, vos elegís. Probalo 10 días gratis. Después, $10.000 por mes.">
     <meta name="theme-color" content="#ffffff">
     <link rel="shortcut icon" href="favicon-96x96.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { future: { hoverOnlyWhenSupported: true } };</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         html { scroll-behavior: smooth; }
         html, body { overflow-x: hidden; max-width: 100%; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { -webkit-tap-highlight-color: transparent; }
         .hidden { display: none !important; }
         section[id] { scroll-margin-top: 88px; }
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .9rem 1.6rem; border-radius: 9999px; border: 2px solid #000; font-size: .8rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; transition: all .15s ease; text-align: center; }
-        .btn:hover { transform: translate(3px, 3px); box-shadow: none !important; }
-        .btn:focus-visible, a:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
+        .btn { min-height: 46px; }
+        @media (hover: hover) { .btn:hover { transform: translate(3px, 3px); box-shadow: none !important; } }
+        .btn:active { transform: translate(2px, 2px); box-shadow: none !important; }
+        .btn:focus-visible, a:focus-visible { outline: 3px solid #1e40af; outline-offset: 3px; }
         .skel { background: #e2e4e8; animation: pulse 1.4s ease-in-out infinite; }
         .tab { position: relative; overflow: hidden; }
         .tab .bar { position: absolute; left: 0; bottom: 0; height: 4px; width: 0; background: #000; }
@@ -26,9 +31,14 @@
         @keyframes llenar { to { width: 100%; } }
         @media (prefers-reduced-motion: reduce) { .tab .bar { display: none; } }
         .tab { flex-shrink: 0; text-align: left; padding: .75rem 1rem; border-radius: 1rem; border: 2px solid transparent; font-size: .8rem; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
-        .tab:hover { border-color: #000; }
-        .tab[aria-selected="true"] { background: #facc15; border-color: #000; box-shadow: 3px 3px 0 0 #000; }
-        .tab:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+        @media (hover: hover) { .tab:hover { border-color: #000; } }
+        .tab[aria-selected="true"] { background: #1e40af; color: #fff; border-color: #000; box-shadow: 3px 3px 0 0 #000; }
+        .tab[aria-selected="true"] .bar { background: #93c5fd; }
+        .tab:focus-visible { outline: 3px solid #1e40af; outline-offset: 2px; }
+        .acc { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 58px; padding: 1rem 1.1rem; border: 0; border-radius: 0; background: #fff; white-space: normal; text-align: left; font-size: .85rem; scroll-margin-top: 84px; }
+        .acc[aria-selected="true"] { box-shadow: none; }
+        .acc svg { flex-shrink: 0; width: 1.1rem; height: 1.1rem; transition: transform .2s ease; }
+        .acc[aria-selected="true"] svg { transform: rotate(180deg); }
         @keyframes pulse { 50% { opacity: .5; } }
         @media (prefers-reduced-motion: reduce) { .skel { animation: none; } html { scroll-behavior: auto; } .btn { transition: none; } }
     </style>
@@ -44,14 +54,14 @@
                 <span class="hidden text-2xl font-black italic tracking-tight uppercase">Dropea</span>
             </a>
             <nav aria-label="Secciones" class="hidden lg:flex items-center gap-7 text-xs font-black uppercase tracking-widest">
-                <a href="#comercios" class="hover:text-yellow-500 transition-colors">Comercios</a>
-                <a href="#funciones" class="hover:text-yellow-500 transition-colors">Funciones</a>
-                <a href="#como-funciona" class="hover:text-yellow-500 transition-colors">Cómo funciona</a>
-                <a href="#precio" class="hover:text-yellow-500 transition-colors">Precio</a>
+                <a href="#comercios" class="hover:text-blue-800 transition-colors">Comercios</a>
+                <a href="#funciones" class="hover:text-blue-800 transition-colors">Funciones</a>
+                <a href="#como-funciona" class="hover:text-blue-800 transition-colors">Cómo funciona</a>
+                <a href="#precio" class="hover:text-blue-800 transition-colors">Precio</a>
             </nav>
             <div class="flex items-center gap-3 sm:gap-4">
-                <a href="login.html" class="btn bg-white text-black !py-2 !px-4">Ingresar</a>
-                <a href="registro.html" class="btn bg-black text-white shadow-[3px_3px_0_0_#facc15] !py-2 !px-4">Quiero mi web</a>
+                <a href="login.html" class="btn bg-white text-black shadow-[3px_3px_0_0_#000] !py-2 !px-5">Ingresar</a>
+                <a href="registro.html" class="btn max-sm:hidden bg-black text-white shadow-[3px_3px_0_0_#1e40af] !py-2 !px-4">Quiero mi web</a>
             </div>
         </div>
     </header>
@@ -59,28 +69,28 @@
     <main class="pt-16 sm:pt-[72px]">
 
         <!-- HERO: texto a la izquierda, celular a la derecha -->
-        <section class="relative overflow-hidden bg-yellow-50 border-b-2 border-black">
+        <section class="relative overflow-hidden bg-blue-50 border-b-2 border-black">
             <!-- Fondo: grilla de puntos + formas de marca -->
             <div class="pointer-events-none absolute inset-0" aria-hidden="true" style="background-image:radial-gradient(#d4a90a55 1.5px,transparent 1.5px);background-size:24px 24px"></div>
-            <div class="pointer-events-none absolute hidden lg:block right-10 -bottom-24 w-80 h-80 xl:w-96 xl:h-96 rounded-full bg-yellow-400 border-2 border-black shadow-[8px_8px_0_0_#000] opacity-90" aria-hidden="true"></div>
+            <div class="pointer-events-none absolute hidden lg:block right-10 -bottom-24 w-80 h-80 xl:w-96 xl:h-96 rounded-full bg-blue-800 border-2 border-black shadow-[8px_8px_0_0_#000] opacity-90 text-white" aria-hidden="true"></div>
             <svg class="pointer-events-none absolute right-6 sm:right-16 lg:right-[24rem] top-4 sm:top-8 w-9 h-9 sm:w-14 sm:h-14 text-black" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
             <svg class="pointer-events-none absolute hidden sm:block right-10 sm:right-20 bottom-10 w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="#000" stroke-width="1" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
-            <div class="relative container mx-auto px-5 sm:px-6 py-14 sm:py-24 max-w-6xl">
-                <h1 class="font-black uppercase italic tracking-tight leading-[1.02]" style="font-size:clamp(1.3rem,5.9vw,4rem)">
-                    <span class="block whitespace-nowrap">Creá tu catálogo online</span>
-                    <span class="block whitespace-nowrap">y <span class="bg-yellow-400 px-2">empezá a vender.</span></span>
+            <div class="relative container mx-auto px-5 sm:px-6 py-10 sm:py-24 max-w-6xl">
+                <h1 class="font-black uppercase italic tracking-tight leading-[1.05] text-[2rem] min-[400px]:text-[2.35rem] sm:[font-size:clamp(1.3rem,5.9vw,4rem)]">
+                    <span class="block sm:whitespace-nowrap">Creá tu catálogo online</span>
+                    <span class="block sm:whitespace-nowrap">y <span class="bg-blue-800 px-2 text-white">empezá a vender.</span></span>
                 </h1>
                 <div class="mt-8 relative">
                 <div>
-                    <p class="max-w-md text-lg font-semibold text-zinc-600 leading-snug">
+                    <p class="max-w-md text-base sm:text-lg font-semibold text-zinc-600 leading-snug">
                         Mostrá tus productos, precios y promociones. Compartí tu link o tu QR, y si querés, recibí los pedidos por WhatsApp.
                     </p>
-                    <div class="mt-8 flex flex-col sm:flex-row flex-wrap gap-4">
-                        <a href="registro.html" class="btn bg-black text-white shadow-[5px_5px_0_0_#facc15]">Quiero mi web</a>
-                        <a href="#funciones" class="btn bg-white text-black shadow-[5px_5px_0_0_#000]">Ver funciones</a>
+                    <div class="mt-7 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                        <a href="registro.html" class="btn w-full sm:w-auto bg-black text-white shadow-[4px_4px_0_0_#1e40af] sm:shadow-[5px_5px_0_0_#1e40af]">Quiero mi web</a>
+                        <a href="#funciones" class="btn w-full sm:w-auto bg-white text-black shadow-[4px_4px_0_0_#000] sm:shadow-[5px_5px_0_0_#000]">Ver funciones</a>
                     </div>
-                    <p class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-semibold text-zinc-500"><span class="rounded-full border-2 border-black bg-yellow-400 px-3 py-1 text-xs font-black uppercase text-black">15 días de prueba gratis</span>Sin comisiones · Después, $15.000 por mes</p>
-                    <p class="mt-3 text-sm font-semibold text-zinc-500">¿Ya tenés cuenta? <a href="login.html" class="font-black text-black underline decoration-yellow-400 decoration-4 underline-offset-4 hover:bg-yellow-400">Ingresá a tu panel</a></p>
+                    <p class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-semibold text-zinc-500"><span class="rounded-full border-2 border-black bg-blue-800 px-3 py-1 text-xs font-black uppercase text-white">10 días de prueba gratis</span>Sin comisiones · Después, $10.000 por mes</p>
+                    <p class="mt-3 text-sm font-semibold text-zinc-500">¿Ya tenés cuenta? <a href="login.html" class="font-black text-black underline decoration-blue-800 decoration-4 underline-offset-4 hover:bg-blue-800 hover:text-white">Ingresá a tu panel</a></p>
                 </div>
                 </div>
                 </div>
@@ -89,52 +99,52 @@
         <!-- DOS FORMAS DE USARLO -->
         <section id="usos" class="container mx-auto px-5 sm:px-6 py-8 sm:py-12 max-w-6xl">
             <div class="text-center">
-                <p class="text-sm font-black uppercase tracking-widest text-yellow-500">Elegí cómo usarlo</p>
-                <h2 class="mt-2 text-3xl sm:text-5xl font-black uppercase italic tracking-tight">Mostrar o vender, vos decidís</h2>
+                <p class="text-sm font-black uppercase tracking-widest text-blue-800">Elegí cómo usarlo</p>
+                <h2 class="mt-2 text-3xl sm:text-5xl font-black uppercase italic tracking-tight">Solo mostrar o recibir pedidos, vos decidís</h2>
             </div>
             <div class="mt-10 grid md:grid-cols-2 gap-6 sm:gap-8">
                 <article class="rounded-3xl border-2 border-black bg-white p-6 sm:p-8 shadow-[6px_6px_0_0_#000]">
-                    <span class="inline-block rounded-full bg-black text-yellow-400 px-3 py-1 text-xs font-black uppercase tracking-widest">Para mostrar</span>
-                    <h3 class="mt-4 text-2xl sm:text-3xl font-black uppercase italic leading-tight">Catálogo online o menú digital</h3>
-                    <p class="mt-3 font-semibold text-zinc-600">Ideal si querés que tus clientes vean lo que ofrecés, sin recibir pedidos online.</p>
+                    <span class="inline-block rounded-full bg-black text-blue-400 px-3 py-1 text-xs font-black uppercase tracking-widest">Solo para mostrar</span>
+                    <h3 class="mt-4 text-2xl sm:text-3xl font-black uppercase italic leading-tight">Tu catálogo online, para ver</h3>
+                    <p class="mt-3 font-semibold text-zinc-600">Ideal si querés que tus clientes vean tus productos y precios, sin recibir pedidos online. Vos seguís atendiendo como siempre.</p>
                     <ul class="mt-5 space-y-3 font-semibold text-zinc-700">
-                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-yellow-400 border-2 border-black text-[10px] font-black flex items-center justify-center">✓</span>Productos, precios, promociones e información de tu local.</li>
-                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-yellow-400 border-2 border-black text-[10px] font-black flex items-center justify-center">✓</span>Compartí tu link cuando te pregunten por tus productos.</li>
-                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-yellow-400 border-2 border-black text-[10px] font-black flex items-center justify-center">✓</span>En bares y restaurantes: tus clientes escanean el QR desde la mesa, miran el menú y piden al mozo.</li>
+                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-blue-800 border-2 border-black text-[10px] font-black flex items-center justify-center text-white">✓</span>Productos, precios, promociones e información de tu local.</li>
+                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-blue-800 border-2 border-black text-[10px] font-black flex items-center justify-center text-white">✓</span>Compartí tu link o tu QR cuando te pregunten por tus productos.</li>
+                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-blue-800 border-2 border-black text-[10px] font-black flex items-center justify-center text-white">✓</span>Sirve para cualquier rubro: tus clientes lo miran desde el celular y después te compran en el local, por llamada o por mensaje.</li>
                     </ul>
                 </article>
-                <article class="rounded-3xl border-2 border-black bg-yellow-400 p-6 sm:p-8 shadow-[6px_6px_0_0_#000]">
-                    <span class="inline-block rounded-full bg-black text-yellow-400 px-3 py-1 text-xs font-black uppercase tracking-widest">Para vender</span>
+                <article class="rounded-3xl border-2 border-black bg-blue-800 text-white p-6 sm:p-8 shadow-[6px_6px_0_0_#000]">
+                    <span class="inline-block rounded-full bg-black text-blue-400 px-3 py-1 text-xs font-black uppercase tracking-widest">Para recibir pedidos</span>
                     <h3 class="mt-4 text-2xl sm:text-3xl font-black uppercase italic leading-tight">Ventas por WhatsApp</h3>
-                    <p class="mt-3 font-semibold text-black/80">Ideal si querés que tus clientes armen el pedido y te lo envíen listo.</p>
-                    <ul class="mt-5 space-y-3 font-semibold text-black/90">
-                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-black text-yellow-400 text-[10px] font-black flex items-center justify-center">✓</span>El cliente elige los productos desde tu catálogo.</li>
-                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-black text-yellow-400 text-[10px] font-black flex items-center justify-center">✓</span>El pedido te llega armado a tu WhatsApp.</li>
-                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-black text-yellow-400 text-[10px] font-black flex items-center justify-center">✓</span>Sin comisión por tus ventas.</li>
+                    <p class="mt-3 font-semibold text-white/90">Ideal si querés que tus clientes armen el pedido desde tu catálogo y te lo envíen listo.</p>
+                    <ul class="mt-5 space-y-3 font-semibold text-white">
+                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-black text-blue-400 text-[10px] font-black flex items-center justify-center">✓</span>El cliente elige los productos desde tu catálogo.</li>
+                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-black text-blue-400 text-[10px] font-black flex items-center justify-center">✓</span>El pedido te llega armado a tu WhatsApp.</li>
+                        <li class="flex gap-3"><span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-black text-blue-400 text-[10px] font-black flex items-center justify-center">✓</span>Sin comisión por tus ventas.</li>
                     </ul>
                 </article>
             </div>
-            <p class="mt-6 text-center text-sm font-bold text-zinc-500">Los dos usos tienen el mismo precio y el mismo panel, y los dos incluyen 15 días de prueba gratis.</p>
+            <p class="mt-6 text-center text-sm font-bold text-zinc-500">Los dos usos tienen el mismo precio y el mismo panel, y los dos incluyen 10 días de prueba gratis.</p>
         </section>
 
         <!-- COMERCIOS: número y datos a la izquierda, logos a la derecha -->
         <section id="comercios" class="container mx-auto px-5 sm:px-6 py-12 sm:py-16 max-w-6xl">
             <div class="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 lg:gap-14">
                 <div>
-                    <p class="text-sm font-black uppercase tracking-widest text-yellow-500">Comercios que ya venden</p>
-                    <p class="mt-2 text-7xl sm:text-8xl font-black italic leading-none"><span id="stat-comercios" class="bg-yellow-400 px-2">+</span></p>
+                    <p class="text-sm font-black uppercase tracking-widest text-blue-800">Comercios que ya venden</p>
+                    <p class="mt-2 text-7xl sm:text-8xl font-black italic leading-none"><span id="stat-comercios" class="bg-blue-800 px-2 text-white">+</span></p>
                     <h2 class="mt-4 text-2xl sm:text-3xl font-black uppercase italic leading-tight">comercios muestran su catálogo con Dropea</h2>
                     <dl class="mt-8 border-t-2 border-black">
                         <div class="flex justify-between py-3 border-b-2 border-black"><dt class="font-semibold text-zinc-600">Comisión por tus ventas</dt><dd class="font-black">0%</dd></div>
-                        <div class="flex justify-between py-3 border-b-2 border-black"><dt class="font-semibold text-zinc-600">Pedidos</dt><dd class="font-black">Por WhatsApp</dd></div>
-                        <div class="flex justify-between py-3 border-b-2 border-black"><dt class="font-semibold text-zinc-600">Plan único</dt><dd class="font-black">$15.000 / mes</dd></div>
+                        <div class="flex justify-between py-3 border-b-2 border-black"><dt class="font-semibold text-zinc-600">Pedidos</dt><dd class="font-black">Opcional, por WhatsApp</dd></div>
+                        <div class="flex justify-between py-3 border-b-2 border-black"><dt class="font-semibold text-zinc-600">Plan único</dt><dd class="font-black">$10.000 / mes</dd></div>
                     </dl>
                 </div>
                 <div>
                     <p class="mb-4 text-sm font-semibold text-zinc-500">Tocá un logo para ver su catálogo.</p>
-                    <div id="comercios-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-                        <div class="skel aspect-square rounded-2xl"></div><div class="skel aspect-square rounded-2xl"></div>
-                        <div class="skel aspect-square rounded-2xl"></div><div class="skel aspect-square rounded-2xl"></div>
+                    <div id="comercios-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+                        <div class="skel aspect-square rounded-2xl"></div><div class="skel aspect-square rounded-2xl"></div><div class="skel aspect-square rounded-2xl"></div>
+                        <div class="skel aspect-square rounded-2xl"></div><div class="skel aspect-square rounded-2xl"></div><div class="skel aspect-square rounded-2xl"></div>
                     </div>
                     <p id="comercios-msg" class="hidden mt-6 rounded-3xl bg-zinc-50 border border-zinc-200 p-10 text-center text-sm font-bold text-zinc-500"></p>
                 </div>
@@ -144,43 +154,42 @@
         <!-- FUNCIONES: explorador con pestañas -->
         <section id="funciones" class="container mx-auto px-5 sm:px-6 py-12 sm:py-16 max-w-6xl">
             <div class="text-center">
-                <p class="text-sm font-black uppercase tracking-widest text-yellow-500">Funcionalidades</p>
-                <h2 class="mt-2 text-3xl sm:text-5xl font-black uppercase italic tracking-tight">Todo lo que necesitás para vender</h2>
+                <p class="text-sm font-black uppercase tracking-widest text-blue-800">Funcionalidades</p>
+                <h2 class="mt-2 text-3xl sm:text-5xl font-black uppercase italic tracking-tight">Todo lo que necesitás para mostrar y vender</h2>
                 <p class="mt-3 mx-auto max-w-xl font-semibold text-zinc-500">Herramientas simples pensadas para el comercio de todos los días.</p>
             </div>
             <div class="mt-10 grid md:grid-cols-[17rem_minmax(0,1fr)] rounded-3xl border-2 border-black bg-white shadow-[6px_6px_0_0_#000] overflow-hidden">
-                <div role="tablist" aria-label="Funciones" class="flex md:flex-col gap-2 p-3 sm:p-4 overflow-x-auto md:overflow-visible bg-zinc-50 border-b-2 md:border-b-0 md:border-r-2 border-black">
+                <div id="tablist" role="tablist" aria-label="Funciones" class="max-md:hidden flex flex-col gap-2 p-4 bg-zinc-50 border-r-2 border-black">
                     <button role="tab" id="tab-0" aria-controls="panel" aria-selected="true" class="tab">Perfil y catálogo<span class="bar"></span></button>
                     <button role="tab" id="tab-1" aria-controls="panel" aria-selected="false" class="tab">Pedidos por WhatsApp<span class="bar"></span></button>
                     <button role="tab" id="tab-2" aria-controls="panel" aria-selected="false" class="tab">Promociones<span class="bar"></span></button>
                     <button role="tab" id="tab-3" aria-controls="panel" aria-selected="false" class="tab">Código QR<span class="bar"></span></button>
                     <button role="tab" id="tab-4" aria-controls="panel" aria-selected="false" class="tab">Panel de administración<span class="bar"></span></button>
                 </div>
-                <div id="panel" role="tabpanel" aria-live="polite" class="p-6 sm:p-10 min-h-[18rem] grid lg:grid-cols-2 gap-8 items-center">
-                    <div>
-                        <p id="f-tag" class="text-sm font-black uppercase tracking-widest text-yellow-500"></p>
-                        <h3 id="f-title" class="mt-2 text-2xl sm:text-3xl font-black uppercase italic leading-tight"></h3>
-                        <ul id="f-list" class="mt-6 space-y-3 font-semibold text-zinc-700"></ul>
-                    </div>
-                    <div id="f-img-wrap" class="hidden min-w-0 h-72 sm:h-[26rem] items-center justify-center">
-                        <img id="f-img" alt="" class="block max-w-full max-h-full w-auto h-auto object-contain rounded-2xl border-2 border-black bg-white shadow-[5px_5px_0_0_#000]">
+                <div id="panel" role="tabpanel" aria-live="polite" class="max-md:hidden p-10 min-h-[18rem] flex items-center">
+                    <div class="w-full">
+                        <p id="f-tag" class="text-sm font-black uppercase tracking-widest text-blue-800"></p>
+                        <h3 id="f-title" class="mt-2 text-xl sm:text-3xl font-black uppercase italic leading-tight"></h3>
+                        <ul id="f-list" class="mt-5 sm:mt-6 space-y-3 max-w-2xl text-[15px] sm:text-base font-semibold text-zinc-700"></ul>
                     </div>
                 </div>
+                <!-- Acordeón (solo celular): se arma con JS -->
+                <div id="acordeon" class="md:hidden"></div>
             </div>
         </section>
 
         <!-- Y MUCHO MÁS -->
         <section class="container mx-auto px-5 sm:px-6 py-12 sm:py-16 max-w-6xl">
             <div class="text-center">
-                <p class="text-sm font-black uppercase tracking-widest text-yellow-500">Y mucho más</p>
+                <p class="text-sm font-black uppercase tracking-widest text-blue-800">Y mucho más</p>
                 <h2 class="mt-2 text-3xl sm:text-4xl font-black uppercase italic tracking-tight">Otras cosas que incluye</h2>
             </div>
-            <div class="mt-8 grid grid-cols-1 sm:grid-cols-6 gap-4 sm:gap-5">
-                <article class="sm:col-span-2 rounded-3xl border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000]"><h3 class="font-black uppercase">Link propio</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Tu catálogo vive en dropea/tienda/tu-usuario.</p></article>
-                <article class="sm:col-span-2 rounded-3xl border-2 border-black bg-yellow-400 p-5 shadow-[4px_4px_0_0_#000]"><h3 class="font-black uppercase">Sin comisiones</h3><p class="mt-1.5 text-sm font-semibold text-black/80">Todo lo que vendés es tuyo.</p></article>
-                <article class="sm:col-span-2 rounded-3xl border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000]"><h3 class="font-black uppercase">Horarios</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Mostrá cuándo abrís y cuándo cerrás.</p></article>
-                <article class="sm:col-span-3 rounded-3xl border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000]"><h3 class="font-black uppercase">Hosting y mantenimiento</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Nosotros nos encargamos de que tu catálogo esté siempre online.</p></article>
-                <article class="sm:col-span-3 rounded-3xl border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000]"><h3 class="font-black uppercase">Categorías y precios</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Ordená tus productos y cambiá los precios cuando quieras.</p></article>
+            <div class="mt-8 grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-5">
+                <article class="sm:col-span-2 rounded-3xl border-2 border-black bg-white p-4 sm:p-5 shadow-[4px_4px_0_0_#000]"><h3 class="text-sm sm:text-base font-black uppercase">Link propio</h3><p class="mt-1.5 text-sm font-medium text-zinc-600 break-words">Tu catálogo vive en dropea.com.ar/tienda?t=tu-usuario</p></article>
+                <article class="sm:col-span-2 rounded-3xl border-2 border-black bg-blue-800 text-white p-4 sm:p-5 shadow-[4px_4px_0_0_#000] text-white"><h3 class="text-sm sm:text-base font-black uppercase">Sin comisiones</h3><p class="mt-1.5 text-sm font-semibold text-white/90">Todo lo que vendés es tuyo.</p></article>
+                <article class="sm:col-span-2 rounded-3xl border-2 border-black bg-white p-4 sm:p-5 shadow-[4px_4px_0_0_#000]"><h3 class="text-sm sm:text-base font-black uppercase">Horarios</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Mostrá cuándo abrís y cuándo cerrás.</p></article>
+                <article class="sm:col-span-3 rounded-3xl border-2 border-black bg-white p-4 sm:p-5 shadow-[4px_4px_0_0_#000]"><h3 class="text-sm sm:text-base font-black uppercase">Hosting y mantenimiento</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Nosotros nos encargamos de que tu catálogo esté siempre online.</p></article>
+                <article class="col-span-2 sm:col-span-3 rounded-3xl border-2 border-black bg-white p-4 sm:p-5 shadow-[4px_4px_0_0_#000]"><h3 class="text-sm sm:text-base font-black uppercase">Categorías y precios</h3><p class="mt-1.5 text-sm font-medium text-zinc-600">Ordená tus productos y cambiá los precios cuando quieras.</p></article>
             </div>
         </section>
 
@@ -188,58 +197,58 @@
         <section id="como-funciona" class="container mx-auto px-5 sm:px-6 py-12 sm:py-16 max-w-6xl">
             <h2 class="text-3xl sm:text-5xl font-black uppercase italic tracking-tight">Cómo funciona</h2>
             <ol class="mt-8 grid sm:grid-cols-3 gap-6">
-                <li class="flex gap-4 sm:block"><span class="flex flex-shrink-0 w-11 h-11 items-center justify-center rounded-full bg-black text-yellow-400 font-black">1</span><div><h3 class="sm:mt-3 font-black uppercase">Registrate</h3><p class="mt-1 text-sm font-medium text-zinc-600">Completá tus datos y empezá con 15 días de prueba gratis.</p></div></li>
-                <li class="flex gap-4 sm:block"><span class="flex flex-shrink-0 w-11 h-11 items-center justify-center rounded-full bg-black text-yellow-400 font-black">2</span><div><h3 class="sm:mt-3 font-black uppercase">Cargá tus productos</h3><p class="mt-1 text-sm font-medium text-zinc-600">Logo, fotos, precios y horarios.</p></div></li>
-                <li class="flex gap-4 sm:block"><span class="flex flex-shrink-0 w-11 h-11 items-center justify-center rounded-full bg-black text-yellow-400 font-black">3</span><div><h3 class="sm:mt-3 font-black uppercase">Compartí tu link y QR</h3><p class="mt-1 text-sm font-medium text-zinc-600">Tus clientes ven tu catálogo y piden por WhatsApp o al mozo.</p></div></li>
+                <li class="flex gap-4 sm:block"><span class="flex flex-shrink-0 w-11 h-11 items-center justify-center rounded-full bg-black text-blue-400 font-black">1</span><div><h3 class="sm:mt-3 font-black uppercase">Registrate</h3><p class="mt-1 text-sm font-medium text-zinc-600">Completá tus datos y empezá con 10 días de prueba gratis.</p></div></li>
+                <li class="flex gap-4 sm:block"><span class="flex flex-shrink-0 w-11 h-11 items-center justify-center rounded-full bg-black text-blue-400 font-black">2</span><div><h3 class="sm:mt-3 font-black uppercase">Cargá tus productos</h3><p class="mt-1 text-sm font-medium text-zinc-600">Logo, fotos, precios y horarios.</p></div></li>
+                <li class="flex gap-4 sm:block"><span class="flex flex-shrink-0 w-11 h-11 items-center justify-center rounded-full bg-black text-blue-400 font-black">3</span><div><h3 class="sm:mt-3 font-black uppercase">Compartí tu link y QR</h3><p class="mt-1 text-sm font-medium text-zinc-600">Tus clientes ven tu catálogo y, si activás los pedidos, te escriben por WhatsApp.</p></div></li>
             </ol>
         </section>
 
         <!-- PRECIO -->
         <section id="precio" class="container mx-auto px-5 sm:px-6 py-12 sm:py-16 max-w-4xl">
-            <div class="rounded-3xl bg-zinc-950 text-white border-2 border-black p-6 sm:p-10 shadow-[8px_8px_0_0_#facc15]">
-                <p class="text-sm font-black uppercase tracking-widest text-yellow-400">Plan Comercio</p>
-                <p class="mt-3 inline-block rounded-full bg-yellow-400 px-4 py-1.5 text-sm font-black uppercase text-black">Probalo 15 días gratis</p>
-                <p class="mt-4 text-5xl sm:text-6xl font-black">$15.000 <span class="text-lg font-bold text-zinc-400">por mes después de la prueba</span></p>
+            <div class="rounded-3xl bg-zinc-950 text-white border-2 border-black p-5 sm:p-10 shadow-[5px_5px_0_0_#1e40af] sm:shadow-[8px_8px_0_0_#1e40af]">
+                <p class="text-sm font-black uppercase tracking-widest text-blue-400">Plan Comercio</p>
+                <p class="mt-3 inline-block rounded-full bg-blue-800 px-4 py-1.5 text-sm font-black uppercase text-white">Probalo 10 días gratis</p>
+                <p class="mt-4 text-5xl sm:text-6xl font-black">$10.000 <span class="block sm:inline mt-1 sm:mt-0 text-base sm:text-lg font-bold text-zinc-400">por mes después de la prueba</span></p>
                 <ul class="mt-6 grid sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm font-semibold text-zinc-200">
-                    <li>✓ Perfil y catálogo</li><li>✓ Pedidos por WhatsApp</li><li>✓ Panel de administración</li>
+                    <li>✓ Perfil y catálogo</li><li>✓ Pedidos por WhatsApp (opcional)</li><li>✓ Panel de administración</li>
                     <li>✓ Promociones y anuncios</li><li>✓ Código QR personalizado</li><li>✓ Hosting y mantenimiento</li>
                 </ul>
-                <p class="mt-6 rounded-2xl bg-yellow-400 text-black px-4 py-3 text-sm font-black">Sin comisión por tus ventas.</p>
-                <div class="mt-7 flex flex-col sm:flex-row gap-4">
-                    <a href="registro.html" class="btn bg-white text-black shadow-[4px_4px_0_0_#facc15]">Quiero mi web</a>
-                    <a data-wa href="#" target="_blank" rel="noopener" class="btn border-white bg-transparent text-white shadow-none hover:bg-white hover:text-black">Tengo una consulta</a>
+                <p class="mt-6 rounded-2xl bg-blue-800 text-white px-4 py-3 text-sm font-black">Sin comisión por tus ventas.</p>
+                <div class="mt-7 flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <a href="registro.html" class="btn w-full sm:w-auto bg-white text-black shadow-[4px_4px_0_0_#60a5fa]">Quiero mi web</a>
+                    <a data-wa href="#" target="_blank" rel="noopener" class="btn w-full sm:w-auto border-white bg-transparent text-white shadow-none hover:bg-white hover:text-black">Tengo una consulta</a>
                 </div>
             </div>
         </section>
     </main>
 
     <!-- FOOTER en columnas -->
-    <footer class="relative overflow-hidden bg-zinc-950 text-white mt-16 sm:mt-24 rounded-t-[2rem] sm:rounded-t-[3rem] pb-20 md:pb-0">
+    <footer class="relative overflow-hidden bg-zinc-950 text-white mt-16 sm:mt-24 rounded-t-[2rem] sm:rounded-t-[3rem] pb-24 md:pb-0">
         <div class="container mx-auto px-5 sm:px-6 pt-12 sm:pt-16 pb-8 max-w-6xl">
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
-                <div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-9 sm:gap-10">
+                <div class="col-span-2 lg:col-span-1">
                     <img src="dropea-logo.png" alt="Dropea" loading="lazy" class="h-16 w-auto object-contain -ml-1 invert"
                          onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
                     <span class="hidden text-4xl font-black italic tracking-tight uppercase">Dropea</span>
                     <p class="mt-4 text-sm font-semibold text-zinc-400 leading-relaxed">Un catálogo online para cada comercio. Pedí el tuyo y empezá a dropearlo.</p>
-                    <a href="registro.html" class="btn mt-5 bg-white text-black shadow-[4px_4px_0_0_#facc15] !py-2.5">Quiero mi web</a>
+                    <a href="registro.html" class="btn mt-5 bg-white text-black shadow-[4px_4px_0_0_#60a5fa] !py-2.5">Quiero mi web</a>
                 </div>
                 <nav aria-label="Enlaces rápidos"><h2 class="font-black uppercase text-sm">Enlaces rápidos</h2>
                     <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a class="hover:text-yellow-400" href="#comercios">Comercios</a></li>
-                        <li><a class="hover:text-yellow-400" href="#funciones">Funciones</a></li>
-                        <li><a class="hover:text-yellow-400" href="#precio">Precio</a></li>
-                        <li><a class="hover:text-yellow-400" href="login.html">Ingresar</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="#comercios">Comercios</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="#funciones">Funciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="#precio">Precio</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="login.html">Ingresar</a></li>
                     </ul></nav>
                 <nav aria-label="Legal"><h2 class="font-black uppercase text-sm">Legal</h2>
                     <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a class="hover:text-yellow-400" href="legales.html">Términos y condiciones</a></li>
-                        <li><a class="hover:text-yellow-400" href="legales.html">Política de privacidad</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="legales.html">Términos y condiciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="legales.html">Política de privacidad</a></li>
                     </ul></nav>
-                <div><h2 class="font-black uppercase text-sm">Contacto</h2>
+                <div class="col-span-2 lg:col-span-1"><h2 class="font-black uppercase text-sm">Contacto</h2>
                     <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a data-wa href="#" target="_blank" rel="noopener" aria-label="Más información por WhatsApp" class="inline-flex items-center gap-3 hover:text-yellow-400">
-                            <svg class="w-6 h-6 text-yellow-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.2 8.8c.2 2.2 2.4 4.5 4.6 5l1-1.1a.6.6 0 0 0-.1-.8l-1.2-.7-.8.8c-.8-.4-1.5-1.1-1.9-1.9l.8-.8-.7-1.2a.6.6 0 0 0-.8-.1z"/></svg>
+                        <li><a data-wa href="#" target="_blank" rel="noopener" aria-label="Más información por WhatsApp" class="inline-flex items-center gap-3 py-1 hover:text-blue-400">
+                            <svg class="w-6 h-6 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.2 8.8c.2 2.2 2.4 4.5 4.6 5l1-1.1a.6.6 0 0 0-.1-.8l-1.2-.7-.8.8c-.8-.4-1.5-1.1-1.9-1.9l.8-.8-.7-1.2a.6.6 0 0 0-.8-.1z"/></svg>
                             Más información</a></li>
                     </ul></div>
             </div>
@@ -248,76 +257,101 @@
     </footer>
 
     <!-- BARRA DE ACCIÓN FIJA (solo celular) -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-black px-4 py-3 flex gap-3">
+    <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-black px-4 pt-3 pb-3 flex gap-3">
         <a href="registro.html" class="btn flex-1 bg-black text-white !py-3 !px-3">Quiero mi web</a>
-        <a data-wa href="#" target="_blank" rel="noopener" class="btn flex-1 bg-yellow-400 text-black !py-3 !px-3">WhatsApp</a>
+        <a data-wa href="#" target="_blank" rel="noopener" class="btn flex-1 bg-blue-800 text-white !py-3 !px-3">WhatsApp</a>
     </div>
 
     <script>
-    // Explorador de funciones
+    // Explorador de funciones: pestañas en escritorio, acordeón en celular (solo texto, con temporizador)
     const FUNCIONES = [
         ['Perfil y catálogo', 'Tu negocio, ordenado y a la vista', ['Subí tu logo, tus horarios y tus datos de contacto.', 'Creá categorías y cargá productos con foto y precio.', 'Cambiá precios o pausá productos cuando quieras.']],
-        ['Pedidos por WhatsApp', 'Si querés vender, el pedido te llega al chat', ['El cliente arma su pedido desde tu catálogo.', 'Recibís el detalle completo en tu WhatsApp.', 'Es opcional: también podés usar solo el catálogo.']],
+        ['Pedidos por WhatsApp', 'Si querés recibir pedidos, te llegan al chat', ['El cliente arma su pedido desde tu catálogo.', 'Recibís el detalle completo en tu WhatsApp.', 'Es opcional: si no querés pedidos, dejá tu catálogo solo para ver.']],
         ['Promociones', 'Avisá descuentos y novedades', ['Publicá promociones y anuncios desde tu perfil.', 'Tus clientes los ven apenas abren tu catálogo.', 'Activalos y sacalos cuando termine la oferta.']],
-        ['Código QR', 'Un QR propio para tu local', ['Pegalo en las mesas, el mostrador, la vidriera o las bolsas.', 'Tus clientes lo escanean y ven el menú, los precios y la información.', 'Compartí también tu link por redes y mensajes.']],
+        ['Código QR', 'Un QR propio para tu local', ['Pegalo en el mostrador, la vidriera, los envases o las bolsas.', 'Tus clientes lo escanean y ven tus productos, precios e información.', 'Compartí también tu link por redes y mensajes.']],
         ['Panel de administración', 'Todo se maneja desde un solo lugar', ['Entrá desde el celular o la computadora.', 'Editá tu perfil, productos y promociones en minutos.', 'Nosotros nos ocupamos del hosting y el mantenimiento.']]
     ];
-    const tabs = [...document.querySelectorAll('.tab')];
-    var verFuncion = function (i) {
-        tabs.forEach((t, k) => t.setAttribute('aria-selected', k === i));
+    const CHECK = '<span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-blue-800 border-2 border-black text-[10px] font-black flex items-center justify-center text-white">✓</span>';
+    const puntos = (items) => items.map(x => {
+        const li = document.createElement('li');
+        li.className = 'flex gap-3';
+        li.innerHTML = CHECK;
+        const txt = document.createElement('span');
+        txt.textContent = x;
+        li.append(txt);
+        return li;
+    });
+
+    const tabs = [...document.querySelectorAll('#tablist .tab')];
+    const panel = document.getElementById('panel');
+    const acordeon = document.getElementById('acordeon');
+    const explorador = panel.parentElement;
+    const heads = [], bodies = [];
+
+    // Acordeón de celular: cada función se abre debajo de su título
+    FUNCIONES.forEach(([tag, titulo, items], i) => {
+        const fila = document.createElement('div');
+        fila.className = 'border-b-2 border-black last:border-b-0';
+
+        const h = document.createElement('button');
+        h.type = 'button';
+        h.id = 'acc-' + i;
+        h.className = 'tab acc font-black uppercase tracking-wide';
+        h.setAttribute('aria-controls', 'acc-body-' + i);
+        const nombre = document.createElement('span');
+        nombre.textContent = tag;
+        h.append(nombre);
+        h.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg><span class="bar"></span>');
+
+        const b = document.createElement('div');
+        b.id = 'acc-body-' + i;
+        b.setAttribute('role', 'region');
+        b.setAttribute('aria-labelledby', 'acc-' + i);
+        b.className = 'hidden px-5 pt-5 pb-6 bg-white';
+        const t = document.createElement('h3');
+        t.className = 'text-xl font-black uppercase italic leading-tight';
+        t.textContent = titulo;
+        const ul = document.createElement('ul');
+        ul.className = 'mt-4 space-y-3 text-[15px] font-semibold text-zinc-700';
+        ul.replaceChildren(...puntos(items));
+        b.append(t, ul);
+
+        fila.append(h, b);
+        acordeon.append(fila);
+        heads.push(h); bodies.push(b);
+    });
+
+    function verFuncion(i, desdeClick) {
+        tabs.forEach((t, k) => t.setAttribute('aria-selected', String(k === i)));
+        heads.forEach((h, k) => {
+            h.setAttribute('aria-selected', String(k === i));
+            h.setAttribute('aria-expanded', String(k === i));
+            bodies[k].classList.toggle('hidden', k !== i);
+        });
         const [tag, titulo, items] = FUNCIONES[i];
         document.getElementById('f-tag').textContent = tag;
         document.getElementById('f-title').textContent = titulo;
-        document.getElementById('f-list').replaceChildren(...items.map(x => {
-            const li = document.createElement('li');
-            li.className = 'flex gap-3';
-            li.innerHTML = '<span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-yellow-400 border-2 border-black text-[10px] font-black flex items-center justify-center">✓</span>';
-            li.append(x);
-            return li;
-        }));
-        document.getElementById('panel').setAttribute('aria-labelledby', 'tab-' + i);
-        const img = document.getElementById('f-img');
-        const marco = document.getElementById('f-img-wrap');
-        const panel = document.getElementById('panel');
-        const sinImagen = () => { marco.classList.add('hidden'); marco.classList.remove('flex'); panel.classList.remove('lg:grid-cols-2'); };
-        sinImagen();
-        // Promociones (3.ª pestaña) va sin imagen
-        if (i === 2) return;
-        img.alt = 'Captura de ' + tag;
-        // Busca funcion-N junto al index.html (o en capturas/), con varias extensiones
-        const nombre = 'funcion-' + (i + 1);
-        const candidatas = [];
-        ['', 'capturas/'].forEach(c => ['png', 'jpg', 'jpeg', 'webp'].forEach(e => candidatas.push(c + nombre + '.' + e)));
-        let n = 0;
-        img.onload = () => { marco.classList.remove('hidden'); marco.classList.add('flex'); panel.classList.add('lg:grid-cols-2'); };
-        img.onerror = () => {
-            n++;
-            if (n < candidatas.length) img.src = candidatas[n];
-            else sinImagen();
-        };
-        img.src = candidatas[0];
-    };
-    let actual = 0;
-    const explorador = document.getElementById('panel').parentElement;
-    const lista = explorador.firstElementChild;
-    const _ver = verFuncion;
-    verFuncion = function (i) {
-        actual = i; _ver(i);
-        lista.scrollTo({ left: tabs[i].offsetLeft - 16, behavior: 'smooth' });
-    };
-    tabs.forEach((t, i) => {
-        t.addEventListener('click', () => verFuncion(i));
-        // Al terminar la barra de tiempo, pasa a la siguiente función sola
-        t.querySelector('.bar').addEventListener('animationend', () => verFuncion((i + 1) % tabs.length));
-    });
-    // Se pausa si la persona pasa el mouse/toca el bloque o si no está a la vista
+        document.getElementById('f-list').replaceChildren(...puntos(items));
+        panel.setAttribute('aria-labelledby', 'tab-' + i);
+        // Si la persona toca un título en celular, se deja a la vista (el avance automático no mueve la pantalla)
+        if (desdeClick && heads[i].offsetParent !== null) heads[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    // Al terminar la barra de tiempo, pasa a la siguiente función sola (escritorio y celular)
+    [tabs, heads].forEach(grupo => grupo.forEach((t, i) => {
+        t.addEventListener('click', () => verFuncion(i, true));
+        t.querySelector('.bar').addEventListener('animationend', () => verFuncion((i + 1) % FUNCIONES.length));
+    }));
+
+    // El temporizador se pausa con el mouse encima, con foco de teclado o si el bloque no está a la vista.
+    // En pantallas táctiles sigue corriendo.
     let encima = false, visible = false;
     const actualizar = () => explorador.style.setProperty('--play', (visible && !encima) ? 'running' : 'paused');
-    explorador.addEventListener('mouseenter', () => { encima = true; actualizar(); });
-    explorador.addEventListener('mouseleave', () => { encima = false; actualizar(); });
-    explorador.addEventListener('focusin', () => { encima = true; actualizar(); });
+    explorador.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { encima = true; actualizar(); } });
+    explorador.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { encima = false; actualizar(); } });
+    explorador.addEventListener('focusin', (e) => { if (e.target.matches(':focus-visible')) { encima = true; actualizar(); } });
     explorador.addEventListener('focusout', () => { encima = false; actualizar(); });
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; actualizar(); }, { threshold: 0.4 }).observe(explorador);
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; actualizar(); }, { threshold: 0.3 }).observe(explorador);
     actualizar();
     verFuncion(0);
     </script>
