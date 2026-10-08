@@ -55,7 +55,12 @@ form.addEventListener('submit', async (ev) => {
         marcarError(id, malo ? texto : '');
         if (malo && !primerError) primerError = id;
     });
-    if (primerError) { document.getElementById(primerError).focus(); return; }
+    if (primerError) {
+        const el = document.getElementById(primerError);
+        el.focus({ preventScroll: true });
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
 
     btn.disabled = true;
     btn.textContent = 'Enviando...';
