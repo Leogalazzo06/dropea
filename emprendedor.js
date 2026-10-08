@@ -51,7 +51,7 @@ function pedidosActivos(e = emprendedorActual) {
     return !!e && e.recibe_pedidos === true && soloDigitos(e.whatsapp).length > 0;
 }
 
-// ¿La tienda terminó su mes (o está bloqueada)? Usa la misma regla que el
+// ¿La tienda terminó su prueba gratis (o está bloqueada)? Usa la misma regla que el
 // panel del comercio (calcularEstadoAcceso, en supabase-client.js).
 function tiendaInactiva(e) {
     return !!e && calcularEstadoAcceso(e).bloqueado === true;
