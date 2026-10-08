@@ -1,11 +1,11 @@
 // ============================================================
 // INICIO (index.html) · Comercios adheridos + botones de WhatsApp
-// Lista los comercios activos (logo + nombre); cada uno enlaza a /tienda/<usuario>.
+// Lista los comercios activos (logo + nombre); cada uno enlaza a
+// https://dropea.com.ar/tienda?t=<usuario>
 // Depende de supabase-client.js (cargado antes), que aporta `supabase`.
-// En local, sin la regla de Vercel, cambiá RUTA_TIENDA por 'tienda.html?t='.
 // ============================================================
 
-const RUTA_TIENDA = '/tienda/';
+const RUTA_TIENDA = 'https://dropea.com.ar/tienda?t=';
 
 // WhatsApp de contacto de Dropea: número completo, sin + ni espacios (ej.: '5493644123456').
 // Si queda vacío, los botones de WhatsApp se ocultan solos.
@@ -60,11 +60,11 @@ function crearTarjeta(c) {
     a.className = 'group flex flex-col gap-2';
 
     const caja = document.createElement('div');
-    caja.className = 'relative flex items-center justify-center aspect-square rounded-2xl bg-white border-2 border-black shadow-[4px_4px_0_0_#000] transition-all group-hover:translate-x-[3px] group-hover:translate-y-[3px] group-hover:shadow-none group-hover:bg-yellow-50 overflow-hidden';
+    caja.className = 'relative flex items-center justify-center aspect-square rounded-2xl bg-white border-2 border-black shadow-[3px_3px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] transition-all group-hover:translate-x-[3px] group-hover:translate-y-[3px] group-hover:shadow-none group-hover:bg-blue-50 group-active:translate-x-[3px] group-active:translate-y-[3px] group-active:shadow-none overflow-hidden';
 
     // Inicial del comercio: queda de fondo y se tapa cuando el logo carga
     const inicial = document.createElement('span');
-    inicial.className = 'text-4xl font-black italic text-zinc-300 select-none';
+    inicial.className = 'text-3xl sm:text-4xl font-black italic text-zinc-300 select-none';
     inicial.textContent = nombre.charAt(0).toUpperCase();
     caja.appendChild(inicial);
 
@@ -86,7 +86,7 @@ function crearTarjeta(c) {
     a.appendChild(caja);
 
     const etiqueta = document.createElement('p');
-    etiqueta.className = 'text-xs font-bold text-center text-zinc-700 truncate px-1';
+    etiqueta.className = 'text-xs font-bold text-center text-zinc-700 leading-tight line-clamp-2 break-words px-0.5';
     etiqueta.textContent = nombre;
     a.appendChild(etiqueta);
     return a;
@@ -121,7 +121,7 @@ function crearTarjetaTuLocal() {
     a.href = 'registro.html';
     a.className = 'group flex flex-col gap-2';
     a.setAttribute('aria-label', 'Sumá tu comercio a Dropea');
-    a.innerHTML = '<div class="flex items-center justify-center aspect-square rounded-2xl bg-yellow-400 border-2 border-black shadow-[4px_4px_0_0_#000] transition-all group-hover:translate-x-[3px] group-hover:translate-y-[3px] group-hover:shadow-none text-4xl font-black">+</div><p class="text-xs font-black text-center uppercase">Tu comercio</p>';
+    a.innerHTML = '<div class="flex items-center justify-center aspect-square rounded-2xl bg-blue-800 border-2 border-black shadow-[3px_3px_0_0_#000] sm:shadow-[4px_4px_0_0_#000] transition-all group-hover:translate-x-[3px] group-hover:translate-y-[3px] group-hover:shadow-none group-active:translate-x-[3px] group-active:translate-y-[3px] group-active:shadow-none text-3xl sm:text-4xl font-black text-white">+</div><p class="text-xs font-black text-center uppercase">Tu comercio</p>';
     return a;
 }
 
