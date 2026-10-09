@@ -88,3 +88,17 @@ function mostrarExito() {
     document.getElementById('exito').classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ---------- WhatsApp (footer: "Más información") ----------
+// Mismo número y texto que en index.js
+const WHATSAPP_NUMERO = '5493644539325';
+const WHATSAPP_TEXTO = 'Hola! Quiero armar el catálogo de mi comercio en Dropea.';
+
+function configurarWhatsApp() {
+    const numero = WHATSAPP_NUMERO.replace(/\D/g, '');
+    document.querySelectorAll('[data-wa]').forEach(a => {
+        if (!numero) { a.classList.add('hidden'); return; }
+        a.href = `https://wa.me/${numero}?text=${encodeURIComponent(WHATSAPP_TEXTO)}`;
+    });
+}
+configurarWhatsApp();
