@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Términos y Privacidad | Dropea</title>
+    <meta name="description" content="Términos de Uso y Política de Privacidad de Dropea: cómo funciona la plataforma y cómo protegemos tu información.">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="shortcut icon" href="favicon-96x96.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { future: { hoverOnlyWhenSupported: true } };</script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+        html, body { overflow-x: hidden; max-width: 100%; }
+        .hidden { display: none !important; }
+        .btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .9rem 1.6rem; border-radius: 9999px; border: 2px solid #000; font-size: .75rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; transition: all .15s ease; }
+        @media (hover: hover) { .btn:hover:not(:disabled) { transform: translate(3px, 3px); box-shadow: none !important; } }
+        .btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none !important; }
+
+        .legal-content { overflow-wrap: anywhere; }
+        .legal-content h2 { font-size: 1.6rem; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -.01em; margin-top: 2.5rem; margin-bottom: 1rem; color: #000; line-height: 1.05; }
+        @media (min-width: 640px) { .legal-content h2 { font-size: 2.25rem; } }
+        .legal-content h3 { font-size: .9rem; font-weight: 900; text-transform: uppercase; margin-top: 2rem; margin-bottom: .6rem; color: #000; letter-spacing: .05em; line-height: 1.3; }
+        .legal-content p { color: #52525b; line-height: 1.75; margin-bottom: 1.1rem; font-size: .9375rem; font-weight: 500; }
+        .legal-content strong { color: #000; font-weight: 800; }
+        .legal-content ul { list-style: none; padding-left: 0; margin-bottom: 1.5rem; }
+        .legal-content li { position: relative; padding-left: 1.4rem; margin-bottom: .65rem; line-height: 1.6; color: #52525b; font-size: .9375rem; font-weight: 500; }
+        .legal-content li::before { content: ""; position: absolute; left: 0; top: .55rem; width: .45rem; height: .45rem; background-color: #1e40af; border: 1.5px solid #000; border-radius: 50%; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-white text-black">
+
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b-2 border-black">
+        <div class="container mx-auto px-4 sm:px-6 h-16 sm:h-[72px] flex items-center justify-between gap-3">
+            <a href="index.html" aria-label="Dropea, ir al inicio" class="flex items-center flex-shrink-0">
+                <img src="dropea-logo.png" alt="Dropea" class="h-11 sm:h-[52px] w-auto object-contain"
+                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                <span class="hidden text-2xl font-black italic tracking-tight uppercase">Dropea</span>
+            </a>
+            <a href="index.html" class="btn bg-white text-black shadow-[3px_3px_0_0_#000] !py-2 !px-4">← Inicio</a>
+        </div>
+    </header>
+
+    <main class="pt-16 sm:pt-[72px]">
+
+        <!-- Encabezado -->
+        <section class="border-b-2 border-black">
+            <div class="container mx-auto px-5 sm:px-6 py-10 sm:py-16 max-w-6xl">
+                <p class="inline-block px-3.5 py-1.5 rounded-full bg-zinc-100 text-[11px] font-black uppercase tracking-widest text-zinc-700">Transparencia y seguridad</p>
+                <h1 class="mt-5 text-[2.2rem] sm:text-5xl lg:text-6xl font-black uppercase italic tracking-tight leading-[1]">Políticas de <span class="bg-blue-800 px-2 text-white">Dropea</span></h1>
+                <p class="mt-4 max-w-xl text-[15px] sm:text-base font-semibold text-zinc-500 leading-relaxed">Todo lo que necesitás saber sobre el uso de nuestra plataforma y cómo protegemos tu información.</p>
+            </div>
+        </section>
+
+        <!-- Contenido -->
+        <div class="container mx-auto px-5 sm:px-6 py-6 sm:py-14 max-w-6xl flex flex-col md:flex-row gap-6 md:gap-12 items-start">
+
+            <!-- Índice: barra fija bajo el header en celular, columna lateral en escritorio -->
+            <aside class="w-full md:w-64 flex-shrink-0 sticky top-16 sm:top-[72px] md:top-28 z-30">
+                <div class="bg-white -mx-5 px-5 sm:-mx-6 sm:px-6 md:mx-0 md:px-0 py-2.5 md:py-0 border-b-2 border-black md:border-0">
+                    <p class="hidden md:block text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 pl-1">Índice legal</p>
+                    <nav aria-label="Índice legal" class="flex md:flex-col gap-2.5 overflow-x-auto scrollbar-hide pt-0.5 pb-1.5 pr-1 md:p-0">
+                        <a href="#terminos" id="link-terminos" class="flex-shrink-0 px-4 py-2.5 rounded-full md:rounded-2xl border-2 text-xs font-black uppercase tracking-wider transition-all md:w-full text-center md:text-left bg-blue-800 text-white border-black shadow-[2px_2px_0_0_#000]">Términos de Uso</a>
+                        <a href="#privacidad" id="link-privacidad" class="flex-shrink-0 px-4 py-2.5 rounded-full md:rounded-2xl border-2 text-xs font-black uppercase tracking-wider transition-all md:w-full text-center md:text-left bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black">Política de Privacidad</a>
+                    </nav>
+                </div>
+            </aside>
+
+            <div class="flex-1 min-w-0 w-full legal-content md:p-10 md:border-2 md:border-black md:rounded-3xl md:shadow-[6px_6px_0_0_#000]">
+
+            <div id="terminos" class="scroll-mt-36 md:scroll-mt-32">
+                <div class="inline-flex items-center rounded-full border-2 border-black bg-blue-50 px-3 py-1 mb-3 text-[10px] font-black uppercase tracking-widest text-blue-800">
+                    Última actualización: 12 de octubre de 2026
+                </div>
+                <h2 class="!mt-0">Términos de Uso</h2>
+                <p>Bienvenido/a a Dropea, una plataforma destinada a facilitar el descubrimiento de emprendimientos, comercios, productos y servicios, conectando a los usuarios con los emprendedores que forman parte de la comunidad.</p>
+                <p>Al acceder, navegar o utilizar Dropea, el usuario acepta los presentes Términos de Uso. Si no está de acuerdo con ellos, deberá abstenerse de utilizar la plataforma.</p>
+
+                <h3>1. Objeto de Dropea</h3>
+                <p>Dropea funciona como una plataforma de difusión y conexión entre emprendedores y usuarios.</p>
+                <p>La información publicada en la plataforma puede incluir productos, servicios, precios, fotografías, descripciones, datos de contacto, horarios, promociones y otros contenidos proporcionados por los propios emprendedores.</p>
+                <p>Dropea no necesariamente comercializa los productos publicados ni forma parte de las operaciones realizadas entre compradores y vendedores.</p>
+
+                <h3>2. Información publicada</h3>
+                <p>La información de los productos y emprendimientos es proporcionada por los usuarios o emprendedores que utilizan la plataforma.</p>
+                <p>Por este motivo, Dropea no garantiza que toda la información publicada sea permanentemente exacta, completa o actualizada.</p>
+                <p>Los precios, disponibilidad, características, promociones, horarios y condiciones de venta pueden cambiar sin previo aviso.</p>
+                <p>Se recomienda al usuario verificar la información directamente con el emprendedor antes de realizar una compra o contratar un servicio.</p>
+
+                <h3>3. Compras y operaciones comerciales</h3>
+                <p>Las operaciones comerciales que puedan surgir a partir del contacto entre un usuario y un emprendedor son realizadas directamente entre ambas partes.</p>
+                <p>Dropea no será responsable por:</p>
+                <ul>
+                    <li>La calidad, características o estado de los productos.</li>
+                    <li>La disponibilidad de los productos.</li>
+                    <li>El cumplimiento de una venta.</li>
+                    <li>Los medios de pago acordados.</li>
+                    <li>Los tiempos o condiciones de entrega.</li>
+                    <li>Cancelaciones o modificaciones de pedidos.</li>
+                    <li>Garantías de productos o servicios.</li>
+                    <li>Reclamos derivados de una compra.</li>
+                    <li>Daños ocasionados por productos o servicios adquiridos.</li>
+                </ul>
+                <p>Cualquier reclamo relacionado con una compra deberá ser dirigido al emprendedor o comercio correspondiente, sin perjuicio de los derechos que puedan corresponder al consumidor conforme a la legislación vigente.</p>
+
+                <h3>4. Uso correcto de la plataforma</h3>
+                <p>El usuario se compromete a utilizar Dropea de manera responsable y de acuerdo con la legislación vigente.</p>
+                <p>Está prohibido:</p>
+                <ul>
+                    <li>Utilizar la plataforma para actividades ilícitas.</li>
+                    <li>Intentar engañar, estafar o perjudicar a otros usuarios.</li>
+                    <li>Suplantar la identidad de otra persona o emprendimiento.</li>
+                    <li>Utilizar la plataforma para acosar, amenazar o intimidar a otras personas.</li>
+                    <li>Intentar acceder sin autorización a cuentas, sistemas o información.</li>
+                    <li>Alterar, dañar o interferir con el funcionamiento de la plataforma.</li>
+                    <li>Utilizar herramientas automatizadas que puedan afectar el funcionamiento del sitio.</li>
+                    <li>Realizar actividades que puedan comprometer la seguridad de otros usuarios.</li>
+                    <li>Utilizar la información de la plataforma para fines fraudulentos o ilegales.</li>
+                </ul>
+
+                <h3>5. Contenido de terceros</h3>
+                <p>Los productos, imágenes, textos, logotipos, precios y demás información de los emprendimientos pertenecen a sus respectivos titulares.</p>
+                <p>Dropea no reclama la propiedad sobre dicho contenido, salvo respecto de los elementos propios de la plataforma.</p>
+                <p>El usuario no podrá copiar, reproducir, distribuir o utilizar contenido de terceros publicado en Dropea cuando dicha utilización infrinja derechos de propiedad intelectual o cualquier otro derecho aplicable.</p>
+
+                <h3>6. Enlaces externos</h3>
+                <p>Dropea podrá incluir enlaces hacia sitios web, redes sociales, servicios de mensajería u otras plataformas externas pertenecientes a terceros.</p>
+                <p>Dichos sitios poseen sus propias políticas y condiciones de uso.</p>
+                <p>Dropea no controla ni garantiza el contenido, disponibilidad, seguridad o funcionamiento de sitios externos.</p>
+
+                <h3>7. Disponibilidad del servicio</h3>
+                <p>Dropea procurará mantener el sitio disponible y funcionando correctamente, pero no garantiza que el servicio esté disponible de manera permanente e ininterrumpida.</p>
+                <p>El sitio puede experimentar interrupciones debido a mantenimiento, actualizaciones, problemas técnicos, fallas de proveedores, problemas de conectividad, circunstancias de fuerza mayor u otras situaciones ajenas al control razonable de Dropea.</p>
+
+                <h3>8. Seguridad</h3>
+                <p>El usuario se compromete a utilizar la plataforma de manera que no afecte la seguridad del sitio ni de otros usuarios.</p>
+                <p>Queda prohibido intentar vulnerar sistemas, obtener acceso no autorizado, introducir código malicioso, realizar ataques o ejecutar cualquier acción destinada a perjudicar la infraestructura de Dropea.</p>
+
+                <h3>9. Suspensión o restricción de acceso</h3>
+                <p>Dropea podrá restringir o suspender el acceso de un usuario cuando existan motivos razonables para considerar que ha incumplido estos Términos de Uso, la legislación vigente o que su actividad pueda perjudicar a la plataforma o a otros usuarios.</p>
+                <p>Cuando resulte posible y corresponda, Dropea podrá informar al usuario sobre el motivo de la medida.</p>
+
+                <h3>10. Modificaciones de la plataforma</h3>
+                <p>Dropea podrá modificar, agregar, reemplazar o eliminar funcionalidades, secciones o características de la plataforma.</p>
+                <p>Estas modificaciones podrán realizarse para mejorar el servicio, solucionar problemas, incorporar nuevas funciones o adaptar la plataforma a nuevas necesidades.</p>
+
+                <h3>11. Modificaciones de los Términos de Uso</h3>
+                <p>Estos Términos de Uso podrán ser modificados o actualizados cuando sea necesario.</p>
+                <p>La versión vigente estará disponible en Dropea junto con su fecha de actualización.</p>
+                <p>El uso continuado de la plataforma después de la publicación de modificaciones implicará la aceptación de los nuevos términos, en la medida permitida por la legislación aplicable.</p>
+
+                <h3>12. Protección de datos personales</h3>
+                <p>El tratamiento de los datos personales de los usuarios se encuentra regulado por la Política de Privacidad de Dropea, que forma parte de las condiciones de utilización de la plataforma.</p>
+                <p>El usuario podrá consultar dicha política para conocer qué información puede recopilarse, con qué finalidad y cuáles son sus derechos.</p>
+
+                <h3>13. Responsabilidad</h3>
+                <p>Dropea procurará ofrecer información y servicios de calidad, pero no garantiza que la plataforma esté libre de errores, interrupciones o información desactualizada.</p>
+                <p>El usuario comprende que utiliza la plataforma bajo su propia responsabilidad y que las decisiones de compra o contratación deberán realizarse considerando la información proporcionada por el respectivo emprendedor.</p>
+                <p>Nada de lo establecido en estos Términos pretende limitar derechos que correspondan al usuario en virtud de la legislación aplicable.</p>
+
+                <h3>14. Legislación aplicable</h3>
+                <p>Estos Términos de Uso se regirán por la legislación aplicable de la República Argentina.</p>
+                <p>Cualquier controversia será tratada conforme a las normas de defensa del consumidor y demás legislación que resulte aplicable según el caso.</p>
+
+                <h3>15. Contacto</h3>
+                <p>Para consultas, sugerencias, reclamos o reportes relacionados con el funcionamiento de Dropea, el usuario podrá utilizar los canales oficiales de contacto disponibles en la plataforma.</p>
+                <p>Dropea<br>Conectando personas con emprendimientos y comercios.</p>
+            </div>
+
+            <hr class="my-10 border-0 border-t-2 border-black">
+
+            <div id="privacidad" class="scroll-mt-36 md:scroll-mt-32">
+                <div class="inline-flex items-center rounded-full border-2 border-black bg-blue-50 px-3 py-1 mb-3 text-[10px] font-black uppercase tracking-widest text-blue-800">
+                    Última actualización: 12 de octubre de 2026
+                </div>
+                <h2 class="!mt-0">Política de Privacidad</h2>
+                <p>En Dropea valoramos la privacidad de las personas que utilizan nuestra plataforma. Esta Política de Privacidad explica qué información podemos recopilar, cómo la utilizamos, con quién puede ser compartida y cuáles son los derechos de los usuarios.</p>
+                <p>Al utilizar Dropea, el usuario acepta las prácticas descriptas en esta Política de Privacidad.</p>
+
+                <h3>1. Responsable del tratamiento</h3>
+                <p>Dropea es responsable de gestionar la información recopilada a través de su plataforma dentro de los límites y finalidades establecidos en esta Política de Privacidad y en la legislación aplicable.</p>
+                <p>Para consultas relacionadas con privacidad y protección de datos, el usuario podrá utilizar los canales oficiales de contacto publicados en Dropea.</p>
+
+                <h3>2. Información que podemos recopilar</h3>
+                <p>Dependiendo de la forma en que el usuario utilice la plataforma, podemos recopilar diferentes tipos de información.</p>
+                <p><strong>Información proporcionada directamente por el usuario</strong><br>Por ejemplo:</p>
+                <ul>
+                    <li>Nombre.</li>
+                    <li>Dirección de correo electrónico.</li>
+                    <li>Número de teléfono, cuando sea proporcionado.</li>
+                    <li>Información enviada mediante formularios.</li>
+                    <li>Mensajes o consultas realizadas a través de la plataforma.</li>
+                    <li>Información necesaria para crear o administrar una cuenta, cuando corresponda.</li>
+                </ul>
+                <p>El usuario deberá proporcionar información verdadera, actualizada y suficiente para la finalidad correspondiente.</p>
+                
+                <p><strong>Información recopilada automáticamente</strong><br>Cuando una persona navega por Dropea, determinados datos técnicos pueden recopilarse automáticamente, como:</p>
+                <ul>
+                    <li>Dirección IP.</li>
+                    <li>Tipo y versión del navegador.</li>
+                    <li>Sistema operativo.</li>
+                    <li>Tipo de dispositivo.</li>
+                    <li>Fecha y hora de acceso.</li>
+                    <li>Páginas visitadas.</li>
+                    <li>Tiempo de navegación.</li>
+                    <li>Información relacionada con el funcionamiento y rendimiento del sitio.</li>
+                </ul>
+                <p>Estos datos pueden utilizarse para mejorar la seguridad, funcionamiento y experiencia de la plataforma.</p>
+
+                <h3>3. Finalidad del tratamiento</h3>
+                <p>La información recopilada podrá utilizarse para:</p>
+                <ul>
+                    <li>Permitir el funcionamiento de Dropea.</li>
+                    <li>Mostrar y personalizar contenido.</li>
+                    <li>Responder consultas y solicitudes.</li>
+                    <li>Mejorar la experiencia de navegación.</li>
+                    <li>Analizar el funcionamiento y uso de la plataforma.</li>
+                    <li>Detectar errores y problemas técnicos.</li>
+                    <li>Prevenir actividades fraudulentas o abusivas.</li>
+                    <li>Proteger la seguridad de usuarios y sistemas.</li>
+                    <li>Cumplir obligaciones legales.</li>
+                    <li>Gestionar cuentas y servicios cuando corresponda.</li>
+                    <li>Comunicar información relacionada con el funcionamiento de la plataforma.</li>
+                </ul>
+                <p>Dropea no utilizará los datos personales para finalidades incompatibles con aquellas informadas al usuario, salvo que exista una base legal que lo permita.</p>
+
+                <h3>4. Cookies</h3>
+                <p>Dropea puede utilizar cookies y tecnologías similares para permitir determinadas funcionalidades, recordar preferencias, analizar el uso del sitio y mejorar la experiencia del usuario.</p>
+                <p>El usuario puede configurar su navegador para rechazar determinadas cookies. Sin embargo, algunas funciones de la plataforma podrían no funcionar correctamente si determinadas cookies son deshabilitadas.</p>
+
+                <h3>5. Herramientas y servicios de terceros</h3>
+                <p>Para operar y mejorar Dropea, podemos utilizar servicios tecnológicos proporcionados por terceros.</p>
+                <p>Estos servicios pueden incluir, dependiendo de las funcionalidades implementadas en la plataforma:</p>
+                <ul>
+                    <li>Servicios de alojamiento.</li>
+                    <li>Servicios de bases de datos.</li>
+                    <li>Servicios de autenticación.</li>
+                    <li>Servicios de almacenamiento de archivos e imágenes.</li>
+                    <li>Herramientas de análisis estadístico.</li>
+                    <li>Servicios de seguridad.</li>
+                    <li>Servicios de comunicación.</li>
+                </ul>
+                <p>Por ejemplo, si Dropea utiliza Google Analytics, dicha herramienta puede recopilar información relacionada con la navegación y utilización del sitio de acuerdo con sus propias políticas.</p>
+                <p>Asimismo, si se utilizan servicios de Firebase, determinados datos pueden ser procesados mediante la infraestructura correspondiente a los servicios implementados.</p>
+                <p>El uso de estos servicios podrá implicar el procesamiento de información en servidores ubicados dentro o fuera de la República Argentina.</p>
+
+                <h3>6. Información compartida con terceros</h3>
+                <p>Dropea no comercializa ni vende los datos personales de los usuarios.</p>
+                <p>La información podrá ser compartida con proveedores tecnológicos cuando resulte necesario para prestar, mantener, proteger o mejorar los servicios de la plataforma.</p>
+                <p>También podrá divulgarse información cuando exista una obligación legal, una orden de autoridad competente o cuando resulte necesario para proteger los derechos, seguridad o integridad de Dropea, sus usuarios o terceros.</p>
+
+                <h3>7. Información visible públicamente</h3>
+                <p>Determinada información publicada por los emprendedores puede estar disponible públicamente dentro de Dropea.</p>
+                <p>Los datos que el usuario decida publicar voluntariamente en un perfil, producto u otra sección pública de la plataforma podrán ser vistos por otras personas.</p>
+                <p>El usuario deberá evitar publicar información personal innecesaria o información de terceros sin contar con la autorización correspondiente.</p>
+
+                <h3>8. Seguridad de la información</h3>
+                <p>Dropea procurará implementar medidas técnicas y organizativas razonables para proteger la información frente a accesos no autorizados, pérdida, alteración, divulgación o destrucción.</p>
+                <p>Sin embargo, ningún sistema conectado a Internet puede garantizar una seguridad absoluta.</p>
+                <p>Por este motivo, el usuario reconoce que existe un riesgo inherente al envío y almacenamiento de información mediante medios digitales.</p>
+
+                <h3>9. Conservación de los datos</h3>
+                <p>La información será conservada durante el tiempo necesario para cumplir con las finalidades para las que fue recopilada, mantener los servicios, cumplir obligaciones legales y resolver posibles reclamos o conflictos.</p>
+                <p>Cuando la información ya no sea necesaria, podrá ser eliminada, anonimizada o conservada cuando exista una obligación legal que así lo requiera.</p>
+
+                <h3>10. Derechos de los usuarios</h3>
+                <p>De acuerdo con la legislación aplicable, los usuarios podrán ejercer los derechos que correspondan respecto de sus datos personales, incluyendo aquellos relacionados con el acceso, actualización, rectificación y eliminación de información cuando corresponda.</p>
+                <p>Para ejercer un derecho o realizar una consulta relacionada con sus datos personales, el usuario podrá comunicarse mediante los canales oficiales de contacto de Dropea.</p>
+
+                <h3>11. Datos de menores de edad</h3>
+                <p>Dropea no está destinada a recopilar deliberadamente información personal de menores de edad para finalidades que requieran consentimiento legal cuando dicho consentimiento no haya sido obtenido.</p>
+                <p>Si un representante legal considera que un menor proporcionó información personal de manera indebida, podrá comunicarse con Dropea para solicitar su revisión y, cuando corresponda, eliminación.</p>
+
+                <h3>12. Privacidad de los emprendedores</h3>
+                <p>Los emprendedores que publiquen productos o creen perfiles dentro de Dropea podrán proporcionar información comercial y de contacto que sea visible para otros usuarios.</p>
+                <p>El tratamiento de dicha información también se encuentra sujeto a esta Política de Privacidad y a los términos específicos aplicables a los emprendedores.</p>
+
+                <h3>13. Enlaces a terceros</h3>
+                <p>Dropea puede contener enlaces hacia sitios web, redes sociales u otros servicios externos.</p>
+                <p>Esta Política de Privacidad no se aplica a las prácticas de privacidad de dichos terceros.</p>
+                <p>Se recomienda consultar las políticas de privacidad de cada sitio antes de proporcionar información personal.</p>
+
+                <h3>14. Cambios en la Política de Privacidad</h3>
+                <p>Dropea podrá modificar esta Política de Privacidad cuando sea necesario para reflejar cambios en la plataforma, en los servicios utilizados o en la legislación aplicable.</p>
+                <p>La versión vigente estará disponible en la plataforma y contendrá la fecha de su última actualización.</p>
+
+                <h3>15. Contacto</h3>
+                <p>Si el usuario tiene preguntas, solicitudes o inquietudes relacionadas con el tratamiento de sus datos personales, podrá comunicarse con Dropea mediante los canales oficiales disponibles en la plataforma.</p>
+                <p>Dropea<br>Política de Privacidad<br>Última actualización: 12 de octubre de 2026.</p>
+            </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="relative overflow-hidden bg-zinc-950 text-white mt-16 sm:mt-24 rounded-t-[2rem] sm:rounded-t-[3rem]">
+        <div class="container mx-auto px-5 sm:px-6 pt-12 sm:pt-16 pb-8 max-w-6xl">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-9 sm:gap-10">
+                <div class="col-span-2 lg:col-span-1">
+                    <img src="dropea-logo.png" alt="Dropea" loading="lazy" class="h-16 w-auto object-contain -ml-1 invert"
+                         onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                    <span class="hidden text-4xl font-black italic tracking-tight uppercase">Dropea</span>
+                    <p class="mt-4 text-sm font-semibold text-zinc-400 leading-relaxed">Un catálogo online para cada comercio. Pedí el tuyo y empezá a dropearlo.</p>
+                    <a href="registro.html" class="btn mt-5 bg-white text-black shadow-[4px_4px_0_0_#60a5fa] !py-2.5">Comenzar prueba gratis</a>
+                </div>
+                <nav aria-label="Enlaces rápidos"><h2 class="font-black uppercase text-sm">Enlaces rápidos</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="index.html#comercios">Comercios</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="index.html#funciones">Funciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="index.html#precio">Precio</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="login.html">Ingresar</a></li>
+                    </ul></nav>
+                <nav aria-label="Legal"><h2 class="font-black uppercase text-sm">Legal</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="legales.html#terminos">Términos y condiciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="legales.html#privacidad">Política de privacidad</a></li>
+                    </ul></nav>
+                <div class="col-span-2 lg:col-span-1"><h2 class="font-black uppercase text-sm">Contacto</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
+                        <li><a data-wa href="#" target="_blank" rel="noopener" aria-label="Más información por WhatsApp" class="inline-flex items-center gap-3 py-1 hover:text-blue-400">
+                            <svg class="w-6 h-6 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            Más información</a></li>
+                    </ul></div>
+            </div>
+            <p class="mt-10 pt-6 border-t border-white/10 text-[11px] font-bold tracking-wide text-zinc-500">© 2026 Dropea · Diseñado y desarrollado por Hostara · Todos los derechos reservados</p>
+        </div>
+    </footer>
+
+    <script>
+        // WhatsApp de contacto (mismo número y texto que en index.js)
+        const WHATSAPP_NUMERO = '5493644539325';
+        const WHATSAPP_TEXTO = 'Hola! Quiero armar el catálogo de mi comercio en Dropea.';
+        (function () {
+            const numero = WHATSAPP_NUMERO.replace(/\D/g, '');
+            document.querySelectorAll('[data-wa]').forEach(a => {
+                if (!numero) { a.classList.add('hidden'); return; }
+                a.href = `https://wa.me/${numero}?text=${encodeURIComponent(WHATSAPP_TEXTO)}`;
+            });
+        })();
+
+        // Índice lateral: resalta la sección que se está leyendo
+        document.addEventListener('DOMContentLoaded', () => {
+            const ACTIVO = ['bg-blue-800', 'text-white', 'border-black', 'shadow-[2px_2px_0_0_#000]'];
+            const INACTIVO = ['bg-white', 'text-zinc-600', 'border-zinc-200', 'hover:border-black', 'hover:text-black'];
+            const enlaces = {
+                terminos: document.getElementById('link-terminos'),
+                privacidad: document.getElementById('link-privacidad')
+            };
+            const marcar = (id) => {
+                Object.entries(enlaces).forEach(([k, el]) => {
+                    if (!el) return;
+                    el.classList.remove(...ACTIVO, ...INACTIVO);
+                    el.classList.add(...(k === id ? ACTIVO : INACTIVO));
+                });
+            };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) marcar(e.target.id); });
+            }, { rootMargin: '-150px 0px -60% 0px', threshold: 0 });
+            document.querySelectorAll('.legal-content > div[id]').forEach(s => observer.observe(s));
+        });
+    </script>
+</body>
+</html>
