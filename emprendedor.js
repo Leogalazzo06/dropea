@@ -907,6 +907,11 @@ function textoVariantes(elegidas) {
 // ------------------------------------------------------------
 // MODAL DE PRODUCTO (se abre siempre; el carrito solo si recibe pedidos)
 // ------------------------------------------------------------
+// Tiempo mínimo (ms) que se ve el loader de la imagen del modal, aunque la foto cargue al instante.
+// Poné 0 para que el loader solo aparezca si la foto realmente tarda.
+const MODAL_IMG_LOADER_MIN_MS = 700;
+let modalImgToken = 0;
+
 function abrirModalProducto(id) {
     const p = productosTienda.find(x => String(x.id) === String(id));
     if (!p) return;
@@ -920,7 +925,24 @@ function abrirModalProducto(id) {
 
     const img = $('modal-img');
     img.alt = p.nombre || '';
-    img.onerror = () => { img.onerror = null; img.src = IMAGEN_PRODUCTO_DEFAULT; };
+    // Loader: se oculta la foto anterior y se muestra el skeleton + spinner hasta que cargue la nueva
+    const loaderImg = $('modal-img-loader');
+    const token = ++modalImgToken;
+    const inicioCarga = performance.now();
+    const mostrarImg = () => {
+        img.onload = null;
+        const espera = Math.max(0, MODAL_IMG_LOADER_MIN_MS - (performance.now() - inicioCarga));
+        setTimeout(() => {
+            if (token !== modalImgToken) return;   // mientras tanto se abrió otro producto
+            img.classList.remove('cargando');
+            loaderImg.classList.add('oculto');
+        }, espera);
+    };
+    img.classList.add('cargando');
+    loaderImg.classList.remove('oculto');
+    img.onload = mostrarImg;
+    // Si falla, se prueba con la imagen por defecto; si también falla, se saca el loader igual
+    img.onerror = () => { img.onerror = mostrarImg; img.src = IMAGEN_PRODUCTO_DEFAULT; };
     img.src = urlSegura(p.imagen_url) || IMAGEN_PRODUCTO_DEFAULT;
 
     $('modal-tienda').textContent = (e.nombre_tienda || 'Tienda').trim();
