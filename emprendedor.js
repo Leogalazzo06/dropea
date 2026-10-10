@@ -308,6 +308,8 @@ let productosTienda = [];
 let filtroCategoria = '';
 let categoriasTiendaPublica = [];   // filas de categorias_tienda de este comercio (árbol)
 let filtroTexto = '';
+let variantePreferidaFoto = null;    // última variante tocada con foto (manda sobre las demás elegidas)
+let destinoImagenModal = '';          // URL de la foto que muestra (o está por mostrar) el modal
 let productoAbierto = null;          // producto que se ve en el modal
 let seleccionVariantes = {};         // { grupo: id de variante }
 let cantidadModal = 1;
@@ -862,6 +864,115 @@ function renderCatalogo() {
 // El botón "agregar" lleva la clase "solo-pedidos": el CSS lo oculta
 // cuando la tienda está en modo catálogo. La card siempre abre el modal.
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// FOTOS ROTATIVAS EN LA CARD
+// Si el producto tiene variantes con foto propia, la imagen de la card va pasando
+// por la del producto y por la de cada variante, para que se vea que hay más opciones.
+// ------------------------------------------------------------
+const INTERVALO_ROTACION_CARD_MS = 3000;   // cuánto se queda cada foto
+const FUNDIDO_ROTACION_CARD_MS = 700;      // duración del fundido entre fotos
+let observadorRotacionCards = null;
+
+// URLs (tamaño de grilla) en orden de rotación: primero la foto del producto (si subió una propia)
+// y después la de cada variante. Se saltean las variantes sin stock, las que usan la foto del
+// producto (ya está en la lista) y las fotos repetidas.
+function fotosParaRotarCard(p) {
+    const urls = [];
+    const vistas = new Set();
+    const agregar = (src, clave) => {
+        if (!src || !clave || vistas.has(clave)) return;
+        vistas.add(clave);
+        urls.push(src);
+    };
+    const propia = urlSegura(p.imagen_url);
+    if (propia && propia !== urlSegura(IMAGEN_PRODUCTO_DEFAULT)) {
+        agregar(urlSegura(urlGrillaProducto(p, 400)) || propia, propia);
+    }
+    (p.variantes || []).forEach(v => {
+        if (v.disponible === false || v.usa_foto_producto) return;
+        const url = urlSegura(v.imagen_url);
+        if (!url) return;
+        agregar(urlSegura(miniaturaCloudinary(v.imagen_thumb_url || v.imagen_url, 400)) || url, url);
+    });
+    return urls;
+}
+
+// Un solo observer para todas las cards: solo rotan las que se están viendo en pantalla.
+function observarRotacionCard(card) {
+    if (!('IntersectionObserver' in window)) return;
+    if (!observadorRotacionCards) {
+        observadorRotacionCards = new IntersectionObserver((entradas) => {
+            entradas.forEach(en => {
+                const r = en.target._rotacion;
+                if (!r) return;
+                if (!en.target.isConnected) { observadorRotacionCards.unobserve(en.target); r.pausar(); return; }
+                if (en.isIntersecting) r.iniciar(); else r.pausar();
+            });
+        }, { threshold: 0.4 });
+    }
+    observadorRotacionCards.observe(card);
+}
+
+// Arma el fundido entre fotos con dos <img> superpuestas (una visible, otra esperando).
+// Devuelve true si la rotación quedó activa.
+function rotarFotosCard(card, wrap, img, urls) {
+    if (urls.length < 2) return false;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+
+    const fondo = el('img', img.className + ' absolute inset-0');
+    fondo.alt = '';
+    fondo.setAttribute('aria-hidden', 'true');
+    fondo.draggable = false;
+    fondo.style.opacity = '0';
+    const transicion = `opacity ${FUNDIDO_ROTACION_CARD_MS}ms ease`;
+    fondo.style.transition = transicion;
+    img.style.transition = transicion;
+    wrap.appendChild(fondo);
+
+    const lista = urls.slice();
+    let frente = img, atras = fondo;
+    let actual = 0, timer = null, visible = false, enHover = false, cargando = false;
+
+    const programar = (ms) => { clearTimeout(timer); timer = setTimeout(avanzar, ms); };
+
+    function avanzar() {
+        if (!card.isConnected) { clearTimeout(timer); return; }
+        if (!visible || cargando) return;
+        // Pausa mientras el cursor está sobre la card o la pestaña está en segundo plano
+        if (enHover || document.hidden) { programar(500); return; }
+
+        const sig = (actual + 1) % lista.length;
+        cargando = true;
+        const pre = new Image();
+        pre.onload = () => {
+            cargando = false;
+            if (!visible) return;                 // salió de pantalla: iniciar() retoma después
+            atras.src = lista[sig];
+            atras.style.opacity = '1';
+            frente.style.opacity = '0';
+            [frente, atras] = [atras, frente];
+            actual = sig;
+            programar(INTERVALO_ROTACION_CARD_MS);
+        };
+        pre.onerror = () => {
+            cargando = false;
+            lista.splice(sig, 1);                 // foto rota: la sacamos de la rotación
+            if (sig < actual) actual--;
+            if (lista.length > 1 && visible) programar(300);
+        };
+        pre.src = lista[sig];
+    }
+
+    card._rotacion = {
+        // El primer cambio llega con un retraso al azar para que las cards no cambien todas a la vez
+        iniciar() { visible = true; programar(900 + Math.random() * 1800); },
+        pausar() { visible = false; clearTimeout(timer); },
+    };
+    card.addEventListener('mouseenter', () => { enHover = true; });
+    card.addEventListener('mouseleave', () => { enHover = false; });
+    return true;
+}
+
 function crearCardProducto(p) {
     const pct = calcularDescuentoPorcentaje(p.precio_anterior, p.precio);
 
@@ -881,9 +992,13 @@ function crearCardProducto(p) {
     const img = el('img', 'prod-img w-full h-full object-contain p-2 sm:p-3' + (sinStock ? ' grayscale opacity-50' : ''));
     img.loading = 'lazy';
     img.alt = p.nombre || 'Producto';
-    img.src = urlSegura(urlGrillaProducto(p, 400)) || IMAGEN_PRODUCTO_DEFAULT;
+    // Con variantes con foto, la card las va mostrando de a una; si el producto no subió foto
+    // propia, arranca directamente con la de la primera variante en vez de la genérica.
+    const fotos = sinStock ? [] : fotosParaRotarCard(p);
+    img.src = fotos[0] || urlSegura(urlGrillaProducto(p, 400)) || IMAGEN_PRODUCTO_DEFAULT;
     img.onerror = () => { img.onerror = null; img.src = IMAGEN_PRODUCTO_DEFAULT; };
     wrap.appendChild(img);
+    if (rotarFotosCard(card, wrap, img, fotos)) observarRotacionCard(card);
 
     // Cartel "Sin stock" sobre la foto
     if (sinStock) {
@@ -1010,7 +1125,17 @@ function abrirModalProducto(id) {
     if (!p) return;
     productoAbierto = p;
     seleccionVariantes = {};
+    variantePreferidaFoto = null;
     cantidadModal = 1;
+
+    // Variantes: si un grupo tiene una sola opción disponible, queda elegida
+    // (antes de pintar la imagen, porque esa opción puede tener su propia foto)
+    if (!productoSinStock(p)) {
+        gruposDeVariantes(p).forEach((lista, g) => {
+            const disp = lista.filter(v => v.disponible !== false);
+            if (disp.length === 1) seleccionVariantes[g] = String(disp[0].id);
+        });
+    }
 
     const e = emprendedorActual || {};
     const pedidos = pedidosActivos();
@@ -1036,7 +1161,8 @@ function abrirModalProducto(id) {
     img.onload = mostrarImg;
     // Si falla, se prueba con la imagen por defecto; si también falla, se saca el loader igual
     img.onerror = () => { img.onerror = mostrarImg; img.src = IMAGEN_PRODUCTO_DEFAULT; };
-    img.src = urlSegura(p.imagen_url) || IMAGEN_PRODUCTO_DEFAULT;
+    destinoImagenModal = urlImagenModal();
+    img.src = destinoImagenModal;
 
     $('modal-tienda').textContent = (e.nombre_tienda || 'Tienda').trim();
     $('modal-nombre').textContent = p.nombre || '';
@@ -1059,13 +1185,6 @@ function abrirModalProducto(id) {
     wrapMedios.classList.toggle('hidden', medios.length === 0);
     wrapMedios.classList.toggle('inline-flex', medios.length > 0);
 
-    // Variantes: si un grupo tiene una sola opción disponible, queda elegida
-    if (!sinStock) {
-        gruposDeVariantes(p).forEach((lista, g) => {
-            const disp = lista.filter(v => v.disponible !== false);
-            if (disp.length === 1) seleccionVariantes[g] = String(disp[0].id);
-        });
-    }
     renderVariantesModal();
 
     $('modal-cantidad').textContent = '1';
@@ -1136,6 +1255,64 @@ function mediosDelProducto(p) {
     return Array.isArray(emprendedorActual?.medios_pago) ? emprendedorActual.medios_pago : [];
 }
 
+// Foto de una variante: la suya, o la del producto si está marcada con "usa la foto del producto"
+// (en ese caso no tiene archivo propio, así no se duplica nada en el storage).
+function fotoDeVariante(v, p = productoAbierto) {
+    if (v && v.usa_foto_producto && p) return { url: p.imagen_url || '', thumb: p.imagen_thumb_url || '' };
+    return { url: v?.imagen_url || '', thumb: v?.imagen_thumb_url || '' };
+}
+
+// Foto que corresponde mostrar en el modal: la de la variante elegida (si tiene) o la del producto.
+// Si hay varias variantes elegidas con foto, gana la última que tocó el cliente.
+function urlImagenModal() {
+    const p = productoAbierto;
+    const conFoto = variantesElegidas().filter(v => urlSegura(fotoDeVariante(v).url));
+    const pref = conFoto.find(v => String(v.id) === String(variantePreferidaFoto));
+    const v = pref || conFoto[conFoto.length - 1];
+    return urlSegura(v ? fotoDeVariante(v).url : '') || urlSegura(p?.imagen_url) || IMAGEN_PRODUCTO_DEFAULT;
+}
+
+// Cambia la foto del modal con un fundido corto. Precarga la nueva y solo muestra el loader
+// si tarda; así, si ya está en caché, el cambio es inmediato y sin parpadeo.
+function actualizarImagenModal() {
+    if (!productoAbierto) return;
+    const url = urlImagenModal();
+    if (url === destinoImagenModal) return;
+    destinoImagenModal = url;
+
+    const img = $('modal-img');
+    const loaderImg = $('modal-img-loader');
+    const fallback = urlSegura(productoAbierto.imagen_url) || IMAGEN_PRODUCTO_DEFAULT;
+    const token = ++modalImgToken;
+    let listo = false;
+
+    const timerLoader = setTimeout(() => {
+        if (listo || token !== modalImgToken) return;
+        img.classList.add('cargando');
+        loaderImg.classList.remove('oculto');
+    }, 200);
+
+    const aplicar = (src) => {
+        if (token !== modalImgToken) return;      // mientras tanto eligieron otra opción
+        listo = true;
+        clearTimeout(timerLoader);
+        img.onload = null;
+        img.onerror = null;
+        img.classList.add('cargando');            // fundido de salida
+        setTimeout(() => {
+            if (token !== modalImgToken) return;
+            img.src = src;
+            img.classList.remove('cargando');
+            loaderImg.classList.add('oculto');
+        }, 160);
+    };
+
+    const pre = new Image();
+    pre.onload = () => aplicar(url);
+    pre.onerror = () => aplicar(fallback);
+    pre.src = url;
+}
+
 function renderVariantesModal() {
     const cont = $('modal-variantes');
     cont.replaceChildren();
@@ -1150,10 +1327,60 @@ function renderVariantesModal() {
         if (elegida) titulo.appendChild(el('span', 'text-zinc-900', ': ' + ((elegida.valor || '').trim() || '—')));
         bloque.appendChild(titulo);
 
-        const opciones = el('div', 'flex flex-wrap gap-2');
+        // Si alguna opción del grupo tiene foto, el grupo se muestra con miniaturas (estilo "tile")
+        const conFotos = lista.some(v => urlSegura(fotoDeVariante(v).url));
+        const opciones = el('div', conFotos ? 'flex flex-wrap gap-x-2.5 gap-y-3.5 pt-1 pl-1' : 'flex flex-wrap gap-2');
         lista.forEach(v => {
             const sinStock = v.disponible === false;
             const activa = seleccionVariantes[grupo] === String(v.id);
+
+            if (conFotos) {
+                const valor = (v.valor || '').trim() || '—';
+                const tile = el('button',
+                    'flex-shrink-0 flex flex-col items-center gap-1.5 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 focus-visible:outline-offset-4 ' +
+                    (sinStock ? 'cursor-not-allowed' : ''));
+                tile.type = 'button';
+                tile.disabled = sinStock;
+                tile.title = valor + (sinStock ? ' (sin stock)' : '');
+                tile.setAttribute('aria-label', `${grupo}: ${valor}` + (sinStock ? ' (sin stock)' : ''));
+                tile.setAttribute('aria-pressed', activa ? 'true' : 'false');
+
+                const marco = el('span', 'relative block w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden bg-zinc-100 border transition-all ' +
+                    (activa ? 'border-zinc-900 ring-2 ring-zinc-900 ring-offset-2'
+                        : sinStock ? 'border-zinc-200'
+                        : 'border-zinc-200 hover:border-zinc-900'));
+                const fotoV = fotoDeVariante(v);
+                const src = urlSegura(miniaturaCloudinary(fotoV.thumb || fotoV.url, 180));
+                if (src) {
+                    const im = el('img', 'w-full h-full object-cover' + (sinStock ? ' opacity-40 grayscale' : ''));
+                    im.src = src;
+                    im.alt = '';
+                    im.loading = 'lazy';
+                    im.draggable = false;
+                    im.onerror = () => { im.remove(); };
+                    marco.appendChild(im);
+                } else {
+                    // Opción sin foto dentro de un grupo con fotos: inicial sobre fondo neutro
+                    marco.appendChild(el('span', 'absolute inset-0 flex items-center justify-center text-lg font-semibold uppercase ' + (sinStock ? 'text-zinc-300' : 'text-zinc-400'), valor.slice(0, 2)));
+                }
+                tile.appendChild(marco);
+                tile.appendChild(el('span',
+                    'block w-[4.5rem] truncate text-center text-xs ' +
+                    (sinStock ? 'text-zinc-300 line-through' : activa ? 'font-semibold text-zinc-900' : 'text-zinc-600'),
+                    valor));
+
+                tile.onclick = () => {
+                    variantePreferidaFoto = activa ? null : v.id;
+                    seleccionVariantes[grupo] = activa ? undefined : String(v.id);
+                    if (activa) delete seleccionVariantes[grupo];
+                    renderVariantesModal();
+                    actualizarPrecioModal();
+                    actualizarImagenModal();
+                };
+                opciones.appendChild(tile);
+                return;
+            }
+
             const b = el('button',
                 'min-w-[2.75rem] px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ' +
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 ' +
@@ -1166,10 +1393,12 @@ function renderVariantesModal() {
             b.setAttribute('aria-pressed', activa ? 'true' : 'false');
             if (sinStock) b.title = 'Sin stock';
             b.onclick = () => {
+                variantePreferidaFoto = activa ? null : v.id;
                 seleccionVariantes[grupo] = activa ? undefined : String(v.id);
                 if (activa) delete seleccionVariantes[grupo];
                 renderVariantesModal();
                 actualizarPrecioModal();
+                actualizarImagenModal();
             };
             opciones.appendChild(b);
         });
@@ -1286,7 +1515,7 @@ function lightboxZoomReset() { lbFijar(1, true); }
 function abrirLightboxImagen() {
     if (!productoAbierto) return;
     const img = $('lightbox-imagen-img');
-    img.src = urlSegura(productoAbierto.imagen_url) || IMAGEN_PRODUCTO_DEFAULT;
+    img.src = urlImagenModal();
     img.alt = productoAbierto.nombre || '';
     $('lightbox-imagen-titulo').textContent = productoAbierto.nombre || '';
     lb.s = 1; lb.x = 0; lb.y = 0; lbAplicar();
@@ -1401,6 +1630,14 @@ function validarCarritoDeTienda(e) {
 }
 
 // Devuelve true si el producto quedó en el carrito
+// Miniatura del ítem en el carrito: la foto de la variante elegida (si tiene) o la del producto
+function imagenParaCarrito(p, elegidas) {
+    const v = [...elegidas].reverse().find(x => fotoDeVariante(x, p).url);
+    if (!v) return urlGrillaProducto(p, 160);
+    const f = fotoDeVariante(v, p);
+    return miniaturaCloudinary(f.thumb || f.url, 160);
+}
+
 function agregarItem(p, cantidad, elegidas) {
     const e = emprendedorActual;
     if (!e) return false;
@@ -1427,7 +1664,7 @@ function agregarItem(p, cantidad, elegidas) {
             nombre: p.nombre || '',
             precio: precioUnitario(p, elegidas),
             cantidad,
-            imagen: urlSegura(urlGrillaProducto(p, 160)) || '',
+            imagen: urlSegura(imagenParaCarrito(p, elegidas)) || '',
             detalle: textoVariantes(elegidas),
         });
     }
