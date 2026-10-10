@@ -444,19 +444,74 @@ function nombreCategoriaProducto(p) {
     return p.categorias?.nombre || '';
 }
 
-let catAbierta = '';   // id de la categoría cuyo panel de subcategorías está abierto
+// ------------------------------------------------------------
+// CATEGORÍAS: pestañas con subrayado + subcategorías en una línea de texto.
+// Si no entran en pantalla, un degradé con flecha avisa que hay más para recorrer.
+// ------------------------------------------------------------
+const SVG_CAT_DER = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
+const SVG_CAT_IZQ = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>';
 
-const SVG_CHEVRON = '<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>';
+// Los degradés/flechas solo se ven del lado donde todavía quedan categorías por recorrer
+function actualizarPistasCategorias() {
+    const fila = document.querySelector('#catalogo-categorias .cat-tabs');
+    if (!fila) return;
+    const izq = fila.parentElement.querySelector('.cat-fade-l');
+    const der = fila.parentElement.querySelector('.cat-fade-r');
+    izq.classList.toggle('hidden', fila.scrollLeft <= 4);
+    der.classList.toggle('hidden', fila.scrollLeft + fila.clientWidth >= fila.scrollWidth - 4);
+}
+window.addEventListener('resize', actualizarPistasCategorias);
+
+// items: [{ id, nombre }] (id '' = Todo). Devuelve la fila de pestañas lista para insertar.
+function construirTabsCategorias(items, activoId, elegir, scrollPrevio) {
+    const wrap = el('div', 'cat-tabs-wrap');
+    const fila = el('div', 'cat-tabs');
+    let tabActiva = null;
+    items.forEach(({ id, nombre }) => {
+        const activa = id === activoId;
+        const b = el('button', 'cat-tab' + (activa ? ' activa' : ''), nombre);
+        b.type = 'button';
+        if (activa) { b.setAttribute('aria-current', 'true'); tabActiva = b; }
+        b.onclick = () => elegir(id);
+        fila.appendChild(b);
+    });
+    const pista = (clase, svg, etiqueta, dir) => {
+        const f = el('div', 'cat-fade ' + clase + ' hidden');
+        const b = el('button', 'cat-arrow');
+        b.type = 'button';
+        b.setAttribute('aria-label', etiqueta);
+        b.innerHTML = svg;
+        b.onclick = () => fila.scrollBy({ left: dir * fila.clientWidth * 0.75, behavior: 'smooth' });
+        f.appendChild(b);
+        return f;
+    };
+    wrap.append(
+        fila,
+        pista('cat-fade-l', SVG_CAT_IZQ, 'Ver categorías anteriores', -1),
+        pista('cat-fade-r', SVG_CAT_DER, 'Ver más categorías', 1)
+    );
+    fila.addEventListener('scroll', actualizarPistasCategorias, { passive: true });
+    // Ya insertada en el DOM: se conserva el scroll y se centra la categoría elegida
+    requestAnimationFrame(() => {
+        fila.scrollLeft = scrollPrevio || 0;
+        if (tabActiva) {
+            const izq = tabActiva.offsetLeft - (fila.clientWidth - tabActiva.offsetWidth) / 2;
+            fila.scrollTo({ left: Math.max(0, izq), behavior: 'smooth' });
+        }
+        actualizarPistasCategorias();
+    });
+    return wrap;
+}
 
 function renderFiltrosCatalogo() {
     $('catalogo-filtros').classList.toggle('hidden', productosTienda.length === 0);
 
     const cont = $('catalogo-categorias');
+    const scrollPrevio = cont.querySelector('.cat-tabs')?.scrollLeft || 0;
     cont.replaceChildren();
-    // Una fila de píldoras (solo títulos) y, debajo, el panel de subcategorías si hay uno abierto
-    cont.className = 'flex flex-col gap-3 mb-6 sm:mb-8';
+    cont.className = 'flex flex-col mb-6 sm:mb-8';
 
-    const elegir = (id) => { filtroCategoria = id; catAbierta = ''; renderFiltrosCatalogo(); renderCatalogo(); };
+    const elegir = (id) => { filtroCategoria = id; renderFiltrosCatalogo(); renderCatalogo(); };
 
     if (usaCategoriasTienda()) {
         if (filtroCategoria && !categoriasTiendaPublica.some(c => String(c.id) === filtroCategoria)) filtroCategoria = '';
@@ -467,116 +522,51 @@ function renderFiltrosCatalogo() {
 
         cont.classList.toggle('hidden', raices.length === 0);
         if (!raices.length) return;
-        if (catAbierta && !raices.some(c => String(c.id) === catAbierta)) catAbierta = '';
 
-        // --- Fila de píldoras: Todo + una por categoría principal ---
-        const row = el('div', 'flex gap-2 overflow-x-auto scrollbar-hide pb-1');
+        // --- Pestañas: Todo + una por categoría principal ---
+        const items = [{ id: '', nombre: 'Todo' }, ...raices.map(c => ({ id: String(c.id), nombre: c.nombre }))];
+        const activoId = ruta[0] ? String(ruta[0].id) : '';
+        cont.appendChild(construirTabsCategorias(items, activoId, elegir, scrollPrevio));
 
-        const todo = el('button', 'cat-chip' + (!filtroCategoria ? ' activa' : ''), 'Todo');
-        todo.type = 'button';
-        todo.onclick = () => elegir('');
-        row.appendChild(todo);
+        // --- Subcategorías: una línea de texto por nivel, siguiendo la ruta elegida ---
+        let padre = ruta[0] ? String(ruta[0].id) : null;
+        for (let nivel = 0; padre !== null && nivel < 4; nivel++) {
+            const hijos = visibles(padre);
+            if (!hijos.length) break;
+            const padreActual = padre;
+            const linea = el('div', 'cat-subnav');
 
-        raices.forEach(c => {
-            const id = String(c.id);
-            const tieneHijos = visibles(id).length > 0;
-            const activa = ruta[0] && String(ruta[0].id) === id;
-            const abierta = catAbierta === id;
+            const todas = el('button', 'cat-subitem' + (filtroCategoria === padreActual ? ' activa' : ''), 'Todas');
+            todas.type = 'button';
+            todas.onclick = () => elegir(padreActual);
+            linea.appendChild(todas);
 
-            const b = el('button', 'cat-chip' + (activa ? ' activa' : '') + (abierta ? ' abierta' : ''));
-            b.type = 'button';
-            b.appendChild(el('span', null, c.nombre));
-            // Si hay una subcategoría elegida, se ve en la píldora aunque el panel esté cerrado
-            if (activa && ruta.length > 1) b.appendChild(el('span', 'cat-chip-sub', ruta[ruta.length - 1].nombre));
-            if (tieneHijos) {
-                const chev = el('span', 'cat-chevron');
-                chev.innerHTML = SVG_CHEVRON;
-                b.appendChild(chev);
-                b.setAttribute('aria-expanded', abierta ? 'true' : 'false');
-                b.setAttribute('aria-controls', 'cat-panel');
-            }
-            b.onclick = () => {
-                if (!tieneHijos) return elegir(id);
-                catAbierta = abierta ? '' : id;
-                renderFiltrosCatalogo();
-            };
-            row.appendChild(b);
-        });
-        cont.appendChild(row);
+            hijos.forEach(c => {
+                const id = String(c.id);
+                const enRuta = ruta.some(r => String(r.id) === id);
+                const b = el('button', 'cat-subitem' + (enRuta ? ' activa' : ''));
+                b.type = 'button';
+                b.append(el('span', null, c.nombre), el('span', 'cat-subitem-n', String(cantidadProductosCategoriaTienda(c.id))));
+                b.onclick = () => elegir(id);
+                linea.appendChild(b);
+            });
+            cont.appendChild(linea);
 
-        // --- Panel de subcategorías de la píldora abierta ---
-        if (catAbierta) {
-            const raiz = raices.find(c => String(c.id) === catAbierta);
-            const panel = el('div', 'cat-panel');
-            panel.id = 'cat-panel';
-
-            const head = el('div', 'cat-panel-head');
-            head.appendChild(el('span', 'cat-panel-titulo', raiz.nombre));
-            const acciones = el('div', 'flex items-center gap-2');
-            const verTodo = el('button', 'cat-sub cat-sub-todo' + (filtroCategoria === catAbierta ? ' activa' : ''), 'Ver todo');
-            verTodo.type = 'button';
-            verTodo.onclick = () => elegir(catAbierta);
-            const cerrar = el('button', 'cat-panel-cerrar');
-            cerrar.type = 'button';
-            cerrar.setAttribute('aria-label', 'Cerrar subcategorías');
-            cerrar.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg>';
-            cerrar.onclick = () => { catAbierta = ''; renderFiltrosCatalogo(); };
-            acciones.append(verTodo, cerrar);
-            head.appendChild(acciones);
-            panel.appendChild(head);
-
-            // Subcategorías; si alguna tiene a su vez hijos, se muestran anidadas debajo
-            const nivel = (padreId, destino, prof) => {
-                visibles(padreId).forEach(c => {
-                    const id = String(c.id);
-                    const b = el('button', 'cat-sub' + (filtroCategoria === id ? ' activa' : ''));
-                    b.type = 'button';
-                    b.append(el('span', null, c.nombre), el('span', 'cat-sub-n', String(cantidadProductosCategoriaTienda(c.id))));
-                    b.onclick = () => elegir(id);
-                    destino.appendChild(b);
-                    if (prof < 4 && visibles(id).length) {
-                        const anidado = el('div', 'cat-panel-anidado');
-                        nivel(id, anidado, prof + 1);
-                        destino.appendChild(anidado);
-                    }
-                });
-            };
-            const lista = el('div', 'cat-panel-lista');
-            nivel(catAbierta, lista, 0);
-            panel.appendChild(lista);
-            cont.appendChild(panel);
+            padre = ruta[nivel + 1] ? String(ruta[nivel + 1].id) : null;
         }
         return;
     }
 
-    // Respaldo: categorías globales (sin subcategorías, píldoras simples como antes)
+    // Respaldo: categorías globales (sin subcategorías), mismas pestañas
     const cats = new Map();
     productosTienda.forEach(p => { if (p.categorias) cats.set(String(p.categorias.id), p.categorias.nombre); });
     if (filtroCategoria && !cats.has(filtroCategoria)) filtroCategoria = '';
     cont.classList.toggle('hidden', cats.size < 2);
     if (cats.size > 1) {
-        const row = el('div', 'flex gap-2 overflow-x-auto scrollbar-hide pb-1');
-        [['', 'Todo'], ...cats].forEach(([id, nombre]) => {
-            const b = el('button', 'cat-chip' + (filtroCategoria === id ? ' activa' : ''), nombre);
-            b.type = 'button';
-            b.onclick = () => elegir(id);
-            row.appendChild(b);
-        });
-        cont.appendChild(row);
+        const items = [{ id: '', nombre: 'Todo' }, ...[...cats].map(([id, nombre]) => ({ id, nombre }))];
+        cont.appendChild(construirTabsCategorias(items, filtroCategoria, elegir, scrollPrevio));
     }
 }
-
-// El panel de subcategorías se cierra al tocar fuera o con Escape
-// (composedPath porque el click re-renderiza y el target ya no está en el DOM)
-document.addEventListener('click', (ev) => {
-    if (!catAbierta) return;
-    if (ev.composedPath().includes($('catalogo-categorias'))) return;
-    catAbierta = '';
-    renderFiltrosCatalogo();
-});
-document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && catAbierta) { catAbierta = ''; renderFiltrosCatalogo(); }
-});
 
 // ------------------------------------------------------------
 // BUSCADOR (mismo funcionamiento que el de la home)
@@ -590,6 +580,88 @@ const inputBuscar = $('catalogo-buscar');
 const panelSugerencias = $('catalogo-sugerencias');
 const btnLimpiarBusqueda = $('catalogo-buscar-clear');
 let timerSugerencias = null;
+
+// Placeholder del buscador: va rotando entre estas frases (con fundido suave).
+// Se pausa mientras escriben o con la pestaña oculta, y se saltea las frases que no entran en el ancho disponible.
+const FRASES_BUSCADOR = [
+    '¿Qué estás buscando hoy?',
+    'Encontrá lo que necesitás...',
+    '¿Qué te gustaría encontrar?',
+    'Buscá tu próximo favorito...',
+    '¿Qué tenés en mente?',
+    'Encontrá eso que buscás...',
+    '¿Buscás algo en particular?',
+    'Todo empieza con una búsqueda...',
+    'Descubrí algo nuevo hoy...',
+    '¿Qué necesitás encontrar?',
+    'Tu próxima compra empieza acá...',
+    'Explorá productos y encontrá el tuyo...',
+    '¿Qué andás buscando?',
+    'Encontrá lo que te gusta...',
+    'Buscá, descubrí y elegí...',
+    '¿Qué producto estás buscando?',
+    'Tu búsqueda empieza acá...',
+    'Hay algo para vos por acá...',
+    'Encontrá justo lo que necesitás...',
+    '¿Qué te gustaría comprar?',
+    'Descubrí todo lo que tenemos...',
+    'Buscá algo que te encante...',
+    '¿Qué producto tenés en mente?',
+    'Encontrá tu próximo favorito...',
+    '¿Buscamos algo para vos?',
+    'Escribí lo que estás buscando...',
+    '¿Qué te gustaría descubrir hoy?',
+    'Encontrá eso que tanto querés...',
+    '¿Qué necesitás para hoy?',
+    'Explorá y encontrá tu próximo hallazgo...',
+    'Buscá por nombre o categoría...',
+    '¿Qué producto te interesa?',
+    'Todo lo que buscás, más cerca...',
+    '¿Qué te gustaría encontrar acá?',
+    'Tu próximo descubrimiento está acá...',
+    'Encontrá algo que vaya con vos...',
+    '¿Ya sabés qué estás buscando?',
+    'Buscá eso que tenés en mente...',
+    '¿Qué te gustaría llevarte?',
+    'Descubrí productos a tu manera...',
+    '¿Qué andás necesitando?',
+    'Empezá por buscar lo que te gusta...',
+    'Encontrá lo que va con vos...',
+    '¿Qué te gustaría tener?',
+    'Buscá tu próximo gran hallazgo...',
+    '¿Qué producto querés descubrir?',
+    'Escribí y encontrá lo que buscás...',
+    'Tu próxima elección está más cerca...',
+    '¿Qué te gustaría encontrar hoy?'
+];
+(function rotarPlaceholderBuscador() {
+    const original = inputBuscar.placeholder;
+    const orden = FRASES_BUSCADOR.slice();
+    for (let k = orden.length - 1; k > 0; k--) {          // mezcla (Fisher-Yates)
+        const r = Math.floor(Math.random() * (k + 1));
+        [orden[k], orden[r]] = [orden[r], orden[k]];
+    }
+    const medidor = document.createElement('canvas').getContext('2d');
+    let i = -1;
+    const siguiente = () => {
+        const cs = getComputedStyle(inputBuscar);
+        medidor.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+        const ancho = inputBuscar.clientWidth;             // 0 si todavía está oculto: no se filtra
+        for (let n = 0; n < orden.length; n++) {
+            i = (i + 1) % orden.length;
+            if (!ancho || medidor.measureText(orden[i]).width <= ancho - 4) return orden[i];
+        }
+        return original;
+    };
+    const sinAnimacion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    inputBuscar.placeholder = siguiente();
+    setInterval(() => {
+        if (document.hidden || inputBuscar.value || document.activeElement === inputBuscar) return;
+        if (sinAnimacion) { inputBuscar.placeholder = siguiente(); return; }
+        inputBuscar.classList.add('ph-oculto');
+        setTimeout(() => { inputBuscar.placeholder = siguiente(); inputBuscar.classList.remove('ph-oculto'); }, 350);
+    }, 4000);
+})();
 
 function textoBusqueda() { return inputBuscar.value.trim(); }
 
@@ -854,7 +926,7 @@ function crearCardProducto(p) {
     add.type = 'button';
     add.setAttribute('aria-label', `Agregar ${p.nombre || 'producto'} al carrito`);
     add.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>';
-    add.onclick = (ev) => { ev.stopPropagation(); agregarRapido(p); };
+    add.onclick = (ev) => { ev.stopPropagation(); agregarRapido(p, add); };
     fila.appendChild(add);
 
     body.appendChild(fila);
@@ -863,10 +935,31 @@ function crearCardProducto(p) {
 }
 
 // Sin variantes se agrega directo; con variantes hay que elegir en el modal.
-function agregarRapido(p) {
+function agregarRapido(p, boton) {
     if (!pedidosActivos() || productoSinStock(p)) return;
     if (p.variantes && p.variantes.length) { abrirModalProducto(p.id); return; }
-    agregarItem(p, 1, []);
+    if (agregarItem(p, 1, []) && boton) confirmarAgregadoBoton(boton);
+}
+
+// El "+" de la card se vuelve un check unos instantes para confirmar que se agregó.
+const SVG_CHECK_AGREGADO = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function confirmarAgregadoBoton(boton) {
+    if (boton._plusHTML === undefined) {
+        boton._plusHTML = boton.innerHTML;
+        boton._plusLabel = boton.getAttribute('aria-label') || '';
+    }
+    clearTimeout(boton._timerAgregado);
+    // Quitar y volver a poner la clase reinicia la animación si tocan varias veces seguidas
+    boton.classList.remove('btn-add-ok');
+    void boton.offsetWidth;
+    boton.innerHTML = SVG_CHECK_AGREGADO;
+    boton.classList.add('btn-add-ok');
+    boton.setAttribute('aria-label', 'Agregado al carrito');
+    boton._timerAgregado = setTimeout(() => {
+        boton.classList.remove('btn-add-ok');
+        boton.innerHTML = boton._plusHTML;
+        boton.setAttribute('aria-label', boton._plusLabel);
+    }, 1300);
 }
 
 // ------------------------------------------------------------
@@ -1102,7 +1195,9 @@ function actualizarPrecioModal() {
 
     const completa = seleccionCompleta();
     $('modal-btn-agregar').disabled = !completa || productoSinStock(p);
-    $('modal-btn-agregar-texto').textContent = completa ? 'Agregar al carrito' : 'Elegí una opción';
+    if (!$('modal-btn-agregar').classList.contains('btn-add-ok')) {
+        $('modal-btn-agregar-texto').textContent = completa ? 'Agregar al carrito' : 'Elegí una opción';
+    }
 }
 
 function modificarCantidadModal(delta) {
@@ -1113,7 +1208,26 @@ function modificarCantidadModal(delta) {
 function agregarAlCarrito() {
     const p = productoAbierto;
     if (!p || !pedidosActivos() || productoSinStock(p) || !seleccionCompleta()) return;
-    if (agregarItem(p, cantidadModal, variantesElegidas())) cerrarModal();
+    if (agregarItem(p, cantidadModal, variantesElegidas())) confirmarAgregadoModal();
+}
+
+// El botón "Agregar al carrito" del modal muestra un check + "¡Agregado!" y el modal queda abierto.
+function confirmarAgregadoModal() {
+    const btn = $('modal-btn-agregar');
+    const txt = $('modal-btn-agregar-texto');
+    const svg = btn.querySelector('svg');
+    if (btn._iconoHTML === undefined) btn._iconoHTML = svg.innerHTML;
+    clearTimeout(btn._timerAgregado);
+    btn.classList.remove('btn-add-ok', 'ok-ancho');
+    void btn.offsetWidth; // reinicia la animación si tocan varias veces seguidas
+    svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 12.5l4.5 4.5L19 7.5"/>';
+    txt.textContent = '¡Agregado!';
+    btn.classList.add('btn-add-ok', 'ok-ancho');
+    btn._timerAgregado = setTimeout(() => {
+        btn.classList.remove('btn-add-ok', 'ok-ancho');
+        svg.innerHTML = btn._iconoHTML;
+        txt.textContent = seleccionCompleta() ? 'Agregar al carrito' : 'Elegí una opción';
+    }, 1400);
 }
 
 async function copiarEnlaceProductoModal() {
@@ -1328,8 +1442,7 @@ function confirmarReemplazoCarrito() {
     cerrarConflictoCarrito();
     if (!c) return;
     carrito = { emprendedorId: null, tienda: '', items: [] };
-    agregarItem(c.p, c.cantidad, c.elegidas);
-    if (productoAbierto) cerrarModal();
+    if (agregarItem(c.p, c.cantidad, c.elegidas) && productoAbierto) confirmarAgregadoModal();
 }
 function cerrarConflictoCarrito() {
     conflictoPendiente = null;
@@ -1370,7 +1483,28 @@ function totalCarrito() { return subtotalCarrito() + (modalidadEnvio === true ? 
 
 function seleccionarModalidadEntrega(envio) {
     modalidadEnvio = envio;
+    marcarErrorModalidad('');
     actualizarCarritoUI();
+}
+
+// Error dentro del carrito (no en toast): mensaje rojo + botones con borde rojo
+function marcarErrorModalidad(msg) {
+    const p = $('co-error-modalidad');
+    const caja = $('carrito-modalidad-botones');
+    if (p) { p.textContent = msg || ''; p.classList.toggle('hidden', !msg); }
+    if (caja) {
+        caja.classList.toggle('modalidad-error', !!msg);
+        caja.setAttribute('aria-invalid', msg ? 'true' : 'false');
+        if (msg) {
+            caja.classList.remove('co-shake');
+            void caja.offsetWidth; // reinicia la animación si vuelven a tocar "Continuar"
+            caja.classList.add('co-shake');
+        }
+    }
+}
+function pedirModalidadEntrega() {
+    if (pasoCarrito !== 1) mostrarPasoCarrito(1);
+    marcarErrorModalidad('Elegí cómo querés recibir tu pedido.');
 }
 
 function actualizarCarritoUI() {
@@ -1415,8 +1549,8 @@ function actualizarCarritoUI() {
         pie.append(stepper, el('span', 'text-sm font-semibold text-zinc-900 tabular-nums', formatoPrecio(it.precio * it.cantidad)));
         centro.appendChild(pie);
 
-        const quitar = el('button', 'self-start w-8 h-8 -mt-1 -mr-1.5 rounded-full text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 flex items-center justify-center flex-shrink-0 transition-colors');
-        quitar.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>';
+        const quitar = el('button', 'self-start w-9 h-9 -mt-1.5 -mr-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-600 active:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors');
+        quitar.innerHTML = '<svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>';
         quitar.type = 'button';
         quitar.setAttribute('aria-label', `Quitar ${it.nombre}`);
         quitar.onclick = () => quitarItem(it.key);
@@ -1430,6 +1564,7 @@ function actualizarCarritoUI() {
     const hayEnvio = envio > 0;
     $('carrito-modalidad-envio').classList.toggle('hidden', !hayEnvio || !carrito.items.length);
     if (!hayEnvio) modalidadEnvio = null;
+    if (!hayEnvio || modalidadEnvio !== null) marcarErrorModalidad('');   // el error ya no corresponde
     const estilo = (btn, activo) => {
         btn.classList.toggle('border-zinc-900', activo);
         btn.classList.toggle('bg-zinc-900', activo);
@@ -1645,7 +1780,7 @@ function irACheckout() {
     if (!carrito.items.length) return;
     if (!verificarPedidoPosible()) return;
     if (costoEnvio() > 0 && modalidadEnvio === null) {
-        mostrarToastCarrito('Elegí cómo lo recibís');
+        pedirModalidadEntrega();
         return;
     }
     mostrarPasoCarrito(2);
@@ -1722,8 +1857,7 @@ function enviarPedidoWhatsapp() {
     const wsp = soloDigitos(e?.whatsapp);
     if (!verificarPedidoPosible()) return;
     if (costoEnvio() > 0 && modalidadEnvio === null) {
-        mostrarToastCarrito('Elegí cómo lo recibís');
-        mostrarPasoCarrito(1);
+        pedirModalidadEntrega();
         return;
     }
     if (!validarCheckout()) return;
@@ -1774,6 +1908,13 @@ let temporizadorToast = null;
 function mostrarToastCarrito(texto) {
     const t = $('toast-carrito');
     $('toast-carrito-texto').textContent = texto;
+    // Con el carrito abierto, el aviso se apoya arriba del pie (para no tapar el botón de pedir)
+    const drawerAbierto = !$('carrito-drawer').classList.contains('translate-x-full');
+    const pie = ['carrito-footer-paso1', 'carrito-footer-paso2'].map($).find(x => x && !x.classList.contains('hidden'));
+    t.style.bottom = (drawerAbierto && pie) ? (pie.offsetHeight + 16) + 'px' : '';
+    // En pantallas grandes el carrito es una columna a la derecha: el aviso se centra sobre ella
+    const dr = $('carrito-drawer').getBoundingClientRect();
+    t.style.left = (drawerAbierto && window.innerWidth >= 640) ? (dr.left + dr.width / 2) + 'px' : '';
     t.classList.remove('hidden');
     t.classList.add('flex');
     clearTimeout(temporizadorToast);
