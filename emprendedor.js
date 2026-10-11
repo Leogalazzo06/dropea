@@ -142,7 +142,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 function iniciarRealtime(id) {
     suscribirTabla('emprendedores', debounce(() => refrescarPerfil(id), 350), `id=eq.${id}`);
     const recargar = debounce(() => cargarCatalogo(id), 350);
-    suscribirTabla('productos', recargar, `emprendedor_id=eq.${id}`);
+    // El dashboard guarda primero el producto y después sus variantes: la segunda lectura, un poco
+    // más tarde, agarra las variantes ya actualizadas aunque la tabla variantes no tenga Realtime.
+    let segundaLectura = null;
+    suscribirTabla('productos', () => {
+        recargar();
+        clearTimeout(segundaLectura);
+        segundaLectura = setTimeout(() => cargarCatalogo(id), 2500);
+    }, `emprendedor_id=eq.${id}`);
 
     // Los DELETE no se pueden filtrar por emprendedor_id en Supabase Realtime (el evento
     // solo trae la clave primaria), así que la suscripción de arriba nunca los recibe.
@@ -153,6 +160,20 @@ function iniciarRealtime(id) {
             if (borrado != null && productosTienda.some(p => String(p.id) === String(borrado))) recargar();
         })
         .subscribe();
+
+    // Marcar una variante sin stock en el dashboard cambia la tabla variantes (no productos).
+    // No se puede filtrar por tienda: se recarga solo si la variante es de un producto de esta tienda
+    // (en los DELETE el evento puede no traer producto_id: ahí se recarga igual, por las dudas).
+    supabase.channel(`variantes-${id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'variantes' }, (payload) => {
+            const fila = payload.new && payload.new.producto_id != null ? payload.new : payload.old;
+            const pid = fila && fila.producto_id;
+            if (pid == null || productosTienda.some(p => String(p.id) === String(pid))) recargar();
+        })
+        .subscribe();
+
+    // Si la pestaña estuvo en segundo plano, la conexión en vivo pudo cortarse: se vuelve a leer el stock
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) recargar(); });
 }
 
 async function refrescarPerfil(id) {
@@ -305,6 +326,7 @@ function renderInfoLocal(e, pedidos) {
 // pedir. Requiere SELECT público (RLS) sobre productos, variantes y categorias.
 // ------------------------------------------------------------
 let productosTienda = [];
+let catalogoCargado = false;        // true cuando ya se cargó el catálogo (para validar el stock del carrito)
 let filtroCategoria = '';
 let categoriasTiendaPublica = [];   // filas de categorias_tienda de este comercio (árbol)
 let filtroTexto = '';
@@ -377,8 +399,13 @@ async function cargarCatalogo(emprendedorId) {
 
     // Los disponibles primero; los sin stock al final (se conserva el orden de cada grupo)
     productosTienda = [...productos.filter(p => !productoSinStock(p)), ...productos.filter(productoSinStock)];
+    catalogoCargado = true;
     renderFiltrosCatalogo();
     renderCatalogo();
+    // El stock pudo cambiar desde el dashboard: se revalidan los productos del carrito
+    // y el producto que esté abierto en el modal (si no, seguiría con las variantes viejas)
+    actualizarCarritoUI();
+    sincronizarModalConCatalogo();
 
     // Link directo a un producto (?producto=<id>)
     if (productoDeLaURL) {
@@ -1090,6 +1117,23 @@ function gruposDeVariantes(p) {
     return grupos;
 }
 
+// Tras recargar el catálogo, "productoAbierto" apunta a un objeto viejo: se cambia por el nuevo,
+// se sacan las opciones elegidas que ya no tienen stock y se vuelven a pintar las variantes.
+function sincronizarModalConCatalogo() {
+    if (!productoAbierto || !$('modal-producto').classList.contains('abierto')) return;
+    const viejo = productoAbierto;
+    const nuevo = productosTienda.find(x => String(x.id) === String(viejo.id));
+    if (!nuevo) { cerrarModal(); return; }                                  // el producto se eliminó
+    if (productoSinStock(nuevo) !== productoSinStock(viejo)) { abrirModalProducto(nuevo.id); return; }
+    productoAbierto = nuevo;
+    Object.keys(seleccionVariantes).forEach(g => {
+        const v = (nuevo.variantes || []).find(x => String(x.id) === String(seleccionVariantes[g]));
+        if (!v || v.disponible === false) delete seleccionVariantes[g];
+    });
+    renderVariantesModal();
+    actualizarPrecioModal();
+}
+
 function variantesElegidas() {
     if (!productoAbierto) return [];
     return (productoAbierto.variantes || []).filter(v => {
@@ -1690,6 +1734,7 @@ function cerrarConflictoCarrito() {
 function cambiarCantidadItem(key, delta) {
     const it = carrito.items.find(i => i.key === key);
     if (!it) return;
+    if (delta > 0 && itemSinStock(it)) return;
     it.cantidad += delta;
     if (it.cantidad < 1) carrito.items = carrito.items.filter(i => i.key !== key);
     it.cantidad = Math.min(99, it.cantidad);
@@ -1715,7 +1760,29 @@ function limpiarCarrito() {
 }
 
 function costoEnvio() { return Number(emprendedorActual?.costo_envio) || 0; }
-function subtotalCarrito() { return carrito.items.reduce((s, i) => s + i.precio * i.cantidad, 0); }
+// ¿El ítem del carrito sigue teniendo stock? Se compara con el catálogo actual:
+// producto en activo = false, eliminado, o con alguna de las variantes elegidas sin stock / eliminada.
+// La key del ítem es "<productoId>:<idVariante>,<idVariante>".
+function idsVariantesDeItem(it) {
+    const prefijo = String(it.productoId) + ':';
+    const key = String(it.key || '');
+    return key.startsWith(prefijo) ? key.slice(prefijo.length).split(',').filter(Boolean) : [];
+}
+function itemSinStock(it) {
+    if (!catalogoCargado) return false;   // todavía no hay datos para comparar
+    const p = productosTienda.find(x => String(x.id) === String(it.productoId));
+    if (!p) return true;                  // el producto ya no existe
+    if (productoSinStock(p)) return true;
+    return idsVariantesDeItem(it).some(id => {
+        const v = (p.variantes || []).find(x => String(x.id) === String(id));
+        return !v || v.disponible === false;
+    });
+}
+function itemsSinStock() { return carrito.items.filter(itemSinStock); }
+function hayItemsSinStock() { return carrito.items.some(itemSinStock); }
+
+// Los productos sin stock quedan en el carrito pero no cuentan en el total
+function subtotalCarrito() { return carrito.items.filter(i => !itemSinStock(i)).reduce((s, i) => s + i.precio * i.cantidad, 0); }
 function totalCarrito() { return subtotalCarrito() + (modalidadEnvio === true ? costoEnvio() : 0); }
 
 function seleccionarModalidadEntrega(envio) {
@@ -1751,6 +1818,16 @@ function actualizarCarritoUI() {
     badge.classList.toggle('hidden', cant === 0);
 
     if (cant === 0 && pasoCarrito === 2) { mostrarPasoCarrito(1); return; }
+
+    // Productos que se quedaron sin stock: siguen en el carrito, marcados, y bloquean el pedido
+    const agotados = itemsSinStock();
+    if (pasoCarrito === 2 && agotados.length) {
+        mostrarPasoCarrito(1);   // vuelve a llamar a actualizarCarritoUI en el paso 1
+        if (!$('carrito-drawer').classList.contains('translate-x-full')) {
+            mostrarToastCarrito('Hay productos sin stock en tu carrito');
+        }
+        return;
+    }
     $('carrito-subtitulo').textContent = pasoCarrito === 2 ? 'Paso 2 de 2' : cant === 0 ? 'Vacío' : `${cant} producto${cant === 1 ? '' : 's'}${carrito.tienda ? ' · ' + carrito.tienda : ''}`;
 
     const cont = $('carrito-items');
@@ -1763,15 +1840,17 @@ function actualizarCarritoUI() {
         cont.appendChild(vacio);
     }
     carrito.items.forEach(it => {
+        const agotado = agotados.includes(it);
         const fila = el('div', 'flex gap-3.5 py-4');
-        const img = el('img', 'w-[68px] h-[68px] rounded-xl object-contain p-1 bg-zinc-50 border border-zinc-100 flex-shrink-0');
+        const img = el('img', 'w-[68px] h-[68px] rounded-xl object-contain p-1 bg-zinc-50 border border-zinc-100 flex-shrink-0' + (agotado ? ' grayscale opacity-50' : ''));
         img.alt = '';
         img.src = it.imagen || IMAGEN_PRODUCTO_DEFAULT;
         img.onerror = () => { img.onerror = null; img.src = IMAGEN_PRODUCTO_DEFAULT; };
 
         const centro = el('div', 'flex-1 min-w-0 flex flex-col');
-        centro.appendChild(el('p', 'text-sm font-semibold text-zinc-900 leading-snug line-clamp-2 break-words', it.nombre));
+        centro.appendChild(el('p', 'text-sm font-semibold leading-snug line-clamp-2 break-words ' + (agotado ? 'text-zinc-400' : 'text-zinc-900'), it.nombre));
         if (it.detalle) centro.appendChild(el('p', 'text-xs text-zinc-500 mt-0.5 break-words', it.detalle));
+        if (agotado) centro.appendChild(el('p', 'text-xs font-semibold text-red-600 mt-1', 'Sin stock por el momento'));
 
         const pie = el('div', 'mt-auto pt-2.5 flex items-center justify-between gap-2');
         const stepper = el('div', 'inline-flex items-center rounded-lg border border-zinc-200 h-8 overflow-hidden');
@@ -1782,8 +1861,9 @@ function actualizarCarritoUI() {
         menos.setAttribute('aria-label', 'Menos'); mas.setAttribute('aria-label', 'Más');
         menos.onclick = () => cambiarCantidadItem(it.key, -1);
         mas.onclick = () => cambiarCantidadItem(it.key, 1);
+        if (agotado) { mas.disabled = true; mas.classList.add('opacity-30', 'cursor-not-allowed'); }
         stepper.append(menos, el('span', 'min-w-[1.75rem] text-center text-xs font-semibold tabular-nums text-zinc-900', String(it.cantidad)), mas);
-        pie.append(stepper, el('span', 'text-sm font-semibold text-zinc-900 tabular-nums', formatoPrecio(it.precio * it.cantidad)));
+        pie.append(stepper, el('span', 'text-sm font-semibold tabular-nums ' + (agotado ? 'text-zinc-400 line-through' : 'text-zinc-900'), formatoPrecio(it.precio * it.cantidad)));
         centro.appendChild(pie);
 
         const quitar = el('button', 'self-start w-9 h-9 -mt-1.5 -mr-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-600 active:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors');
@@ -1819,12 +1899,29 @@ function actualizarCarritoUI() {
     $('carrito-subtotal').textContent = formatoPrecio(subtotalCarrito());
     $('carrito-envio').textContent = formatoPrecio(envio);
     $('carrito-total').textContent = formatoPrecio(totalCarrito());
-    $('carrito-whatsapp-btn').disabled = !carrito.items.length;
-    $('carrito-whatsapp-btn').classList.toggle('opacity-40', !carrito.items.length);
+
+    // Aviso arriba del pie + botón "Continuar" bloqueado mientras haya productos sin stock
+    let aviso = $('carrito-aviso-stock');
+    if (!aviso) {
+        aviso = el('p', 'mb-3 rounded-xl bg-red-50 text-red-700 text-xs font-semibold leading-snug px-3.5 py-2.5');
+        aviso.id = 'carrito-aviso-stock';
+        aviso.setAttribute('role', 'alert');
+        $('carrito-footer-paso1').prepend(aviso);
+    }
+    aviso.textContent = agotados.length === 1
+        ? 'Un producto de tu carrito se quedó sin stock. Quitalo para poder continuar con el pedido.'
+        : `${agotados.length} productos de tu carrito se quedaron sin stock. Quitalos para poder continuar con el pedido.`;
+    aviso.classList.toggle('hidden', agotados.length === 0);
+
+    const bloqueado = !carrito.items.length || agotados.length > 0;
+    $('carrito-whatsapp-btn').disabled = bloqueado;
+    $('carrito-whatsapp-btn').classList.toggle('opacity-40', bloqueado);
+    $('carrito-whatsapp-btn').classList.toggle('cursor-not-allowed', agotados.length > 0);
 }
 
 function abrirCarrito() {
     mostrarPasoCarrito(1);
+    if (emprendedorActual) cargarCatalogo(emprendedorActual.id);   // stock al día al abrir el carrito
     $('carrito-overlay').classList.remove('hidden');
     void $('carrito-drawer').offsetWidth;
     $('carrito-drawer').classList.remove('translate-x-full');
@@ -2013,8 +2110,14 @@ function verificarPedidoPosible() {
     return true;
 }
 
-function irACheckout() {
+async function irACheckout() {
     if (!carrito.items.length) return;
+    // Relee el stock por si cambió y la conexión en vivo no llegó a avisar
+    if (emprendedorActual) {
+        try { await cargarCatalogo(emprendedorActual.id); } catch (err) { console.error('No se pudo revalidar el stock:', err); }
+    }
+    if (!carrito.items.length) return;
+    if (hayItemsSinStock()) { actualizarCarritoUI(); return; }
     if (!verificarPedidoPosible()) return;
     if (costoEnvio() > 0 && modalidadEnvio === null) {
         pedirModalidadEntrega();
@@ -2090,6 +2193,9 @@ function armarMensajePedido() {
 
 function enviarPedidoWhatsapp() {
     if (!carrito.items.length) return;
+    // Si algún producto se quedó sin stock mientras completaban los datos, no se envía:
+    // actualizarCarritoUI los devuelve al carrito con el aviso.
+    if (hayItemsSinStock()) { actualizarCarritoUI(); return; }
     const e = emprendedorActual;
     const wsp = soloDigitos(e?.whatsapp);
     if (!verificarPedidoPosible()) return;
@@ -2180,7 +2286,6 @@ function actualizarBloqueoScroll() {
         document.body.style.paddingRight = '';
     }
 }
-
 document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
     if (!$('lightbox-imagen').classList.contains('hidden')) return cerrarLightboxImagen();
@@ -2191,7 +2296,6 @@ document.addEventListener('keydown', (ev) => {
     if (!$('carrito-drawer').classList.contains('translate-x-full')) return cerrarCarrito();
     if ($('modal-producto').classList.contains('abierto')) return cerrarModal();
 });
-
 document.addEventListener('DOMContentLoaded', () => {
     // El stepper y el botón "Agregar" del modal solo existen en tiendas con pedidos
     $('modal-btn-agregar').classList.add('solo-pedidos');
