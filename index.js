@@ -97,6 +97,8 @@ async function cargarComercios() {
         .from('emprendedores')
         .select('id, nombre_tienda, logo_url, usuarios!inner(usuario)')
         .eq('activo', true)
+        // Las que el admin oculta (columna oculto_en_inicio) no se listan acá
+        .or('oculto_en_inicio.is.null,oculto_en_inicio.eq.false')
         .order('nombre_tienda', { ascending: true });
 
     if (error) {
