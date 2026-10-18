@@ -257,6 +257,7 @@ function renderPerfil(e) {
     configurarRedSocial('perfil-tiktok', e.tiktok);
 
     renderInfoLocal(e, pedidos);
+    if (window.Historias) Historias.enlazarAvatar(document.getElementById('perfil-avatar-wrap'), e.id, { onProducto: (id) => abrirModalProducto(id) });
     if (typeof actualizarCarritoUI === 'function') actualizarCarritoUI();
 }
 
