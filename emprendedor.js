@@ -353,6 +353,7 @@ function el(tag, clase, texto) {
     return n;
 }
 
+let firmaCatalogo = null;   // huella del último catálogo dibujado
 async function cargarCatalogo(emprendedorId) {
     if (tiendaInactiva(emprendedorActual)) return;
     const { data, error } = await supabase
@@ -398,6 +399,15 @@ async function cargarCatalogo(emprendedorId) {
     }
 
     // Los disponibles primero; los sin stock al final (se conserva el orden de cada grupo)
+    // Si nada cambió desde la última carga (típico al abrir el carrito) no se vuelve a dibujar todo el catálogo
+    const firma = JSON.stringify([productos, categoriasTiendaPublica]);
+    if (catalogoCargado && firma === firmaCatalogo) {
+        actualizarCarritoUI();
+        sincronizarModalConCatalogo();
+        return;
+    }
+    firmaCatalogo = firma;
+
     productosTienda = [...productos.filter(p => !productoSinStock(p)), ...productos.filter(productoSinStock)];
     catalogoCargado = true;
     renderFiltrosCatalogo();
@@ -1000,6 +1010,41 @@ function rotarFotosCard(card, wrap, img, urls) {
     return true;
 }
 
+// ---- Marcas "ya está en tu carrito" (cards + modal) ----
+function unidadesPorProducto() {
+    const m = new Map();
+    carrito.items.forEach(i => m.set(String(i.productoId), (m.get(String(i.productoId)) || 0) + i.cantidad));
+    return m;
+}
+function pintarPillCarrito(card, n) {
+    if (!card._pill || card._enCarrito === n) return;
+    card._enCarrito = n;
+    card._pill.classList.toggle('on', n > 0);
+    if (n > 0) card._pill.querySelector('span').textContent = `En tu carrito · ${n}`;
+}
+function actualizarAvisoEnCarritoModal() {
+    const box = $('modal-en-carrito');
+    if (!box) return;
+    const p = productoAbierto;
+    const items = (p && pedidosActivos()) ? carrito.items.filter(i => String(i.productoId) === String(p.id)) : [];
+    const n = items.reduce((s, i) => s + i.cantidad, 0);
+    box.classList.toggle('hidden', n === 0);
+    if (!n) return;
+    $('modal-en-carrito-texto').textContent = `Ya está en tu carrito · ${n} unidad${n === 1 ? '' : 'es'}`;
+    // Con variantes distintas en el carrito, se detalla cuántas de cada una
+    $('modal-en-carrito-detalle').textContent = items.some(i => i.detalle)
+        ? items.map(i => `${i.detalle || 'Sin opciones'} ×${i.cantidad}`).join('\n') : '';
+}
+function actualizarMarcasCarrito() {
+    const m = unidadesPorProducto();
+    document.querySelectorAll('.prod-card[data-pid]').forEach(card => pintarPillCarrito(card, m.get(card.dataset.pid) || 0));
+    actualizarAvisoEnCarritoModal();
+}
+function verCarritoDesdeModal() {
+    if ($('modal-producto').classList.contains('abierto')) cerrarModal();
+    abrirCarrito();
+}
+
 function crearCardProducto(p) {
     const pct = calcularDescuentoPorcentaje(p.precio_anterior, p.precio);
 
@@ -1009,6 +1054,7 @@ function crearCardProducto(p) {
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Ver ${p.nombre || 'producto'}`);
+    card.dataset.pid = String(p.id);
     card.onclick = () => abrirModalProducto(p.id);
     card.onkeydown = (ev) => {
         if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abrirModalProducto(p.id); }
@@ -1045,6 +1091,13 @@ function crearCardProducto(p) {
         star.innerHTML = '<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 2.5z"/></svg>';
         wrap.appendChild(star);
     }
+
+    // Pastilla "En tu carrito · N" (se actualiza sola cuando cambia el carrito)
+    const pill = el('span', 'pc-pill' + (sinStock ? ' sobre-cartel' : ''));
+    pill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/></svg><span></span>';
+    wrap.appendChild(pill);
+    card._pill = pill;
+    pintarPillCarrito(card, unidadesPorProducto().get(String(p.id)) || 0);
 
     // Cuerpo
     const body = el('div', 'p-3 sm:p-4 flex flex-col gap-1 flex-1');
@@ -1171,6 +1224,7 @@ function abrirModalProducto(id) {
     seleccionVariantes = {};
     variantePreferidaFoto = null;
     cantidadModal = 1;
+    actualizarAvisoEnCarritoModal();
 
     // Variantes: si un grupo tiene una sola opción disponible, queda elegida
     // (antes de pintar la imagen, porque esa opción puede tener su propia foto)
@@ -1714,7 +1768,11 @@ function agregarItem(p, cantidad, elegidas) {
     }
     guardarCarrito();
     actualizarCarritoUI();
-    mostrarToastCarrito('Agregado al carrito');
+    mostrarToastCarrito(existente ? 'Cantidad actualizada' : 'Agregado al carrito', {
+        detalle: [p.nombre, textoVariantes(elegidas)].filter(Boolean).join(' · '),
+        imagen: urlSegura(imagenParaCarrito(p, elegidas)) || '',
+        verCarrito: true,
+    });
     return true;
 }
 
@@ -1816,6 +1874,7 @@ function actualizarCarritoUI() {
     const badge = $('badge-carrito');
     badge.textContent = String(cant);
     badge.classList.toggle('hidden', cant === 0);
+    actualizarMarcasCarrito();
 
     if (cant === 0 && pasoCarrito === 2) { mostrarPasoCarrito(1); return; }
 
@@ -1824,7 +1883,7 @@ function actualizarCarritoUI() {
     if (pasoCarrito === 2 && agotados.length) {
         mostrarPasoCarrito(1);   // vuelve a llamar a actualizarCarritoUI en el paso 1
         if (!$('carrito-drawer').classList.contains('translate-x-full')) {
-            mostrarToastCarrito('Hay productos sin stock en tu carrito');
+            mostrarToastCarrito('Hay productos sin stock en tu carrito', { aviso: true });
         }
         return;
     }
@@ -1921,7 +1980,8 @@ function actualizarCarritoUI() {
 
 function abrirCarrito() {
     mostrarPasoCarrito(1);
-    if (emprendedorActual) cargarCatalogo(emprendedorActual.id);   // stock al día al abrir el carrito
+    // Stock al día, pero después de la animación del drawer para no competir con ella
+    if (emprendedorActual) setTimeout(() => cargarCatalogo(emprendedorActual.id), 350);
     $('carrito-overlay').classList.remove('hidden');
     void $('carrito-drawer').offsetWidth;
     $('carrito-drawer').classList.remove('translate-x-full');
@@ -2247,10 +2307,36 @@ function cerrarModalSinWhatsapp() { $('modal-sin-whatsapp').classList.add('hidde
 // ------------------------------------------------------------
 // TOAST, SCROLL Y TECLADO
 // ------------------------------------------------------------
-let temporizadorToast = null;
-function mostrarToastCarrito(texto) {
-    const t = $('toast-carrito');
+let temporizadorToast = null, temporizadorSalidaToast = null;
+
+function ocultarToastCarrito() {
+    clearTimeout(temporizadorToast);
+    const t = $('toast-carrito'), card = $('toast-card');
+    card.classList.add('saliendo');
+    temporizadorSalidaToast = setTimeout(() => {
+        t.classList.add('hidden'); t.classList.remove('flex'); card.classList.remove('saliendo');
+    }, 180);
+}
+
+// opts: { detalle, imagen, verCarrito, aviso }
+function mostrarToastCarrito(texto, opts = {}) {
+    const t = $('toast-carrito'), card = $('toast-card');
+    clearTimeout(temporizadorSalidaToast);
+    card.classList.remove('saliendo');
     $('toast-carrito-texto').textContent = texto;
+    const det = $('toast-carrito-detalle');
+    det.textContent = opts.detalle || '';
+    det.classList.toggle('hidden', !opts.detalle);
+    const foto = $('toast-foto');
+    foto.classList.toggle('hidden', !opts.imagen);
+    $('toast-ico').classList.toggle('hidden', !!opts.imagen);
+    if (opts.imagen) {
+        foto.onerror = () => { foto.onerror = null; foto.src = IMAGEN_PRODUCTO_DEFAULT; };
+        foto.src = opts.imagen;
+    }
+    $('toast-ico').classList.toggle('aviso', !!opts.aviso);
+    $('toast-ico-path').setAttribute('d', opts.aviso ? 'M12 8v5m0 3h.01' : 'M5 13l4 4L19 7');
+
     // Con el carrito abierto, el aviso se apoya arriba del pie (para no tapar el botón de pedir)
     const drawerAbierto = !$('carrito-drawer').classList.contains('translate-x-full');
     const pie = ['carrito-footer-paso1', 'carrito-footer-paso2'].map($).find(x => x && !x.classList.contains('hidden'));
@@ -2258,10 +2344,29 @@ function mostrarToastCarrito(texto) {
     // En pantallas grandes el carrito es una columna a la derecha: el aviso se centra sobre ella
     const dr = $('carrito-drawer').getBoundingClientRect();
     t.style.left = (drawerAbierto && window.innerWidth >= 640) ? (dr.left + dr.width / 2) + 'px' : '';
+
+    // "Ver carrito" solo tiene sentido si el carrito no está abierto
+    const ms = opts.verCarrito && !drawerAbierto ? 4000 : 2200;
+    $('toast-carrito-ver').classList.toggle('hidden', !(opts.verCarrito && !drawerAbierto));
     t.classList.remove('hidden');
     t.classList.add('flex');
+    // Reinicia entrada y barra de tiempo (también si llegan varios avisos seguidos)
+    const barra = card.querySelector('.tc-barra');
+    card.style.animation = 'none'; barra.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = ''; barra.style.animation = '';
+    barra.style.setProperty('--tc-ms', ms + 'ms');
     clearTimeout(temporizadorToast);
-    temporizadorToast = setTimeout(() => { t.classList.add('hidden'); t.classList.remove('flex'); }, 2200);
+    temporizadorToast = setTimeout(ocultarToastCarrito, ms);
+}
+// Con el mouse encima no se esconde (para poder tocar el botón)
+$('toast-card').addEventListener('mouseenter', () => clearTimeout(temporizadorToast));
+$('toast-card').addEventListener('mouseleave', () => { temporizadorToast = setTimeout(ocultarToastCarrito, 1500); });
+
+function verCarritoDesdeToast() {
+    ocultarToastCarrito();
+    if ($('modal-producto').classList.contains('abierto')) cerrarModal();
+    abrirCarrito();
 }
 
 function actualizarBloqueoScroll() {
