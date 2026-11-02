@@ -467,6 +467,18 @@
             #perfil-datos .dato-card:not(.hidden) ~ .dato-card:not(.hidden) { border-top: 1px solid #e5e7eb; }
         }
 
+        /* Mobile: datos rápidos compactos. Envío y Retiro van lado a lado (media fila cada uno) y
+           Horario ocupa el ancho completo con la etiqueta a la izquierda, así el texto fluye en
+           pocas líneas en vez de partirse en una columna angosta. Si falta alguna tarjeta, las
+           que quedan se reparten el ancho solas. Tablet y PC no cambian. */
+        @media (max-width: 639px) {
+            #perfil-datos { flex-wrap: wrap; gap: .5rem; }
+            #perfil-datos .dato-card { flex: 1 1 calc(50% - .25rem); padding: .6rem .85rem; border-radius: .9rem; gap: .1rem; }
+            #perfil-datos #perfil-horario-wrap { flex: 1 1 100%; flex-direction: row; align-items: baseline; gap: .85rem; }
+            #perfil-datos #perfil-horario-wrap .dato-label { flex-shrink: 0; }
+            #perfil-datos #perfil-horario-wrap .dato-valor { font-size: .8125rem; line-height: 1.35; }
+        }
+
         /* Botones de acción (ubicación, WhatsApp, redes): mismo alto y forma */
         .pill {
             display: inline-flex; align-items: center; gap: .5rem; height: 2.75rem; padding: 0 1rem;
@@ -725,7 +737,7 @@
                     </div>
 
                     <!-- Datos rápidos: cada tarjeta aparece solo si el comercio cargó el dato -->
-                    <div id="perfil-datos" class="hidden flex gap-2 sm:gap-3 mt-5 lg:mt-0 lg:col-start-2 lg:row-start-1 lg:row-span-4">
+                    <div id="perfil-datos" class="hidden flex gap-2 sm:gap-3 mt-4 sm:mt-5 lg:mt-0 lg:col-start-2 lg:row-start-1 lg:row-span-4">
                         <div id="perfil-envio-wrap" class="dato-card hidden">
                             <span class="dato-label">Envío</span>
                             <span id="perfil-envio" class="dato-valor"></span>
@@ -741,10 +753,10 @@
                     </div>
 
                 <!-- Descripción del comercio: completa y con los saltos de línea que escribió -->
-                <p id="perfil-bio" class="hidden text-gray-500 text-[14px] sm:text-base font-medium leading-relaxed mt-5 max-w-3xl lg:col-start-1 whitespace-pre-line break-words"></p>
+                <p id="perfil-bio" class="hidden text-gray-500 text-[14px] sm:text-base font-medium leading-relaxed mt-4 sm:mt-5 max-w-3xl lg:col-start-1 whitespace-pre-line break-words"></p>
 
                 <!-- Acciones: ubicación · WhatsApp · redes (misma altura y forma) -->
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-5 lg:col-start-1">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 sm:mt-5 lg:col-start-1">
                     <a id="perfil-ubicacion-wrap" target="_blank" rel="noopener" class="hidden pill min-w-0 max-w-full">
                         <svg class="w-4 h-4 flex-shrink-0 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-5.686 7-11a7 7 0 10-14 0c0 5.314 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
                         <span id="perfil-ubicacion" class="truncate max-w-[13rem] sm:max-w-sm"></span>
