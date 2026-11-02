@@ -64,6 +64,13 @@ function mostrarTiendaInactiva() {
     mostrarError('inactiva');
 }
 
+// El skeleton del catálogo (buscador + categorías + productos) se muestra desde que abre la página
+// y se oculta cuando se dibuja el catálogo real o cuando hay un error.
+function ocultarSkeletonCatalogo() {
+    const sk = $('catalogo-skeleton');
+    if (sk) sk.classList.add('hidden');
+}
+
 function mostrarEstado(estado) {
     $('estado-cargando').classList.toggle('hidden', estado !== 'cargando');
     $('estado-error').classList.toggle('hidden', estado !== 'error');
@@ -84,6 +91,9 @@ function mostrarError(tipo) {
         $('error-texto').textContent = 'Revisá que el link esté bien escrito o pedile uno nuevo al comercio.';
         $('error-reintentar').classList.add('hidden');
     }
+    // Con error no hay catálogo que mostrar: se saca también el skeleton
+    $('seccion-catalogo').classList.add('hidden');
+    ocultarSkeletonCatalogo();
     mostrarEstado('error');
 }
 
@@ -204,9 +214,11 @@ function renderPerfil(e) {
     // Modo: sin pedidos la tienda es solo catálogo (el carrito del paso 2
     // se oculta con la clase "modo-catalogo")
     document.body.classList.toggle('modo-catalogo', !pedidos);
-    $('perfil-modo-texto').textContent = pedidos ? 'Este comercio recibe pedidos' : 'Catálogo online';
+    $('perfil-modo-texto').textContent = pedidos ? 'Recibe pedidos' : 'Catálogo online';
     $('perfil-modo-punto').classList.toggle('bg-green-500', pedidos);
     $('perfil-modo-punto').classList.toggle('bg-gray-300', !pedidos);
+    $('perfil-modo-texto').classList.toggle('text-green-600', pedidos);
+    $('perfil-modo-texto').classList.toggle('text-gray-500', !pedidos);
 
     // Anuncio
     const anuncio = (e.anuncio || '').trim();
@@ -217,6 +229,15 @@ function renderPerfil(e) {
     const banner = urlSegura(e.banner_url);
     $('perfil-banner').style.backgroundImage = banner ? `url("${banner}")` : '';
     $('perfil-banner-patron').classList.toggle('hidden', !!banner);
+    // El shimmer de la portada sigue hasta que la imagen termine de cargar (o falle)
+    const skBanner = $('perfil-banner-skeleton');
+    if (banner) {
+        const pre = new Image();
+        pre.onload = pre.onerror = () => skBanner.classList.add('hidden');
+        pre.src = banner;
+    } else {
+        skBanner.classList.add('hidden');
+    }
 
     // Logo (si no hay o no carga, se muestra la inicial)
     const logoImg = $('perfil-logo');
@@ -255,10 +276,36 @@ function renderPerfil(e) {
     configurarRedSocial('perfil-instagram', e.instagram);
     configurarRedSocial('perfil-facebook', e.facebook);
     configurarRedSocial('perfil-tiktok', e.tiktok);
+    $('perfil-compartir').classList.remove('hidden');
+    $('perfil-compartir').classList.add('flex');
 
     renderInfoLocal(e, pedidos);
     if (window.Historias) Historias.enlazarAvatar(document.getElementById('perfil-avatar-wrap'), e.id, { onProducto: (id) => abrirModalProducto(id) });
     if (typeof actualizarCarritoUI === 'function') actualizarCarritoUI();
+}
+
+// Botón "compartir" de la portada: hoja nativa del celular; si no hay, copia el enlace de la tienda
+async function compartirTienda() {
+    const u = new URL(window.location.href);
+    u.searchParams.delete('producto');
+    u.hash = '';
+    const nombre = (emprendedorActual?.nombre_tienda || '').trim() || 'Tienda';
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: nombre, text: `Mirá el catálogo de ${nombre}`, url: u.href });
+            return;
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;   // el usuario cerró la hoja
+        }
+    }
+    await copiarAlPortapapeles(u.href, 'Enlace copiado.');
+    const btn = $('perfil-compartir');
+    btn.querySelector('.icono-compartir').classList.add('hidden');
+    btn.querySelector('.icono-ok').classList.remove('hidden');
+    setTimeout(() => {
+        btn.querySelector('.icono-compartir').classList.remove('hidden');
+        btn.querySelector('.icono-ok').classList.add('hidden');
+    }, 1500);
 }
 
 function configurarRedSocial(elementId, valor) {
@@ -276,19 +323,31 @@ function configurarRedSocial(elementId, valor) {
 }
 
 function renderInfoLocal(e, pedidos) {
-    // Ubicación (+ link al mapa)
+    // Ubicación: botón con la dirección (si hay link de mapa, el botón es un enlace)
     const ubicacion = (e.ubicacion || '').trim();
     const mapa = urlSegura(e.mapa_url);
+    const btnUbi = $('perfil-ubicacion-wrap');
     $('perfil-ubicacion').textContent = ubicacion || 'Ver ubicación';
-    const aMapa = $('perfil-mapa');
-    if (mapa) aMapa.href = mapa; else aMapa.removeAttribute('href');
-    aMapa.classList.toggle('hidden', !mapa);
-    $('perfil-ubicacion-wrap').classList.toggle('hidden', !ubicacion && !mapa);
+    if (mapa) btnUbi.href = mapa; else btnUbi.removeAttribute('href');
+    btnUbi.classList.toggle('hidden', !ubicacion && !mapa);
 
     // Horario
     const horario = (e.horario_atencion || '').trim();
     $('perfil-horario').textContent = horario;
     $('perfil-horario-wrap').classList.toggle('hidden', !horario);
+
+    // Envío: solo tiene sentido si la tienda recibe pedidos y cargó un costo
+    const envio = Number(e.costo_envio) || 0;
+    const mostrarEnvio = pedidos && envio > 0;
+    $('perfil-envio').textContent = mostrarEnvio ? `${formatoPrecio(envio)}` : '';
+    $('perfil-envio-wrap').classList.toggle('hidden', !mostrarEnvio);
+    // Retiro: cuando hay envío con costo, el carrito ofrece las dos modalidades (envío o retiro)
+    $('perfil-retiro-wrap').classList.toggle('hidden', !mostrarEnvio);
+
+    // Las tarjetas (Envío / Retiro / Horario) solo aparecen si hay al menos una
+    const hayDatos = ['perfil-envio-wrap', 'perfil-retiro-wrap', 'perfil-horario-wrap']
+        .some((id) => !$(id).classList.contains('hidden'));
+    $('perfil-datos').classList.toggle('hidden', !hayDatos);
 
     // Medios de pago (el ícono es un SVG fijo de supabase-client.js; el nombre va como texto)
     const medios = Array.isArray(e.medios_pago) ? e.medios_pago : [];
@@ -307,16 +366,6 @@ function renderInfoLocal(e, pedidos) {
     });
     $('perfil-medios-pago-wrap').classList.toggle('hidden', medios.length === 0);
 
-    // Envío: solo tiene sentido si la tienda recibe pedidos y cargó un costo
-    const envio = Number(e.costo_envio) || 0;
-    const mostrarEnvio = pedidos && envio > 0;
-    $('perfil-envio').textContent = mostrarEnvio ? `${formatoPrecio(envio)}` : '';
-    $('perfil-envio-wrap').classList.toggle('hidden', !mostrarEnvio);
-
-    // El panel completo solo aparece si hay al menos un dato
-    const hayInfo = ['perfil-ubicacion-wrap', 'perfil-horario-wrap', 'perfil-medios-pago-wrap', 'perfil-envio-wrap']
-        .some((id) => !$(id).classList.contains('hidden'));
-    $('perfil-info-panel').classList.toggle('hidden', !hayInfo);
     $('seccion-catalogo').classList.remove('hidden');
 }
 
@@ -371,6 +420,7 @@ async function cargarCatalogo(emprendedorId) {
         v.textContent = 'No pudimos cargar los productos. Probá de nuevo en unos segundos';
         v.classList.remove('hidden');
         $('catalogo-contenido').replaceChildren();
+        ocultarSkeletonCatalogo();
         return;
     }
 
@@ -860,6 +910,7 @@ document.addEventListener('click', (ev) => {
 });
 
 function renderCatalogo() {
+    ocultarSkeletonCatalogo();
     const grid = $('catalogo-contenido');
     const vacio = $('catalogo-vacio');
     grid.replaceChildren();
@@ -1046,6 +1097,29 @@ function verCarritoDesdeModal() {
     abrirCarrito();
 }
 
+// Loader de las miniaturas: shimmer + logo de Dropea latiendo hasta que la foto carga.
+// Si la foto ya estaba en caché no se agrega nada (no hay parpadeo).
+function agregarLoaderLogo(wrap, img) {
+    if (img.complete && img.naturalWidth > 0) return;
+    const ph = el('div', 'logo-loader');
+    ph.setAttribute('aria-hidden', 'true');
+    const logo = el('img');
+    logo.src = 'dropea-logo.png';
+    logo.alt = '';
+    logo.onerror = () => logo.classList.add('hidden');
+    ph.appendChild(logo);
+    wrap.appendChild(ph);
+
+    let errores = 0;
+    const quitar = () => {
+        ph.classList.add('fin');
+        setTimeout(() => ph.remove(), 280);
+    };
+    img.addEventListener('load', quitar, { once: true });
+    // 1.er error: se prueba la imagen por defecto (dispara "load"); 2.º error: se saca igual
+    img.addEventListener('error', () => { if (++errores >= 2) quitar(); });
+}
+
 function crearCardProducto(p) {
     const pct = calcularDescuentoPorcentaje(p.precio_anterior, p.precio);
 
@@ -1072,6 +1146,7 @@ function crearCardProducto(p) {
     img.src = fotos[0] || urlSegura(urlGrillaProducto(p, 400)) || IMAGEN_PRODUCTO_DEFAULT;
     img.onerror = () => { img.onerror = null; img.src = IMAGEN_PRODUCTO_DEFAULT; };
     wrap.appendChild(img);
+    agregarLoaderLogo(wrap, img);
     if (rotarFotosCard(card, wrap, img, fotos)) observarRotacionCard(card);
 
     // Cartel "Sin stock" sobre la foto
@@ -2012,7 +2087,9 @@ function limpiarTexto(v) {
 function leerDatosGuardados() {
     try {
         const d = JSON.parse(localStorage.getItem(CLAVE_DATOS_CLIENTE) || 'null');
-        return d && typeof d === 'object' ? d : {};
+        if (!d || typeof d !== 'object') return {};
+        delete d.pago;   // el medio de pago no se recuerda: en cada compra puede ser distinto
+        return d;
     } catch { return {}; }
 }
 
@@ -2129,7 +2206,6 @@ function precargarCheckout() {
         $('co-calle').value = limpiarTexto(g.calle);
         $('co-localidad').value = limpiarTexto(g.localidad);
         $('co-referencia').value = limpiarTexto(g.referencia);
-        if (typeof g.pago === 'string') medioPagoElegido = g.pago;
     }
     $('co-borrar-datos').classList.toggle('hidden', !Object.keys(g).length);
 }
@@ -2171,20 +2247,52 @@ function verificarPedidoPosible() {
     return true;
 }
 
+// Barra de carga del botón "Continuar": se ve que algo está pasando mientras se relee el stock.
+// Dura al menos CHECKOUT_BARRA_MIN_MS para que el cliente alcance a verla aunque la respuesta sea inmediata.
+const CHECKOUT_BARRA_MIN_MS = 500;
+let checkoutEnCurso = false;
+const esperarMs = (ms) => new Promise(r => setTimeout(r, ms));
+
+function iniciarCargaBoton(btn) {
+    btn.classList.add('cargando');
+    btn.setAttribute('aria-busy', 'true');
+    btn.querySelector('.btn-texto').textContent = 'Verificando…';
+}
+
+async function finalizarCargaBoton(btn, inicio, exito) {
+    const resto = CHECKOUT_BARRA_MIN_MS - (performance.now() - inicio);
+    if (resto > 0) await esperarMs(resto);
+    if (exito) {                       // la barra se completa antes de pasar al paso 2
+        btn.classList.add('completo');
+        await esperarMs(200);
+    }
+    btn.classList.remove('cargando', 'completo');
+    btn.removeAttribute('aria-busy');
+    btn.querySelector('.btn-texto').textContent = 'Continuar';
+}
+
 async function irACheckout() {
-    if (!carrito.items.length) return;
-    // Relee el stock por si cambió y la conexión en vivo no llegó a avisar
-    if (emprendedorActual) {
-        try { await cargarCatalogo(emprendedorActual.id); } catch (err) { console.error('No se pudo revalidar el stock:', err); }
+    if (!carrito.items.length || checkoutEnCurso) return;
+    checkoutEnCurso = true;
+    const btn = $('carrito-whatsapp-btn');
+    iniciarCargaBoton(btn);
+    const inicio = performance.now();
+    let siguiente = null;   // qué hacer cuando la barra termina (null = nada, se queda en el carrito)
+    try {
+        // Relee el stock por si cambió y la conexión en vivo no llegó a avisar
+        if (emprendedorActual) {
+            try { await cargarCatalogo(emprendedorActual.id); } catch (err) { console.error('No se pudo revalidar el stock:', err); }
+        }
+        if (!carrito.items.length) return;
+        if (hayItemsSinStock()) { actualizarCarritoUI(); return; }
+        if (!verificarPedidoPosible()) return;
+        if (costoEnvio() > 0 && modalidadEnvio === null) siguiente = pedirModalidadEntrega;
+        else siguiente = () => mostrarPasoCarrito(2);
+    } finally {
+        await finalizarCargaBoton(btn, inicio, !!siguiente);
+        checkoutEnCurso = false;
     }
-    if (!carrito.items.length) return;
-    if (hayItemsSinStock()) { actualizarCarritoUI(); return; }
-    if (!verificarPedidoPosible()) return;
-    if (costoEnvio() > 0 && modalidadEnvio === null) {
-        pedirModalidadEntrega();
-        return;
-    }
-    mostrarPasoCarrito(2);
+    if (siguiente) siguiente();
 }
 
 // Los errores se limpian apenas el cliente corrige el campo
@@ -2197,7 +2305,7 @@ function guardarDatosSiCorresponde() {
         if (!$('co-recordar').checked) { localStorage.removeItem(CLAVE_DATOS_CLIENTE); return; }
         const d = datosCheckout();
         localStorage.setItem(CLAVE_DATOS_CLIENTE, JSON.stringify({
-            nombre: d.nombre, calle: d.calle, localidad: d.localidad, referencia: d.referencia, pago: d.pago,
+            nombre: d.nombre, calle: d.calle, localidad: d.localidad, referencia: d.referencia,
         }));
     } catch { /* noop */ }
 }
