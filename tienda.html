@@ -7,6 +7,7 @@
     <meta name="description" content="Catálogo online">
     <meta name="theme-color" content="#ffffff">
     <link rel="shortcut icon" href="favicon-96x96.png">
+    <link rel="preload" as="image" href="dropea-logo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -159,13 +160,21 @@
         .mec-ver:active { transform: scale(.96); }
         @media (prefers-reduced-motion: reduce) { .pc-pill.on, .mec { animation: none; } }
 
+        /* MODAL DE PRODUCTO — movimiento "flotante".
+           Entra lento y con frenada suave (curva tipo expo-out) y sale más rápido, así se
+           siente fluido al abrir y ágil al cerrar. Los dos lados del modal (imagen y detalle)
+           entran escalonados. Solo anima opacity/transform (barato para el navegador).
+           Curvas: ENTRADA cubic-bezier(.16,1,.3,1) · SALIDA cubic-bezier(.4,0,.2,1) */
         #modal-producto-overlay {
             background: rgba(9, 9, 11, 0.55);
             opacity: 0;
             pointer-events: none;
-            transition: opacity .25s ease;
+            transition: opacity .3s cubic-bezier(.4, 0, .2, 1);
         }
-        #modal-producto-overlay.abierto { opacity: 1; pointer-events: auto; }
+        #modal-producto-overlay.abierto {
+            opacity: 1; pointer-events: auto;
+            transition: opacity .5s cubic-bezier(.16, 1, .3, 1);
+        }
 
         #modal-producto {
             left: 0; right: 0; bottom: 0;
@@ -180,7 +189,9 @@
             opacity: 0;
             visibility: hidden;
             transform: translateY(100%);
-            transition: transform .3s ease, opacity .25s ease, visibility 0s linear .3s;
+            will-change: transform, opacity;
+            /* cerrando */
+            transition: transform .3s cubic-bezier(.4, 0, .2, 1), opacity .24s ease, visibility 0s linear .3s;
             pointer-events: none;
         }
         #modal-producto.abierto {
@@ -188,7 +199,8 @@
             visibility: visible;
             transform: translateY(0);
             pointer-events: auto;
-            transition: transform .3s ease, opacity .25s ease, visibility 0s linear 0s;
+            /* abriendo */
+            transition: transform .6s cubic-bezier(.16, 1, .3, 1), opacity .35s ease, visibility 0s linear 0s;
         }
 
         @media (min-width: 640px) {
@@ -198,9 +210,18 @@
                 max-height: 88dvh;
                 border-radius: 20px;
                 box-shadow: 0 30px 80px -12px rgba(9, 9, 11, .45), 0 0 0 1px rgba(9, 9, 11, .06);
-                transform: translate(-50%, -48%) scale(0.97);
+                transform: translate(-50%, -44%) scale(0.95);
             }
             #modal-producto.abierto { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Entrada escalonada del contenido: primero la imagen, un instante después el detalle */
+        @keyframes modalItemIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        #modal-producto.abierto .zoom-trigger { animation: modalItemIn .7s cubic-bezier(.16, 1, .3, 1) .06s both; }
+        #modal-producto.abierto .zoom-trigger + div { animation: modalItemIn .7s cubic-bezier(.16, 1, .3, 1) .15s both; }
+        @media (prefers-reduced-motion: reduce) {
+            #modal-producto, #modal-producto.abierto, #modal-producto-overlay, #modal-producto-overlay.abierto { transition-duration: .01s; }
+            #modal-producto.abierto .zoom-trigger, #modal-producto.abierto .zoom-trigger + div { animation: none; }
         }
 
         /* Loader de la imagen del modal de producto */
@@ -212,15 +233,54 @@
             transition: opacity .3s ease;
         }
         #modal-img-loader.oculto { opacity: 0; }
-        #modal-img-loader .spinner {
-            position: relative; z-index: 1;
-            width: 34px; height: 34px; border-radius: 9999px;
-            border: 3px solid rgba(9, 9, 11, .12);
-            border-top-color: rgba(9, 9, 11, .65);
-            animation: modalImgSpin .7s linear infinite;
+        /* Logo de Dropea como loader (modal y miniaturas): late suave sobre el shimmer */
+        @keyframes logoPulso { 0%, 100% { transform: scale(.92); opacity: .35; } 50% { transform: scale(1); opacity: .85; } }
+        #modal-img-loader .logo-pulso {
+            position: relative; z-index: 1; height: 2.25rem; width: auto; max-width: 45%; object-fit: contain;
+            animation: logoPulso 1.3s ease-in-out infinite;
         }
-        @keyframes modalImgSpin { to { transform: rotate(360deg); } }
-        @media (prefers-reduced-motion: reduce) { #modal-img-loader .spinner { animation-duration: 1.8s; } }
+        @media (min-width: 640px) { #modal-img-loader .logo-pulso { height: 2.75rem; } }
+        .logo-loader {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: #f3f4f6; overflow: hidden; pointer-events: none; transition: opacity .25s ease;
+        }
+        .logo-loader::after {
+            content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.7) 50%, rgba(255,255,255,0) 100%);
+            animation: cpShimmer 1.4s ease-in-out infinite;
+        }
+        .logo-loader img {
+            position: relative; z-index: 1; width: 46%; max-width: 6rem; height: auto; object-fit: contain;
+            animation: logoPulso 1.3s ease-in-out infinite;
+        }
+        .logo-loader.fin { opacity: 0; }
+        @media (prefers-reduced-motion: reduce) {
+            #modal-img-loader .logo-pulso, .logo-loader img { animation: none; opacity: .6; }
+            .logo-loader::after { animation: none; }
+        }
+
+        /* Botón "Continuar" del carrito: barra de carga de color mientras se verifica el stock */
+        .btn-barra {
+            position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+            background: rgba(255,255,255,.2); opacity: 0; transition: opacity .2s ease; pointer-events: none;
+        }
+        .btn-barra-relleno {
+            display: block; height: 100%; width: 0; border-radius: 0 4px 4px 0;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa 65%, #bfdbfe);
+            box-shadow: 0 0 10px rgba(96,165,250,.85);
+        }
+        #carrito-whatsapp-btn.cargando { background-color: #1e40af; pointer-events: none; }
+        #carrito-whatsapp-btn.cargando .btn-flecha { display: none; }
+        #carrito-whatsapp-btn.cargando .btn-barra { opacity: 1; }
+        #carrito-whatsapp-btn.cargando .btn-barra-relleno { width: 85%; transition: width 1.6s cubic-bezier(.1,.7,.2,1); }
+        #carrito-whatsapp-btn.cargando.completo .btn-barra-relleno { width: 100%; transition-duration: .18s; }
+        #carrito-whatsapp-btn.cargando::after {
+            content: ''; position: absolute; inset: 0; transform: translateX(-100%); pointer-events: none;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.22) 50%, rgba(255,255,255,0));
+            animation: btnBarrido 1.1s ease-in-out infinite;
+        }
+        @keyframes btnBarrido { to { transform: translateX(100%); } }
+        @media (prefers-reduced-motion: reduce) { #carrito-whatsapp-btn.cargando::after { animation: none; } }
 
         /* LIGHTBOX IMAGEN PRODUCTO */
         /* Mismo fondo plano y liviano que el overlay del modal de producto
@@ -391,29 +451,34 @@
         /* Con "recibe pedidos" apagado la tienda es solo catálogo: nada de carrito */
         .modo-catalogo .solo-pedidos { display: none !important; }
 
-        /* Panel de info: separador solo entre ítems visibles */
-        .perfil-info-item:not(.hidden) { display: flex; }
-
-        /* MOBILE: ubicación + envío lado a lado; atención y medios de pago a todo el ancho */
-        @media (max-width: 767px) {
-            .perfil-info-item { flex: 1 1 100%; min-width: 0; }
-            .perfil-info-item.info-ubicacion { flex: 1 1 0; order: 0; }
-            .perfil-info-item.info-envio { flex: 0 1 auto; order: 1; }
-            .perfil-info-item.info-horario { order: 2; }
-            .perfil-info-item.info-medios { order: 3; flex-wrap: wrap; }
-            .info-ubicacion:not(.hidden) ~ .info-envio:not(.hidden) { border-left: 1px solid #e5e7eb; padding-left: 1rem; }
-            .info-grid:has(.info-ubicacion:not(.hidden), .info-envio:not(.hidden)) .info-horario:not(.hidden) { border-top: 1px solid #e5e7eb; padding-top: .875rem; }
-            .info-grid:has(.perfil-info-item:not(.info-medios):not(.hidden)) .info-medios:not(.hidden) { border-top: 1px solid #e5e7eb; padding-top: .875rem; }
+        /* Cabecera de perfil: tarjetitas de datos (Envío / Retiro / Horario) */
+        .dato-card {
+            flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .2rem;
+            padding: .7rem .9rem; border: 1px solid #e5e7eb; background: #fafafa; border-radius: 1rem;
+        }
+        .dato-label { font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #9ca3af; }
+        .dato-valor { font-size: .875rem; font-weight: 800; color: #18181b; line-height: 1.25; white-space: pre-line; overflow-wrap: anywhere; }
+        @media (min-width: 1024px) {
+            #perfil-datos {
+                flex-direction: column; gap: 0; width: 19rem; align-self: start;
+                border: 1px solid #e5e7eb; background: #fafafa; border-radius: 1.25rem; padding: .4rem 1.25rem;
+            }
+            .dato-card { flex: none; min-width: 0; border: 0; background: transparent; border-radius: 0; padding: .9rem 0; }
+            #perfil-datos .dato-card:not(.hidden) ~ .dato-card:not(.hidden) { border-top: 1px solid #e5e7eb; }
         }
 
-        /* PC: ubicación · atención · envío en una fila; "Acepta" abajo, a todo el ancho */
-        @media (min-width: 768px) {
-            .perfil-info-item { flex: 1 1 13rem; min-width: 0; }
-            .perfil-info-item.info-horario { flex-grow: 1.6; }
-            .perfil-info-item:not(.hidden):not(.info-medios) ~ .perfil-info-item:not(.hidden):not(.info-medios) { border-left: 1px solid #e5e7eb; padding-left: 1.5rem; }
-            .perfil-info-item.info-medios { flex-basis: 100%; }
-            .perfil-info-item:not(.hidden) ~ .info-medios:not(.hidden) { border-top: 1px solid #e5e7eb; padding-top: 1.25rem; }
+        /* Botones de acción (ubicación, WhatsApp, redes): mismo alto y forma */
+        .pill {
+            display: inline-flex; align-items: center; gap: .5rem; height: 2.75rem; padding: 0 1rem;
+            border-radius: .85rem; border: 1px solid #e5e7eb; background: #fff; color: #3f3f46;
+            font-size: .8125rem; font-weight: 600; transition: border-color .15s ease, background-color .15s ease, color .15s ease, transform .15s ease;
         }
+        .pill-icon { width: 2.75rem; padding: 0; justify-content: center; color: #6b7280; }
+        a.pill[href]:hover { border-color: #000; color: #000; background: #fafafa; }
+        .pill:active { transform: scale(.97); }
+        .pill-primary { background: #000; border-color: #000; color: #fff; font-weight: 800; }
+        a.pill-primary[href]:hover { background: #1e40af; border-color: #1e40af; color: #fff; }
+        @media (prefers-reduced-motion: reduce) { .pill { transition: none; } }
 
         /* Chips (medios de pago, los arma el JS) */
         .chip {
@@ -464,6 +529,44 @@
         .cat-subitem.activa .cat-subitem-n { color: #60a5fa; }
         @media (prefers-reduced-motion: reduce) { .cat-tab.activa::after, .cat-fade-r .cat-arrow, .cat-subnav { animation: none; } }
 
+        /* Buscador flotante: centrado y angosto arriba de todo; en PC, al quedar pegado
+           (sticky) por el scroll, se expande hacia los costados hasta el ancho de la grilla.
+           En mobile no cambia nada. La clase .is-stuck la maneja el script de abajo. */
+        #catalogo-filtros { max-width: 48rem; margin-left: auto; margin-right: auto; }
+        @media (min-width: 1024px) {
+            #catalogo-filtros { transition: max-width .5s cubic-bezier(.22, 1, .36, 1); }
+            #catalogo-filtros.is-stuck { max-width: 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) { #catalogo-filtros { transition: none !important; } }
+
+        /* CARRITO: el drawer entra con frenada suave y sale más rápido.
+           (.translate-x-full presente = cerrado/cerrando) */
+        #carrito-drawer { transition-duration: .55s; transition-timing-function: cubic-bezier(.16, 1, .3, 1); }
+        #carrito-drawer.translate-x-full { transition-duration: .32s; transition-timing-function: cubic-bezier(.4, 0, .2, 1); }
+
+        /* FUNDIDO AL CERRAR: el overlay del carrito y los modales chicos se ocultan con la clase
+           "hidden" (display:none), que corta de golpe. Con transition-behavior (navegadores
+           actuales) hacemos que se desvanezcan en vez de desaparecer; en navegadores viejos
+           todo sigue funcionando como antes. No hace falta tocar el JS. */
+        @supports (transition-behavior: allow-discrete) {
+            #carrito-overlay { animation: none; }
+            #carrito-overlay, #modal-medios-pago-modal, #modal-qr-pedido, #modal-conflicto-carrito, #modal-sin-whatsapp {
+                opacity: 1;
+                transition: opacity .35s cubic-bezier(.16, 1, .3, 1), display .35s allow-discrete;
+            }
+            #carrito-overlay.hidden, #modal-medios-pago-modal.hidden, #modal-qr-pedido.hidden, #modal-conflicto-carrito.hidden, #modal-sin-whatsapp.hidden {
+                opacity: 0; pointer-events: none; transition-duration: .22s;
+            }
+            @starting-style {
+                #carrito-overlay, #modal-medios-pago-modal, #modal-qr-pedido, #modal-conflicto-carrito, #modal-sin-whatsapp { opacity: 0; }
+            }
+        }
+        /* Tarjetitas de los modales chicos: entrada con la misma curva suave */
+        .animate-fade-in { animation-timing-function: cubic-bezier(.16, 1, .3, 1); }
+        @media (prefers-reduced-motion: reduce) {
+            #carrito-drawer, #carrito-overlay, #modal-medios-pago-modal, #modal-qr-pedido, #modal-conflicto-carrito, #modal-sin-whatsapp { transition-duration: .01s !important; }
+        }
+
         /* Placeholder rotativo del buscador: se funde a transparente entre frase y frase */
         #catalogo-buscar::placeholder { color: #71717a; opacity: 1; transition: color .35s ease; }
         #catalogo-buscar.ph-oculto::placeholder { color: transparent; }
@@ -494,7 +597,7 @@
         @media (prefers-reduced-motion: reduce) { .banner-default .bn-titilar { animation: none; } }
 
         /* Tarjeta de producto */
-        .prod-card { transition: box-shadow .25s ease, border-color .25s ease; }
+        .prod-card { transition: box-shadow .45s cubic-bezier(.16, 1, .3, 1), border-color .25s ease; }
         @media (hover: hover) {
             .prod-card:hover { border-color: #d1d5db; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
         }
@@ -515,27 +618,6 @@
 </head>
 <body class="bg-white text-black overflow-x-clip modo-catalogo">
 
-    <!-- HEADER · Dropea (el logo es /dropea-logo.png; si falta se ve el texto) -->
-    <header id="site-header" class="relative z-50 bg-white border-b-2 border-black">
-        <div class="container mx-auto max-w-7xl px-4 sm:px-6 h-16 sm:h-[72px] relative flex items-center justify-center">
-
-            <!-- Etiqueta de ciudad: solo en pantallas anchas, a la izquierda para no tapar el logo centrado -->
-            <span class="hidden md:inline-flex absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 items-center gap-1.5 px-3.5 py-2 rounded-full bg-zinc-100 text-zinc-700 text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-5.686 7-11a7 7 0 10-14 0c0 5.314 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                Villa Ángela
-            </span>
-
-            <!-- Logo centrado: es el único acceso a la web de presentación (index.html) -->
-            <a href="index.html" aria-label="Dropea, conocé más sobre Dropea" title="Conocé Dropea" class="group flex items-center select-none">
-                <img src="dropea-logo.png" alt="Dropea"
-                     class="h-11 sm:h-[52px] w-auto object-contain transition-transform duration-300 group-hover:-rotate-2 group-hover:scale-105 group-active:scale-95"
-                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
-                <span class="hidden text-2xl font-black italic tracking-tight uppercase">Dropea</span>
-            </a>
-
-        </div>
-    </header>
-
     <!-- BARRA DE ANUNCIO (solo si el comercio cargó un texto) -->
     <div id="perfil-anuncio-wrap" class="hidden anuncio-cinta anuncio-entra border-b-2 border-black text-white" role="status" aria-live="polite">
         <div class="container mx-auto max-w-5xl px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-center gap-2 sm:gap-3">
@@ -547,41 +629,62 @@
     </div>
 
     <!-- CABECERA DE PERFIL -->
-    <section class="relative bg-white pb-8">
+    <section class="relative bg-white pb-4 sm:pb-6">
+        <div class="container mx-auto px-4 sm:px-6 max-w-7xl pt-4 sm:pt-6">
 
-        <!-- Portada: imagen del comercio (JS) o, si no cargó una, un fondo sobrio por defecto.
-             emprendedor.js oculta #perfil-banner-patron cuando hay banner. -->
-        <div class="relative w-full h-56 sm:h-80 overflow-hidden bg-zinc-900 border-b border-zinc-200">
-            <div id="perfil-banner" class="absolute inset-0 bg-cover bg-center" role="img" aria-label="Portada"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent pointer-events-none"></div>
+            <!-- Portada: bloque con esquinas redondeadas dentro del ancho de la página.
+                 Imagen del comercio (JS) o, si no cargó una, un fondo sobrio por defecto.
+                 emprendedor.js oculta #perfil-banner-patron cuando hay banner. -->
+            <div class="relative w-full h-44 sm:h-60 lg:h-72 rounded-3xl overflow-hidden bg-zinc-900 ring-1 ring-black/10">
+                <div id="perfil-banner" class="absolute inset-0 bg-cover bg-center" role="img" aria-label="Portada"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent pointer-events-none"></div>
 
             <!-- Portada por defecto -->
-            <div id="perfil-banner-patron" class="banner-default absolute inset-0 overflow-hidden" aria-hidden="true">
+            <div id="perfil-banner-patron" class="hidden banner-default absolute inset-0 overflow-hidden" aria-hidden="true">
                 <svg class="bn-destello bn-titilar top-8 right-8 sm:top-12 sm:right-24 w-12 h-12 sm:w-20 sm:h-20 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
                 <svg class="bn-destello bn-titilar bn-titilar-2 top-24 right-24 sm:top-32 sm:right-52 w-5 h-5 sm:w-7 sm:h-7 text-white/60" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
                 <svg class="bn-destello bn-titilar top-10 left-8 sm:top-14 sm:left-20 w-4 h-4 sm:w-6 sm:h-6 text-blue-400/70" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
             </div>
-        </div>
+                <!-- Skeleton de la portada: se muestra hasta que carga la imagen (o hasta saber que no hay) -->
+                <div id="perfil-banner-skeleton" class="absolute inset-0 z-[2]" aria-hidden="true"><div class="cp-skeleton w-full h-full"></div></div>
 
-        <div class="container mx-auto px-4 sm:px-6 max-w-5xl relative z-10 text-center">
+                <!-- Sello discreto de Dropea: visible apenas carga la tienda, sin invadir la marca del comercio.
+                     Se abre en otra pestaña para que el cliente no pierda el catálogo. -->
+                <a href="index.html?utm_source=tienda&utm_medium=badge" target="_blank" rel="noopener" aria-label="Tienda hecha con Dropea, conocé más"
+                   class="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-10 inline-flex items-center gap-1.5 h-7 sm:h-8 pl-2.5 pr-2 sm:pl-3 sm:pr-2.5 rounded-full bg-white/90 hover:bg-white text-zinc-500 text-[10px] sm:text-[11px] font-bold shadow-sm transition-all active:scale-95">
+                    Hecho con
+                    <img src="dropea-logo.png" alt="Dropea" class="h-3.5 sm:h-4 w-auto object-contain"
+                         onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                    <span class="hidden font-black italic uppercase text-zinc-900">Dropea</span>
+                </a>
+
+                <!-- Compartir (flota sobre la portada; JS lo muestra cuando cargó la tienda) -->
+                <button type="button" id="perfil-compartir" onclick="compartirTienda()" title="Compartir tienda" aria-label="Compartir tienda"
+                        class="hidden absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center bg-black/55 text-white hover:bg-black transition-all active:scale-95 backdrop-blur-sm">
+                    <svg class="icono-compartir w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+                    <svg class="icono-ok hidden w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+            </div>
 
             <!-- ESTADO: cargando -->
-            <div id="estado-cargando" class="flex flex-col items-center -mt-20 sm:-mt-24" aria-live="polite" aria-busy="true">
-                <div class="relative z-20 mb-6 p-1.5 bg-white rounded-full shadow-sm ring-1 ring-gray-100/50">
-                    <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full cp-skeleton"></div>
+            <div id="estado-cargando" class="mt-4 sm:mt-5" aria-live="polite" aria-busy="true">
+                <div class="flex items-center gap-4 sm:gap-5">
+                    <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl cp-skeleton flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="h-3 w-24 rounded-full cp-skeleton"></div>
+                        <div class="h-8 sm:h-11 w-56 sm:w-80 max-w-full rounded-xl cp-skeleton mt-3"></div>
+                    </div>
                 </div>
-                <div class="h-10 sm:h-12 w-64 sm:w-96 max-w-full rounded-xl cp-skeleton"></div>
-                <div class="h-4 w-full max-w-2xl rounded-full cp-skeleton mt-5"></div>
-                <div class="h-4 w-2/3 max-w-lg rounded-full cp-skeleton mt-2"></div>
-                <div class="flex items-center justify-center gap-3 mt-8">
-                    <div class="h-[46px] w-40 rounded-full cp-skeleton"></div>
-                    <div class="h-12 w-12 rounded-full cp-skeleton"></div>
+                <div class="flex flex-wrap gap-2 sm:gap-3 mt-5">
+                    <div class="h-11 w-44 rounded-xl cp-skeleton"></div>
+                    <div class="h-11 w-32 rounded-xl cp-skeleton"></div>
+                    <div class="h-11 w-11 rounded-xl cp-skeleton"></div>
                 </div>
                 <span class="sr-only">Cargando tienda…</span>
             </div>
 
             <!-- ESTADO: error / no existe -->
-            <div id="estado-error" class="hidden mt-12 bg-white rounded-[2rem] shadow-xl border border-gray-100 p-10 sm:p-16 flex flex-col items-center justify-center text-center">
+            <div id="estado-error" class="hidden mt-6 max-w-3xl mx-auto bg-white rounded-[2rem] shadow-xl border border-gray-100 p-10 sm:p-16 flex flex-col items-center justify-center text-center">
                 <span class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6 ring-4 ring-gray-50">
                     <svg class="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75l1.264-4.42A2.25 2.25 0 016.427 3.6h11.146a2.25 2.25 0 012.163 1.73L21 9.75M3 9.75v8.55A1.7 1.7 0 004.7 20h14.6a1.7 1.7 0 001.7-1.7V9.75M3 9.75h18"/>
@@ -596,88 +699,98 @@
             </div>
 
             <!-- ESTADO: perfil cargado -->
-            <div id="perfil-contenido" class="hidden flex flex-col items-center -mt-20 sm:-mt-24 animate-fade-in">
+            <div id="perfil-contenido" class="hidden grid lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-12 mt-4 sm:mt-5 animate-fade-in">
 
-                <!-- Avatar -->
-                <div class="relative z-20 mb-6">
-                    <div id="perfil-avatar-wrap" class="relative w-fit p-1.5 bg-white rounded-full shadow-sm ring-1 ring-gray-100/50">
-                        <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-black text-white flex items-center justify-center">
-                            <img id="perfil-logo" src="" alt="" class="hidden w-full h-full object-cover">
-                            <span id="perfil-logo-inicial" class="text-5xl sm:text-6xl font-black" aria-hidden="true"></span>
+                <!-- Identidad (izquierda) + datos rápidos (derecha en PC) -->
+                    <div class="flex items-center gap-4 sm:gap-5 min-w-0 lg:col-start-1">
+                        <!-- Logo cuadrado con esquinas redondeadas -->
+                        <div id="perfil-avatar-wrap" class="relative flex-shrink-0">
+                            <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl overflow-hidden bg-white flex items-center justify-center ring-1 ring-zinc-200 shadow-sm">
+                                <img id="perfil-logo" src="" alt="" class="hidden w-full h-full object-cover">
+                                <span id="perfil-logo-inicial" class="w-full h-full flex items-center justify-center bg-black text-white text-4xl sm:text-5xl font-black" aria-hidden="true"></span>
+                            </div>
+                            <span class="absolute -bottom-1.5 -right-1.5 z-10 w-6 h-6 sm:w-7 sm:h-7 bg-black text-blue-400 rounded-full border-[3px] border-white shadow-sm flex items-center justify-center pointer-events-none" title="Emprendedor Verificado">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                            </span>
+                        </div>
+
+                        <div class="min-w-0">
+                            <!-- Estado: catálogo / recibe pedidos -->
+                            <span class="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-extrabold">
+                                <span id="perfil-modo-punto" class="punto w-2 h-2 rounded-full bg-gray-300"></span>
+                                <span id="perfil-modo-texto" class="text-gray-500">Catálogo online</span>
+                            </span>
+                            <h1 id="perfil-nombre" class="mt-1 text-3xl sm:text-5xl font-black uppercase italic tracking-tighter leading-[.95] text-zinc-900 break-words max-w-full"></h1>
                         </div>
                     </div>
-                    <span class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-10 w-7 h-7 bg-black text-blue-400 rounded-full border-[3px] border-white shadow-sm flex items-center justify-center pointer-events-none" title="Emprendedor Verificado">
-                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-                    </span>
-                </div>
 
-                <!-- Modo: catálogo / recibe pedidos -->
-                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">
-                    <span id="perfil-modo-punto" class="punto w-2 h-2 rounded-full bg-gray-300"></span>
-                    <span id="perfil-modo-texto">Catálogo online</span>
-                </span>
+                    <!-- Datos rápidos: cada tarjeta aparece solo si el comercio cargó el dato -->
+                    <div id="perfil-datos" class="hidden flex gap-2 sm:gap-3 mt-5 lg:mt-0 lg:col-start-2 lg:row-start-1 lg:row-span-4">
+                        <div id="perfil-envio-wrap" class="dato-card hidden">
+                            <span class="dato-label">Envío</span>
+                            <span id="perfil-envio" class="dato-valor"></span>
+                        </div>
+                        <div id="perfil-retiro-wrap" class="dato-card hidden">
+                            <span class="dato-label">Retiro</span>
+                            <span class="dato-valor">Disponible</span>
+                        </div>
+                        <div id="perfil-horario-wrap" class="dato-card hidden">
+                            <span class="dato-label">Horario</span>
+                            <span id="perfil-horario" class="dato-valor"></span>
+                        </div>
+                    </div>
 
-                <!-- Identidad -->
-                <h1 id="perfil-nombre" class="text-4xl sm:text-5xl font-black uppercase italic tracking-tighter leading-none text-zinc-900 px-4 break-words max-w-full"></h1>
-                <p id="perfil-bio" class="hidden text-gray-500 text-[15px] sm:text-base font-medium leading-relaxed mt-5 max-w-2xl px-4 whitespace-pre-line break-words"></p>
+                <!-- Descripción del comercio: completa y con los saltos de línea que escribió -->
+                <p id="perfil-bio" class="hidden text-gray-500 text-[14px] sm:text-base font-medium leading-relaxed mt-5 max-w-3xl lg:col-start-1 whitespace-pre-line break-words"></p>
 
-                <!-- Acciones -->
-                <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
-                    <a id="perfil-whatsapp" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-2.5 bg-black text-white px-8 py-3.5 rounded-full font-black uppercase text-[11px] tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95 shadow-md shadow-black/10">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm5.8 14.1c-.25.69-1.43 1.32-1.97 1.38-.5.06-1.14.09-3.7-.97-3.28-1.36-5.4-4.7-5.56-4.92-.16-.22-1.32-1.76-1.32-3.36s.84-2.39 1.14-2.72c.3-.33.65-.41.87-.41h.63c.2 0 .47-.08.73.55.27.65.91 2.25.99 2.41.08.16.13.35.03.57-.1.22-.16.35-.31.54-.16.19-.33.42-.47.56-.16.16-.32.33-.14.65.19.32.82 1.35 1.76 2.18 1.2 1.07 2.22 1.4 2.54 1.56.32.16.5.14.69-.08.19-.22.8-.93 1.01-1.25.22-.32.43-.27.73-.16.3.11 1.9.9 2.22 1.06.32.16.54.24.62.37.08.13.08.76-.17 1.45z"/></svg>
+                <!-- Acciones: ubicación · WhatsApp · redes (misma altura y forma) -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-5 lg:col-start-1">
+                    <a id="perfil-ubicacion-wrap" target="_blank" rel="noopener" class="hidden pill min-w-0 max-w-full">
+                        <svg class="w-4 h-4 flex-shrink-0 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-5.686 7-11a7 7 0 10-14 0c0 5.314 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                        <span id="perfil-ubicacion" class="truncate max-w-[13rem] sm:max-w-sm"></span>
+                    </a>
+                    <a id="perfil-whatsapp" href="#" target="_blank" rel="noopener" class="hidden pill pill-primary">
+                        <svg class="w-[18px] h-[18px] fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm5.8 14.1c-.25.69-1.43 1.32-1.97 1.38-.5.06-1.14.09-3.7-.97-3.28-1.36-5.4-4.7-5.56-4.92-.16-.22-1.32-1.76-1.32-3.36s.84-2.39 1.14-2.72c.3-.33.65-.41.87-.41h.63c.2 0 .47-.08.73.55.27.65.91 2.25.99 2.41.08.16.13.35.03.57-.1.22-.16.35-.31.54-.16.19-.33.42-.47.56-.16.16-.32.33-.14.65.19.32.82 1.35 1.76 2.18 1.2 1.07 2.22 1.4 2.54 1.56.32.16.5.14.69-.08.19-.22.8-.93 1.01-1.25.22-.32.43-.27.73-.16.3.11 1.9.9 2.22 1.06.32.16.54.24.62.37.08.13.08.76-.17 1.45z"/></svg>
                         Contactar
                     </a>
-                    <a id="perfil-instagram" href="#" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram" class="hidden w-12 h-12 rounded-full items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-all active:scale-95"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg></a>
-                    <a id="perfil-facebook" href="#" target="_blank" rel="noopener" title="Facebook" aria-label="Facebook" class="hidden w-12 h-12 rounded-full items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-all active:scale-95"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M22 12.06C22 6.505 17.523 2 12 2S2 6.505 2 12.06c0 5.022 3.657 9.184 8.438 9.94v-7.03H7.898v-2.91h2.54V9.845c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.459h-1.26c-1.243 0-1.63.771-1.63 1.562v1.876h2.773l-.443 2.91h-2.33V22c4.78-.756 8.437-4.918 8.437-9.94z"/></svg></a>
-                    <a id="perfil-tiktok" href="#" target="_blank" rel="noopener" title="TikTok" aria-label="TikTok" class="hidden w-12 h-12 rounded-full items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-all active:scale-95"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M16.6 5.82A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
+                    <a id="perfil-instagram" href="#" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram" class="hidden pill pill-icon items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg></a>
+                    <a id="perfil-facebook" href="#" target="_blank" rel="noopener" title="Facebook" aria-label="Facebook" class="hidden pill pill-icon items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M22 12.06C22 6.505 17.523 2 12 2S2 6.505 2 12.06c0 5.022 3.657 9.184 8.438 9.94v-7.03H7.898v-2.91h2.54V9.845c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.459h-1.26c-1.243 0-1.63.771-1.63 1.562v1.876h2.773l-.443 2.91h-2.33V22c4.78-.756 8.437-4.918 8.437-9.94z"/></svg></a>
+                    <a id="perfil-tiktok" href="#" target="_blank" rel="noopener" title="TikTok" aria-label="TikTok" class="hidden pill pill-icon items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M16.6 5.82A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg></a>
                 </div>
 
-                <!-- Panel de información: cada ítem aparece solo si el comercio cargó el dato -->
-                <div id="perfil-info-panel" class="hidden w-full max-w-4xl mx-auto mt-8 sm:mt-12 px-4 sm:px-0">
-                    <div class="bg-gray-50/70 border border-gray-100 rounded-2xl sm:rounded-3xl p-4 sm:px-7 sm:py-6 info-grid flex flex-wrap md:items-start gap-x-4 gap-y-3.5 md:gap-x-6 md:gap-y-5">
-                        <div id="perfil-ubicacion-wrap" class="perfil-info-item info-ubicacion hidden items-start gap-3 sm:gap-4 text-left">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="2.5"/></svg></div>
-                            <div class="flex flex-col min-w-0">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Ubicación</span>
-                                <span id="perfil-ubicacion" class="text-sm font-semibold text-gray-900 leading-snug break-words line-clamp-2"></span>
-                                <a id="perfil-mapa" href="#" target="_blank" rel="noopener" class="hidden text-blue-800 text-[10px] font-black uppercase tracking-wider hover:underline mt-1.5 w-fit">Ver en mapa →</a>
-                            </div>
-                        </div>
-                        <div id="perfil-horario-wrap" class="perfil-info-item hidden items-start gap-3 sm:gap-4 text-left info-horario">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3.5 2"/></svg></div>
-                            <div class="flex flex-col min-w-0">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Atención</span>
-                                <span id="perfil-horario" class="text-sm font-semibold text-gray-900 leading-snug whitespace-pre-line break-words"></span>
-                            </div>
-                        </div>
-                        <div id="perfil-envio-wrap" class="perfil-info-item info-envio hidden items-start gap-3 sm:gap-4 text-left">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M1 3h13v13H1zM14 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg></div>
-                            <div class="flex flex-col min-w-0">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Envío</span>
-                                <span id="perfil-envio" class="text-sm font-semibold text-gray-900"></span>
-                            </div>
-                        </div>
-                        <div id="perfil-medios-pago-wrap" class="perfil-info-item hidden items-start gap-3 sm:gap-4 text-left info-medios">
-                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path stroke-linecap="round" d="M2.5 9.5h19"/></svg></div>
-                            <div class="contents md:flex md:flex-row md:items-center md:gap-4 md:min-w-0 md:flex-1">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 h-9 flex items-center md:h-auto">Acepta</span>
-                                <div id="perfil-medios-pago" class="flex flex-wrap gap-1.5 basis-full md:basis-auto"></div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Medios de pago -->
+                <div id="perfil-medios-pago-wrap" class="hidden flex flex-wrap items-center gap-x-3 gap-y-2 mt-4 lg:col-start-1">
+                    <span class="dato-label">Acepta</span>
+                    <div id="perfil-medios-pago" class="flex flex-wrap gap-1.5"></div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- CATÁLOGO -->
-    <main id="seccion-catalogo" class="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl hidden">
+    <main id="seccion-catalogo" class="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
+
+        <!-- SKELETON del catálogo: buscador + categorías + productos. Lo oculta emprendedor.js cuando se dibuja el catálogo real. -->
+        <div id="catalogo-skeleton" aria-hidden="true">
+            <div class="max-w-3xl mx-auto mb-5 sm:mb-6"><div class="h-[3.25rem] sm:h-14 rounded-full cp-skeleton"></div></div>
+            <div class="flex items-center gap-6 mb-6 sm:mb-8 pt-1 pb-4 border-b border-zinc-200 overflow-hidden"><div class="h-4 w-12 rounded cp-skeleton flex-shrink-0"></div><div class="h-4 w-20 rounded cp-skeleton flex-shrink-0"></div><div class="h-4 w-16 rounded cp-skeleton flex-shrink-0"></div><div class="h-4 w-24 rounded cp-skeleton flex-shrink-0"></div><div class="h-4 w-14 rounded cp-skeleton flex-shrink-0"></div><div class="h-4 w-20 rounded cp-skeleton flex-shrink-0"></div></div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+            <div><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div class="max-lg:hidden"><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            <div class="max-lg:hidden"><div class="rounded-2xl cp-skeleton aspect-[4/5]"></div><div class="h-3.5 w-3/4 rounded cp-skeleton mt-3"></div><div class="h-3.5 w-1/3 rounded cp-skeleton mt-2"></div></div>
+            </div>
+        </div>
 
         <!-- BUSCADOR FLOTANTE (buscador + carrito). Hijo directo de <main> para que el
              position:sticky tenga recorrido por toda la grilla y acompañe el scroll.
              Funciona como el de la home: al escribir se muestran sugerencias; el catálogo
              se filtra recién con Enter o con "Ver los N resultados" (ver emprendedor.js). -->
-        <div id="catalogo-filtros" class="hidden sticky z-[45] max-w-3xl mx-auto mb-5 sm:mb-6" style="top: .75rem;">
+        <div id="catalogo-filtros" class="hidden sticky z-[45] mb-5 sm:mb-6" style="top: .75rem;">
 
             <div class="flex items-center gap-2 pl-4 pr-1.5 py-1.5 bg-white border-2 border-zinc-900/15 rounded-full shadow-[0_10px_28px_-10px_rgba(0,0,0,0.38),0_2px_6px_rgba(0,0,0,0.08)] transition-all duration-200 focus-within:border-zinc-900 focus-within:ring-4 focus-within:ring-blue-800/15 focus-within:shadow-[0_14px_34px_-12px_rgba(0,0,0,0.45),0_2px_6px_rgba(0,0,0,0.1)]">
 
@@ -712,12 +825,7 @@
 
         <div id="catalogo-categorias" class="flex flex-col mb-6 sm:mb-8"></div>
 
-        <div id="catalogo-contenido" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
-            <div class="rounded-2xl cp-skeleton aspect-[4/5]"></div>
-            <div class="rounded-2xl cp-skeleton aspect-[4/5]"></div>
-            <div class="rounded-2xl cp-skeleton aspect-[4/5] hidden md:block"></div>
-            <div class="rounded-2xl cp-skeleton aspect-[4/5] hidden lg:block"></div>
-        </div>
+        <div id="catalogo-contenido" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6"></div>
         <!-- Tienda recién creada (todavía sin productos) -->
         <div id="catalogo-armando" class="hidden flex flex-col items-center text-center bg-white border-2 border-black rounded-3xl shadow-[6px_6px_0_0_#000] px-6 py-10 sm:py-14 max-w-xl mx-auto animate-fade-in">
             <svg viewBox="10 10 160 150" class="w-44 sm:w-52 h-auto" role="img" aria-label="Engranajes">
@@ -774,7 +882,7 @@
                 <!-- Loader de la imagen: se muestra mientras carga la foto del producto -->
                 <div id="modal-img-loader" aria-hidden="true">
                     <div class="cp-skeleton" style="position:absolute;inset:0"></div>
-                    <div class="spinner"></div>
+                    <img src="dropea-logo.png" alt="" class="logo-pulso" onerror="this.classList.add('hidden')">
                 </div>
                 <span class="zoom-badge opacity-90 sm:opacity-0 scale-100 sm:scale-90 absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/95 border border-zinc-200 shadow-sm text-zinc-700 flex items-center justify-center pointer-events-none">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
@@ -964,11 +1072,13 @@
                     <span id="carrito-total" class="text-xl font-semibold tracking-tight text-zinc-900 tabular-nums">$0.00</span>
                 </div>
             </div>
-            <button id="carrito-whatsapp-btn" onclick="irACheckout()" class="inline-flex items-center justify-center gap-2 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
-                Continuar
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <button id="carrito-whatsapp-btn" onclick="irACheckout()" class="relative overflow-hidden inline-flex items-center justify-center gap-2 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+                <span class="btn-texto">Continuar</span>
+                <svg class="btn-flecha w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6" />
                 </svg>
+                <!-- Barra de carga: se llena mientras se verifica el stock antes de pasar a "Tus datos" -->
+                <span class="btn-barra" aria-hidden="true"><span class="btn-barra-relleno"></span></span>
             </button>
             <button onclick="vaciarCarrito()" class="w-full mt-3 text-center text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
                 Vaciar carrito
@@ -1179,18 +1289,20 @@
             <!-- Marca + llamado a la acción -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 sm:gap-10">
                 <div class="max-w-sm sm:max-w-md pr-10 sm:pr-0">
-                    <img src="dropea-logo.png" alt="Dropea" loading="lazy"
+                    <a href="index.html" aria-label="Conocé Dropea" class="inline-block">
+                        <img src="dropea-logo.png" alt="Dropea" loading="lazy"
                          class="h-12 sm:h-20 w-auto object-contain -ml-1 invert"
                          onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
-                    <span class="hidden text-3xl sm:text-5xl font-black italic tracking-tight uppercase">Dropea</span>
+                        <span class="hidden text-3xl sm:text-5xl font-black italic tracking-tight uppercase">Dropea</span>
+                    </a>
                     <p class="mt-3 sm:mt-4 text-sm sm:text-base font-semibold text-zinc-400 leading-relaxed">
-                        Un catálogo online para cada comercio. Pedí el tuyo y empezá a dropearlo.
+                        Esta tienda está hecha con Dropea. Creá el catálogo online de tu comercio y probalo 15 días gratis.
                     </p>
                 </div>
 
-                <a href="index.html"
+                <a href="registro.html"
                    class="w-full sm:w-auto flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-full bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest shadow-[4px_4px_0_0_#60a5fa] sm:shadow-[5px_5px_0_0_#60a5fa] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_#60a5fa] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
-                    Ver más tiendas
+                    Creá tu catálogo gratis
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                 </a>
             </div>
@@ -1284,6 +1396,25 @@
     <!-- Rutas absolutas ("/"): esta página se sirve desde /tienda/<usuario> -->
     <script defer src="supabase-client.js"></script>
     <script defer src="historias.js"></script>
+    <!-- BUSCADOR: se expande a los costados en PC cuando queda pegado arriba (ver CSS #catalogo-filtros.is-stuck) -->
+    <script>
+        (function () {
+            var barra = document.getElementById('catalogo-filtros');
+            if (!barra) return;
+            var pendiente = false;
+            function actualizar() {
+                pendiente = false;
+                if (barra.classList.contains('hidden')) return;
+                var tope = parseFloat(getComputedStyle(barra).top) || 0;
+                // Pegado = su posición en pantalla llegó al "top" del sticky
+                barra.classList.toggle('is-stuck', barra.getBoundingClientRect().top <= tope + 0.5);
+            }
+            function pedir() { if (!pendiente) { pendiente = true; requestAnimationFrame(actualizar); } }
+            window.addEventListener('scroll', pedir, { passive: true });
+            window.addEventListener('resize', pedir);
+            pedir();
+        })();
+    </script>
     <script defer src="emprendedor.js"></script>
 </body>
 </html>
