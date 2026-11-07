@@ -46,9 +46,26 @@ function soloDigitos(valor) {
     return String(valor || '').replace(/\D/g, '');
 }
 
-// ¿Esta tienda recibe pedidos por WhatsApp? (si no, funciona solo como catálogo)
+// Modo de pedidos de la tienda: 'catalogo' | 'whatsapp' | 'dashboard'
+function modoPedidos(e = emprendedorActual) {
+    if (!e) return 'catalogo';
+    if (['catalogo', 'whatsapp', 'dashboard'].includes(e.modo_pedidos)) return e.modo_pedidos;
+    return e.recibe_pedidos === true ? 'whatsapp' : 'catalogo';
+}
+
+// ¿La tienda recibe pedidos en el panel (sin pasar por WhatsApp)?
+function pedidosEnPanel(e = emprendedorActual) {
+    return modoPedidos(e) === 'dashboard';
+}
+
+// ¿Esta tienda recibe pedidos? (si no, funciona solo como catálogo)
+// - whatsapp: necesita número cargado
+// - dashboard: el pedido llega al panel, no necesita WhatsApp
 function pedidosActivos(e = emprendedorActual) {
-    return !!e && e.recibe_pedidos === true && soloDigitos(e.whatsapp).length > 0;
+    if (!e) return false;
+    const modo = modoPedidos(e);
+    if (modo === 'dashboard') return true;
+    return modo === 'whatsapp' && soloDigitos(e.whatsapp).length > 0;
 }
 
 // ¿La tienda terminó su prueba gratis (o está bloqueada)? Usa la misma regla que el
@@ -215,6 +232,8 @@ function renderPerfil(e) {
     // se oculta con la clase "modo-catalogo")
     document.body.classList.toggle('modo-catalogo', !pedidos);
     $('perfil-modo-texto').textContent = pedidos ? 'Recibe pedidos' : 'Catálogo online';
+    // El texto del botón final cambia según el modo
+    actualizarTextoBotonEnviar();
     $('perfil-modo-punto').classList.toggle('bg-green-500', pedidos);
     $('perfil-modo-punto').classList.toggle('bg-gray-300', !pedidos);
     $('perfil-modo-texto').classList.toggle('text-green-600', pedidos);
@@ -459,7 +478,14 @@ async function cargarCatalogo(emprendedorId) {
     }
     firmaCatalogo = firma;
 
-    productosTienda = [...productos.filter(p => !productoSinStock(p)), ...productos.filter(productoSinStock)];
+    // Orden: primero los "Nuevo" vigentes (con stock), después el resto de los disponibles y al final los sin stock.
+    // Dentro de cada grupo se conserva el orden de la consulta (destacados y más recientes primero).
+    const disponibles = productos.filter(p => !productoSinStock(p));
+    productosTienda = [
+        ...disponibles.filter(p => esProductoNuevoVigente(p)),
+        ...disponibles.filter(p => !esProductoNuevoVigente(p)),
+        ...productos.filter(productoSinStock),
+    ];
     catalogoCargado = true;
     renderFiltrosCatalogo();
     renderCatalogo();
@@ -2095,7 +2121,7 @@ function leerDatosGuardados() {
 
 function borrarDatosGuardados() {
     try { localStorage.removeItem(CLAVE_DATOS_CLIENTE); } catch { /* noop */ }
-    ['co-nombre', 'co-calle', 'co-localidad', 'co-referencia', 'co-notas'].forEach(id => { $(id).value = ''; });
+    ['co-nombre', 'co-telefono', 'co-calle', 'co-localidad', 'co-referencia', 'co-notas'].forEach(id => { $(id).value = ''; });
     medioPagoElegido = '';
     renderMediosPagoCheckout();
     $('co-borrar-datos').classList.add('hidden');
@@ -2118,6 +2144,7 @@ function mediosDelCarrito() {
 function datosCheckout() {
     return {
         nombre: limpiarTexto($('co-nombre').value),
+        telefono: soloDigitos($('co-telefono').value),
         calle: limpiarTexto($('co-calle').value),
         localidad: limpiarTexto($('co-localidad').value),
         referencia: limpiarTexto($('co-referencia').value),
@@ -2141,13 +2168,16 @@ function validarCheckout() {
     const d = datosCheckout();
     const errores = [];
     if (d.nombre.length < 2) errores.push(['nombre', 'Ingresá tu nombre y apellido.']);
+    if (pedidosEnPanel() && (d.telefono.length < 8 || d.telefono.length > 15)) {
+        errores.push(['telefono', 'Ingresá un teléfono válido, con característica y sin 0 ni 15.']);
+    }
     if (d.envio) {
         if (d.calle.length < 3) errores.push(['calle', 'Ingresá la calle y el número.']);
         if (d.localidad.length < 2) errores.push(['localidad', 'Ingresá tu localidad o barrio.']);
     }
     if (mediosDelCarrito().length && !d.pago) errores.push(['pago', 'Elegí cómo vas a pagar.']);
 
-    ['nombre', 'calle', 'localidad', 'pago'].forEach(c => marcarErrorCheckout(c, ''));
+    ['nombre', 'telefono', 'calle', 'localidad', 'pago'].forEach(c => marcarErrorCheckout(c, ''));
     errores.forEach(([campo, msg]) => marcarErrorCheckout(campo, msg));
     if (errores.length) {
         const primero = errores[0][0];
@@ -2203,6 +2233,7 @@ function precargarCheckout() {
     if (!checkoutPrecargado) {
         checkoutPrecargado = true;
         $('co-nombre').value = limpiarTexto(g.nombre);
+        $('co-telefono').value = soloDigitos(g.telefono);
         $('co-calle').value = limpiarTexto(g.calle);
         $('co-localidad').value = limpiarTexto(g.localidad);
         $('co-referencia').value = limpiarTexto(g.referencia);
@@ -2224,6 +2255,8 @@ function mostrarPasoCarrito(n) {
     if (p2) {
         precargarCheckout();
         $('co-bloque-envio').classList.toggle('hidden', !conEnvioADomicilio());
+        $('co-bloque-telefono').classList.toggle('hidden', !pedidosEnPanel());
+        actualizarTextoBotonEnviar();
         renderMediosPagoCheckout();
         renderResumenCheckout();
         $('carrito-checkout').scrollTop = 0;
@@ -2238,7 +2271,8 @@ function volverAlCarrito() { mostrarPasoCarrito(1); }
 function verificarPedidoPosible() {
     const e = emprendedorActual;
     const wsp = soloDigitos(e?.whatsapp);
-    if (!pedidosActivos() || !wsp || String(carrito.emprendedorId) !== String(e.id)) {
+    const sinContacto = !pedidosEnPanel(e) && !wsp;   // en modo panel no hace falta WhatsApp
+    if (!pedidosActivos() || sinContacto || String(carrito.emprendedorId) !== String(e.id)) {
         $('sin-whatsapp-tienda').textContent = (e?.nombre_tienda || '').trim() || 'Este emprendedor';
         $('modal-sin-whatsapp').classList.remove('hidden');
         actualizarBloqueoScroll();
@@ -2296,7 +2330,7 @@ async function irACheckout() {
 }
 
 // Los errores se limpian apenas el cliente corrige el campo
-['nombre', 'calle', 'localidad'].forEach(c => {
+['nombre', 'telefono', 'calle', 'localidad'].forEach(c => {
     $('co-' + c).addEventListener('input', () => marcarErrorCheckout(c, ''));
 });
 
@@ -2305,7 +2339,7 @@ function guardarDatosSiCorresponde() {
         if (!$('co-recordar').checked) { localStorage.removeItem(CLAVE_DATOS_CLIENTE); return; }
         const d = datosCheckout();
         localStorage.setItem(CLAVE_DATOS_CLIENTE, JSON.stringify({
-            nombre: d.nombre, calle: d.calle, localidad: d.localidad, referencia: d.referencia,
+            nombre: d.nombre, telefono: d.telefono, calle: d.calle, localidad: d.localidad, referencia: d.referencia,
         }));
     } catch { /* noop */ }
 }
@@ -2360,6 +2394,109 @@ function armarMensajePedido() {
     return lineas.join('\n');
 }
 
+function actualizarTextoBotonEnviar() {
+    const t = $('co-enviar-texto');
+    if (t) t.textContent = pedidosEnPanel() ? 'Confirmar pedido' : 'Enviar pedido por WhatsApp';
+    const ic = $('co-enviar-ico-wsp');
+    if (ic) ic.classList.toggle('hidden', pedidosEnPanel());
+    const nota = $('co-nota-privacidad');
+    if (nota) nota.textContent = pedidosEnPanel()
+        ? 'Tus datos se envían únicamente al comercio para que pueda gestionar y contactarte por tu pedido.'
+        : 'Tus datos no se guardan en nuestros servidores: se envían únicamente al comercio dentro del mensaje de WhatsApp.';
+}
+
+// ------------------------------------------------------------
+// PEDIDO EN EL PANEL (modo "dashboard"): se crea con la función crear_pedido()
+// de la base, que revalida stock, variantes y precios en el servidor.
+// ------------------------------------------------------------
+const ERRORES_PEDIDO = {
+    tienda_no_disponible: 'Esta tienda no está disponible para recibir pedidos en este momento.',
+    modo_invalido: 'Esta tienda ya no recibe pedidos por este medio. Recargá la página.',
+    datos_invalidos: 'Revisá tus datos: hay algún campo incompleto o inválido.',
+    carrito_invalido: 'Hubo un problema con tu carrito. Probá quitar y volver a agregar los productos.',
+    producto_no_disponible: 'Un producto de tu carrito ya no está disponible.',
+    demasiados_pedidos: 'Hiciste varios pedidos seguidos. Esperá unos minutos antes de volver a intentar.',
+};
+
+let enviandoPedido = false;
+
+async function crearPedidoEnPanel() {
+    if (enviandoPedido) return;
+    const e = emprendedorActual;
+    const d = datosCheckout();
+    const items = carrito.items.map(i => ({
+        producto_id: Number(i.productoId),
+        variante_ids: idsVariantesDeItem(i).map(Number),
+        cantidad: i.cantidad,
+    }));
+
+    enviandoPedido = true;
+    const btn = $('co-enviar-btn');
+    const textoOriginal = $('co-enviar-texto').textContent;
+    btn.disabled = true;
+    btn.classList.add('opacity-60');
+    $('co-enviar-texto').textContent = 'Enviando pedido…';
+
+    try {
+        const { data, error } = await supabase.rpc('crear_pedido', {
+            p_emprendedor_id: e.id,
+            p_nombre: d.nombre,
+            p_telefono: d.telefono,
+            p_modalidad: d.envio ? 'envio' : 'retiro',
+            p_calle: d.envio ? d.calle : '',
+            p_localidad: d.envio ? d.localidad : '',
+            p_referencia: d.envio ? d.referencia : '',
+            p_medio_pago: d.pago || '',
+            p_notas: d.notas,
+            p_items: items,
+        });
+
+        if (error) {
+            console.error('Error creando el pedido:', error);
+            const codigo = String(error.message || '').trim();
+            let msg = ERRORES_PEDIDO[codigo] || 'No pudimos enviar tu pedido. Revisá tu conexión y probá de nuevo.';
+            if (codigo === 'producto_no_disponible') {
+                // El stock cambió: se refresca el catálogo y el carrito marca lo que falta
+                await cargarCatalogo(e.id);
+                if (error.details) msg = `"${String(error.details).replace(/^producto \d+$/, '').trim() || 'Un producto'}" ya no está disponible.`;
+                else msg = ERRORES_PEDIDO.producto_no_disponible;
+                mostrarPasoCarrito(1);
+            }
+            mostrarToastCarrito(msg, { aviso: true });
+            return;
+        }
+
+        const pedido = data || {};
+        guardarDatosSiCorresponde();
+        mostrarPedidoConfirmado(pedido, d);
+        limpiarCarrito();
+        cerrarCarrito();
+    } catch (err) {
+        console.error('Error inesperado creando el pedido:', err);
+        mostrarToastCarrito('No pudimos enviar tu pedido. Probá de nuevo.', { aviso: true });
+    } finally {
+        enviandoPedido = false;
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+        actualizarTextoBotonEnviar();
+    }
+}
+
+function mostrarPedidoConfirmado(pedido, d) {
+    $('pc-numero').textContent = pedido.numero != null ? `#${pedido.numero}` : '';
+    $('pc-tienda').textContent = (emprendedorActual?.nombre_tienda || '').trim() || 'el comercio';
+    $('pc-total').textContent = formatoPrecio(pedido.total ?? 0);
+    $('pc-entrega').textContent = d.envio ? 'Envío a domicilio' : 'Retiro en el local';
+    $('pc-telefono').textContent = d.telefono;
+    $('modal-pedido-confirmado').classList.remove('hidden');
+    actualizarBloqueoScroll();
+}
+
+function cerrarPedidoConfirmado() {
+    $('modal-pedido-confirmado').classList.add('hidden');
+    actualizarBloqueoScroll();
+}
+
 function enviarPedidoWhatsapp() {
     if (!carrito.items.length) return;
     // Si algún producto se quedó sin stock mientras completaban los datos, no se envía:
@@ -2373,6 +2510,10 @@ function enviarPedidoWhatsapp() {
         return;
     }
     if (!validarCheckout()) return;
+
+    // Modo panel: el pedido se guarda en la base y le llega al comercio en su dashboard
+    if (pedidosEnPanel(e)) { crearPedidoEnPanel(); return; }
+
     guardarDatosSiCorresponde();
 
     const texto = encodeURIComponent(armarMensajePedido());
@@ -2483,7 +2624,7 @@ function actualizarBloqueoScroll() {
         $('modal-producto').classList.contains('abierto') ||
         !$('carrito-drawer').classList.contains('translate-x-full') ||
         !$('lightbox-imagen').classList.contains('hidden') ||
-        ['modal-medios-pago-modal', 'modal-qr-pedido', 'modal-conflicto-carrito', 'modal-sin-whatsapp']
+        ['modal-medios-pago-modal', 'modal-qr-pedido', 'modal-conflicto-carrito', 'modal-sin-whatsapp', 'modal-pedido-confirmado']
             .some(id => !$(id).classList.contains('hidden'));
     // Hay que bloquear <html> Y <body>: el CSS tiene "html, body { overflow-x: hidden }",
     // y con eso el scroll de la página lo maneja <html>, no <body>.
@@ -2503,6 +2644,7 @@ function actualizarBloqueoScroll() {
 document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
     if (!$('lightbox-imagen').classList.contains('hidden')) return cerrarLightboxImagen();
+    if (!$('modal-pedido-confirmado').classList.contains('hidden')) return cerrarPedidoConfirmado();
     if (!$('modal-sin-whatsapp').classList.contains('hidden')) return cerrarModalSinWhatsapp();
     if (!$('modal-conflicto-carrito').classList.contains('hidden')) return cerrarConflictoCarrito();
     if (!$('modal-qr-pedido').classList.contains('hidden')) return intentarCerrarModalQr();
