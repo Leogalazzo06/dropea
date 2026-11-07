@@ -275,7 +275,7 @@ function renderPerfil(e) {
     }
 
     // Nombre y bio
-    $('perfil-nombre').textContent = nombre;
+    $('perfil-nombre').textContent = formatoNombre(nombre);
     $('perfil-bio').textContent = bio;
     $('perfil-bio').classList.toggle('hidden', !bio);
 
@@ -413,6 +413,24 @@ function productoSinStock(p) {
     if (p.activo === false) return true;
     const v = p.variantes || [];
     return v.length > 0 && v.every(x => x.disponible === false);
+}
+
+// Si el comercio escribió un nombre TODO EN MAYÚSCULAS, se muestra con mayúscula inicial en cada
+// palabra (se lee mucho mejor). Lo que está en minúsculas o mezclado se respeta tal cual.
+// Las siglas conocidas (USB, LED, SRL...) y los códigos con números quedan como están.
+const PALABRAS_MENORES = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'con', 'sin', 'por', 'para', 'un', 'una']);
+const SIGLAS = new Set(['usb', 'led', 'lcd', 'tv', 'pc', 'hd', 'dvd', 'cd', 'sd', 'gps', 'sa', 'srl', 'sas', 'xl', 'xxl', 'uv', 'ml', 'kg', 'cm', 'mm']);
+function formatoNombre(texto) {
+    const t = String(texto || '').trim();
+    if (!t || t !== t.toLocaleUpperCase('es') || t === t.toLocaleLowerCase('es')) return t;
+    return t.split(/(\s+)/).map((w, i) => {
+        if (!w.trim() || /\d/.test(w)) return w;
+        const bajo = w.toLocaleLowerCase('es');
+        const letras = bajo.replace(/[^a-záéíóúüñ]/g, '');
+        if (SIGLAS.has(letras)) return w;
+        if (i > 0 && PALABRAS_MENORES.has(letras)) return bajo;
+        return bajo.charAt(0).toLocaleUpperCase('es') + bajo.slice(1);
+    }).join('');
 }
 
 function el(tag, clase, texto) {
@@ -824,15 +842,15 @@ function crearFilaSugerencia(p) {
     const textos = el('div', 'flex-1 min-w-0');
     const sinStock = productoSinStock(p);
     if (sinStock) img.className += ' grayscale opacity-50';
-    textos.appendChild(el('p', 'text-[13px] font-semibold leading-tight truncate ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), p.nombre || ''));
+    textos.appendChild(el('p', 'text-sm font-semibold leading-tight truncate ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), p.nombre || ''));
     const cat = nombreCategoriaProducto(p);
-    if (cat) textos.appendChild(el('p', 'text-[11px] font-medium text-zinc-500 truncate mt-0.5', cat));
+    if (cat) textos.appendChild(el('p', 'text-xs font-medium text-zinc-500 truncate mt-0.5', cat));
 
     const flecha = el('span', 'text-zinc-300 group-hover/sug:text-zinc-700 group-hover/sug:translate-x-0.5 transition-all flex-shrink-0');
     flecha.innerHTML = SVG_FLECHA;
 
     const derecha = sinStock
-        ? el('span', 'text-[10px] font-semibold uppercase tracking-wide bg-zinc-100 text-zinc-600 rounded-md px-2 py-1 flex-shrink-0', 'Sin stock')
+        ? el('span', 'text-[11px] font-semibold bg-zinc-100 text-zinc-600 rounded-md px-2 py-1 flex-shrink-0', 'Sin stock')
         : el('span', 'text-sm font-semibold text-zinc-900 tabular-nums flex-shrink-0', formatoPrecio(p.precio));
     fila.append(img, textos, derecha, flecha);
     return fila;
@@ -1177,14 +1195,14 @@ function crearCardProducto(p) {
 
     // Cartel "Sin stock" sobre la foto
     if (sinStock) {
-        const cartel = el('span', 'absolute inset-x-0 bottom-0 z-[1] bg-black/85 text-white text-center text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] py-1.5', 'Sin stock');
+        const cartel = el('span', 'absolute inset-x-0 bottom-0 z-[1] bg-black/85 text-white text-center text-xs sm:text-[13px] font-semibold tracking-wide py-1.5', 'Sin stock');
         cartel.setAttribute('role', 'status');
         wrap.appendChild(cartel);
     }
 
     const badges = el('div', 'absolute top-2 left-2 flex flex-col items-start gap-1');
-    if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 'bg-blue-800 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
-    if (!sinStock && pct > 0) badges.appendChild(el('span', 'bg-red-600 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm', `-${pct}%`));
+    if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 'bg-blue-800 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
+    if (!sinStock && pct > 0) badges.appendChild(el('span', 'bg-red-600 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', `-${pct}%`));
     if (badges.children.length) wrap.appendChild(badges);
 
     if (p.destacado && !sinStock) {
@@ -1203,13 +1221,13 @@ function crearCardProducto(p) {
 
     // Cuerpo
     const body = el('div', 'p-3 sm:p-4 flex flex-col gap-1 flex-1');
-    if (nombreCategoriaProducto(p)) body.appendChild(el('span', 'text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 truncate', nombreCategoriaProducto(p)));
-    body.appendChild(el('h3', 'text-[13px] sm:text-[15px] font-black uppercase italic leading-tight line-clamp-2 break-words ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), p.nombre || ''));
+    if (nombreCategoriaProducto(p)) body.appendChild(el('span', 'text-xs font-medium text-gray-500 truncate', nombreCategoriaProducto(p)));
+    body.appendChild(el('h3', 'f-display text-[15px] sm:text-[17px] font-semibold tracking-[-0.01em] leading-snug line-clamp-2 break-words ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), formatoNombre(p.nombre || '')));
 
     const fila = el('div', 'mt-auto pt-2 flex items-end justify-between gap-2');
     const precios = el('div', 'min-w-0');
-    if (!sinStock && pct > 0) precios.appendChild(el('p', 'text-[11px] sm:text-xs font-bold text-gray-400 line-through leading-none', formatoPrecio(p.precio_anterior)));
-    precios.appendChild(el('p', 'text-base sm:text-xl font-black tracking-tight leading-tight ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), formatoPrecio(p.precio)));
+    if (!sinStock && pct > 0) precios.appendChild(el('p', 'text-xs sm:text-[13px] font-medium text-gray-500 line-through tabular-nums leading-none', formatoPrecio(p.precio_anterior)));
+    precios.appendChild(el('p', 'text-[17px] sm:text-xl font-bold tracking-tight tabular-nums leading-tight ' + (sinStock ? 'text-zinc-400' : 'text-zinc-900'), formatoPrecio(p.precio)));
     fila.appendChild(precios);
 
     // Sin stock: no hay botón de agregar (la card igual abre el detalle)
@@ -1365,7 +1383,7 @@ function abrirModalProducto(id) {
     img.src = destinoImagenModal;
 
     $('modal-tienda').textContent = (e.nombre_tienda || 'Tienda').trim();
-    $('modal-nombre').textContent = p.nombre || '';
+    $('modal-nombre').textContent = formatoNombre(p.nombre || '');
     $('modal-categoria').textContent = nombreCategoriaProducto(p);
     const sinStock = productoSinStock(p);
     $('modal-badge-nuevo').classList.toggle('hidden', sinStock || !esProductoNuevoVigente(p));
