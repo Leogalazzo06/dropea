@@ -1110,6 +1110,14 @@
                 <p id="co-error-nombre" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
             </div>
 
+            <!-- Teléfono: solo cuando el pedido llega al panel del comercio (el comercio te contacta por acá) -->
+            <div id="co-bloque-telefono" class="hidden">
+                <label for="co-telefono" class="co-label">Teléfono de contacto</label>
+                <input id="co-telefono" type="tel" inputmode="tel" maxlength="20" autocomplete="tel-national" placeholder="Ej: 3644123456" class="co-input">
+                <p class="mt-1.5 text-[11px] font-medium text-gray-400 leading-snug">Con característica, sin 0 ni 15. El comercio lo usa para coordinar tu pedido.</p>
+                <p id="co-error-telefono" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+            </div>
+
             <div id="co-bloque-envio" class="hidden space-y-5">
                 <div>
                     <label for="co-calle" class="co-label">Calle y número</label>
@@ -1144,14 +1152,14 @@
                     <span class="text-xs font-medium text-gray-500 leading-snug">Recordar mis datos en este dispositivo para la próxima compra.</span>
                 </label>
                 <button type="button" id="co-borrar-datos" onclick="borrarDatosGuardados()" class="hidden mt-2 ml-6 text-[11px] font-bold text-gray-400 hover:text-black underline underline-offset-2 transition-colors">Borrar mis datos guardados</button>
-                <p class="mt-3 text-[11px] font-medium text-gray-400 leading-snug">Tus datos no se guardan en nuestros servidores: se envían únicamente al comercio dentro del mensaje de WhatsApp.</p>
+                <p id="co-nota-privacidad" class="mt-3 text-[11px] font-medium text-gray-400 leading-snug">Tus datos no se guardan en nuestros servidores: se envían únicamente al comercio dentro del mensaje de WhatsApp.</p>
             </div>
         </div>
 
         <div id="carrito-footer-paso2" class="hidden border-t border-zinc-100 px-5 sm:px-6 pt-4 pb-5 flex-shrink-0 bg-white shadow-[0_-16px_32px_-24px_rgba(0,0,0,0.25)]">
             <button id="co-enviar-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-2.5 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
-                <svg class="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
-                Enviar pedido por WhatsApp
+                <svg id="co-enviar-ico-wsp" class="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+                <span id="co-enviar-texto">Enviar pedido por WhatsApp</span>
             </button>
         </div>
     </div>
@@ -1238,6 +1246,38 @@
                     Cancelar
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL PEDIDO CONFIRMADO (modo "pedidos en el panel") -->
+    <div id="modal-pedido-confirmado" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pc-titulo">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarPedidoConfirmado()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
+            <button type="button" onclick="cerrarPedidoConfirmado()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
+
+            <span class="w-16 h-16 rounded-full bg-emerald-500 text-white inline-flex items-center justify-center ring-8 ring-emerald-500/20">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+
+            <h3 id="pc-titulo" class="text-xl font-black uppercase italic mt-5 leading-tight">¡Pedido enviado!</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mt-3">
+                <strong id="pc-tienda" class="text-black">El comercio</strong> recibió tu pedido <strong id="pc-numero" class="text-black"></strong> y te va a contactar al <strong id="pc-telefono" class="text-black"></strong>.
+            </p>
+
+            <div class="mt-5 rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2 text-left">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm text-zinc-500">Entrega</span>
+                    <span id="pc-entrega" class="text-sm font-medium text-zinc-700"></span>
+                </div>
+                <div class="flex items-center justify-between gap-3 pt-2 border-t border-zinc-200/70">
+                    <span class="text-sm font-medium text-zinc-900">Total</span>
+                    <span id="pc-total" class="text-lg font-semibold tracking-tight text-zinc-900 tabular-nums"></span>
+                </div>
+            </div>
+
+            <button type="button" onclick="cerrarPedidoConfirmado()" class="mt-6 w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+                Entendido
+            </button>
         </div>
     </div>
 
