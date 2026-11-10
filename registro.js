@@ -2,10 +2,11 @@
 // REGISTRO (registro.html) · Alta automática por pasos
 //
 //   Paso 1  Negocio (nombre, rubro, ciudad)
-//   Paso 2  Datos personales (nombre y WhatsApp) -> acá se comprueba que el WhatsApp no esté repetido
-//   Paso 3  Email -> acá se envía el código
-//   Paso 4  Código de 6 dígitos (se verifica solo, sin crear nada todavía)
-//   Paso 5  Contraseña -> acá se crea la cuenta y la tienda (15 días de prueba)
+//   Paso 2  Link de la tienda (se revisa en vivo si está libre; sugiere alternativas)
+//   Paso 3  Datos personales (nombre y WhatsApp)
+//   Paso 4  Email -> acá se envía el código
+//   Paso 5  Código de 6 dígitos (se verifica solo, sin crear nada todavía)
+//   Paso 6  Contraseña -> acá se crea la cuenta y la tienda (15 días de prueba)
 //
 // Depende de supabase-client.js (aporta `mostrarToast` y `SITIO_PUBLICO`).
 // ============================================================
@@ -13,34 +14,40 @@
 const API_REGISTRO = 'https://authdropea.leonelgalazzoaz.workers.dev/';
 // Cloudflare > Turnstile > tu widget > Site key (es pública)
 const TURNSTILE_SITE_KEY = '0x4AAAAAAF5OANAfdRrIZgb4';
-const ESPERA_REENVIO = 60;          // segundos hasta poder pedir otro código
-const VIGENCIA_CODIGO_MS = 9 * 60 * 1000; // el código dura 10 min; con 9 evitamos usar uno por vencer
+const ESPERA_REENVIO = 60;                 // segundos hasta poder pedir otro código
+const VIGENCIA_CODIGO_MS = 9 * 60 * 1000;  // el código dura 10 min; con 9 evitamos usar uno por vencer
+const ESPERA_USUARIO_MS = 450;             // pausa al escribir antes de revisar el link
 
-const TOTAL_PASOS = 5;
+const TOTAL_PASOS = 6;
+const PASO_LINK = 2, PASO_DATOS = 3, PASO_EMAIL = 4, PASO_CODIGO = 5, PASO_PASSWORD = 6;
+
 const TEXTO_BOTON = {
     1: 'Continuar',
     2: 'Continuar',
-    3: 'Enviar código por email',
-    4: 'Confirmar código',
-    5: 'Crear mi tienda',
+    3: 'Continuar',
+    4: 'Enviar código por email',
+    5: 'Confirmar código',
+    6: 'Crear mi tienda',
 };
 const TEXTO_CARGANDO = {
-    2: 'Verificando...',
-    3: 'Enviando código...',
-    4: 'Verificando...',
-    5: 'Creando tu tienda...',
+    2: 'Revisando...',
+    3: 'Revisando...',
+    4: 'Enviando código...',
+    5: 'Verificando...',
+    6: 'Creando tu tienda...',
 };
 
 // Campos de cada paso (los que se validan antes de avanzar) y paso al que pertenece cada campo
 const CAMPOS_POR_PASO = {
     1: ['negocio', 'categoria', 'ciudad'],
-    2: ['nombre', 'contacto'],
-    3: ['email'],
+    3: ['nombre', 'contacto'],
+    4: ['email'],
 };
 const PASO_DE_CAMPO = {
     negocio: 1, categoria: 1, ciudad: 1,
-    nombre: 2, contacto: 2,
-    email: 3, codigo: 4, password: 5,
+    usuario: PASO_LINK,
+    nombre: PASO_DATOS, contacto: PASO_DATOS,
+    email: PASO_EMAIL, codigo: PASO_CODIGO, password: PASO_PASSWORD,
 };
 
 const MENSAJES = {
@@ -99,11 +106,11 @@ function marcarError(id, texto) {
 // ---------- Estado ----------
 let pasoActual = 1;
 let ocupado = false;
-let datosActuales = null;   // lo enviado en el paso 3 (sirve para reenviar el código)
-let codigoVerificado = '';  // código ya comprobado en el paso 4, se reenvía al crear la cuenta
+let datosActuales = null;   // lo enviado en el paso 4 (sirve para reenviar el código)
+let codigoVerificado = '';  // código ya comprobado en el paso 5, se reenvía al crear la cuenta
 let codigoEnviadoEn = 0;
 let temporizador = null;
-let whatsappVerificado = ''; // último WhatsApp que el Worker confirmó como libre (evita consultar de más)
+let whatsappVerificado = ''; // último WhatsApp que ya se comprobó que está libre
 
 function setOcupado(si) {
     ocupado = si;
@@ -122,7 +129,7 @@ function irAPaso(n, { enfocar = true } = {}) {
 
     btnAtras.classList.toggle('hidden', n === 1);
     $('hero').classList.toggle('hidden', n !== 1);
-    $('acciones-codigo').classList.toggle('hidden', n !== 4);
+    $('acciones-codigo').classList.toggle('hidden', n !== PASO_CODIGO);
     btnSiguiente.textContent = TEXTO_BOTON[n];
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -204,24 +211,6 @@ async function llamarApi(payload) {
     }
 }
 
-// Pregunta al Worker si el WhatsApp ya está en uso (paso 2).
-// Solo bloquea si el Worker responde 409 (duplicado). Ante cualquier otro problema
-// (red, captcha, límite) deja avanzar: el paso 3 y la base vuelven a validar.
-async function consultarWhatsapp(whatsapp) {
-    const token = await esperarTokenTurnstile(6000);
-    if (!token) return { disponible: true };
-
-    const { status, data } = await llamarApi({
-        accion: 'registro_verificar_whatsapp',
-        turnstile: token,
-        whatsapp,
-    });
-    renovarTurnstile(); // el token se gastó; el paso 3 espera uno nuevo
-
-    if (status === 409) return { disponible: false, error: data.error };
-    return { disponible: true };
-}
-
 // Pide el código por email. Devuelve true si se envió.
 async function pedirCodigo(payload, esReenvio = false) {
     const token = await esperarTokenTurnstile();
@@ -241,6 +230,176 @@ async function pedirCodigo(payload, esReenvio = false) {
     }
     codigoEnviadoEn = Date.now();
     return true;
+}
+
+// ============================================================
+// LINK / USUARIO DE LA TIENDA (paso 2)
+// ============================================================
+let usuarioTocado = false;   // true si la persona ya escribió su propio link
+let usuarioEstado = { valor: '', listo: false, disponible: false };
+let usuarioSeq = 0;          // descarta respuestas viejas si siguió escribiendo
+let usuarioTimer = null;
+
+// Minúsculas, sin tildes ni espacios; solo letras, números, - y _
+function normalizarUsuario(texto) {
+    return String(texto || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '')
+        .replace(/[^a-z0-9_-]/g, '')
+        .slice(0, 30);
+}
+
+// Propuesta inicial a partir del nombre del negocio: todo junto ("Mi Negocio" -> "minegocio")
+function usuarioDesdeNegocio(texto) {
+    const s = normalizarUsuario(texto).replace(/[-_]/g, '').slice(0, 25);
+    return s.length >= 3 ? s : '';
+}
+
+function pintarEstadoUsuario(tipo, texto) {
+    const p = $('usuario-estado');
+    p.textContent = texto || '';
+    p.className = 'mt-2 min-h-[1.25rem] text-sm font-bold ' + ({
+        ok: 'text-emerald-600',
+        error: 'text-red-600',
+        info: 'text-zinc-400',
+    }[tipo] || 'text-zinc-400');
+    $('usuario').classList.toggle('error', tipo === 'error');
+}
+
+function pintarPreviewUsuario() {
+    const u = $('usuario').value;
+    $('usuario-preview').textContent = u ? `Tu link: dropea.com.ar/tienda?t=${u}` : '';
+}
+
+function pintarSugerencias(lista) {
+    const cont = $('usuario-sugerencias');
+    cont.innerHTML = '';
+    if (!lista || !lista.length) { cont.classList.add('hidden'); return; }
+
+    const etiqueta = document.createElement('span');
+    etiqueta.className = 'w-full text-xs font-black uppercase tracking-widest text-zinc-500';
+    etiqueta.textContent = 'Probá con uno de estos:';
+    cont.appendChild(etiqueta);
+
+    lista.forEach((sugerido) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = sugerido;
+        b.className = 'min-h-[40px] px-4 rounded-full border-2 border-black bg-white text-sm font-black hover:bg-zinc-100 active:translate-y-px';
+        b.addEventListener('click', () => {
+            $('usuario').value = sugerido;
+            usuarioTocado = true;
+            pintarPreviewUsuario();
+            revisarUsuario(sugerido);
+        });
+        cont.appendChild(b);
+    });
+    cont.classList.remove('hidden');
+}
+
+// Consulta al Worker si el link está libre. Devuelve true si se puede usar.
+async function revisarUsuario(u) {
+    const seq = ++usuarioSeq;
+    usuarioEstado = { valor: u, listo: false, disponible: false };
+    pintarSugerencias([]);
+    pintarEstadoUsuario('info', 'Revisando si está disponible...');
+
+    const { ok, data } = await llamarApi({ accion: 'registro_usuario', usuario: u, ciudad: valor('ciudad') });
+    if (seq !== usuarioSeq) return false; // siguió escribiendo: esta respuesta ya no sirve
+
+    if (!ok) {
+        pintarEstadoUsuario('error', data.error || 'No pudimos revisar el link. Probá de nuevo.');
+        return false;
+    }
+    if (data.disponible) {
+        usuarioEstado = { valor: u, listo: true, disponible: true };
+        pintarEstadoUsuario('ok', '✓ Disponible');
+        return true;
+    }
+    usuarioEstado = { valor: u, listo: true, disponible: false };
+    pintarEstadoUsuario('error', data.error || 'Ese link no está disponible.');
+    pintarSugerencias(data.sugerencias);
+    return false;
+}
+
+// Se llama cada vez que cambia el texto (con pausa) o al entrar al paso (inmediato)
+function programarRevisionUsuario({ inmediato = false } = {}) {
+    clearTimeout(usuarioTimer);
+    usuarioSeq++; // invalida cualquier consulta en curso
+    usuarioEstado = { valor: '', listo: false, disponible: false };
+    pintarSugerencias([]);
+    pintarPreviewUsuario();
+
+    const u = $('usuario').value;
+    if (!u) { pintarEstadoUsuario('info', ''); return; }
+    if (u.length < 3) { pintarEstadoUsuario('info', 'Mínimo 3 caracteres.'); return; }
+    if (!/^[a-z0-9]/.test(u)) { pintarEstadoUsuario('error', 'Tiene que empezar con una letra o un número.'); return; }
+    if (/[-_]{2,}/.test(u)) { pintarEstadoUsuario('error', 'No uses dos símbolos seguidos.'); return; }
+
+    pintarEstadoUsuario('info', 'Revisando si está disponible...');
+    if (inmediato) revisarUsuario(u);
+    else usuarioTimer = setTimeout(() => revisarUsuario(u), ESPERA_USUARIO_MS);
+}
+
+// Al llegar desde el paso 1: propone un link con el nombre del negocio (si no escribió uno propio)
+function prepararPasoLink() {
+    const campo = $('usuario');
+    if (!usuarioTocado || !campo.value) {
+        campo.value = usuarioDesdeNegocio(valor('negocio'));
+        usuarioTocado = false;
+    }
+    programarRevisionUsuario({ inmediato: true });
+}
+
+async function validarYAvanzarLink() {
+    clearTimeout(usuarioTimer);
+    const u = $('usuario').value;
+    if (u.length < 3) {
+        pintarEstadoUsuario('error', 'El link debe tener al menos 3 caracteres.');
+        $('usuario').focus({ preventScroll: true });
+        return;
+    }
+    if (/[-_]{2,}/.test(u) || !/^[a-z0-9]/.test(u) || !/[a-z0-9]$/.test(u)) {
+        pintarEstadoUsuario('error', 'Tiene que empezar y terminar con una letra o un número, sin dos símbolos seguidos.');
+        return;
+    }
+
+    // Si todavía no se revisó este link (o falta la respuesta), se revisa ahora
+    if (!(usuarioEstado.listo && usuarioEstado.valor === u)) {
+        setOcupado(true);
+        await revisarUsuario(u);
+        setOcupado(false);
+    }
+    if (usuarioEstado.listo && usuarioEstado.valor === u && usuarioEstado.disponible) {
+        irAPaso(PASO_DATOS);
+    } else {
+        $('usuario').focus({ preventScroll: true });
+    }
+}
+
+// ---------- WhatsApp: aviso temprano si ya está en uso (paso 3) ----------
+// Es solo una ayuda: si algo falla acá, se sigue igual, porque el bloqueo real
+// ocurre al enviar el código y al crear la cuenta.
+async function verificarWhatsappTemprano() {
+    const whatsapp = validarWhatsapp(valor('contacto'));
+    if (whatsapp === whatsappVerificado) { irAPaso(PASO_EMAIL); return; }
+
+    setOcupado(true);
+    const token = await esperarTokenTurnstile();
+    if (!token) { setOcupado(false); irAPaso(PASO_EMAIL); return; }
+
+    const { status, data } = await llamarApi({ accion: 'registro_verificar_whatsapp', turnstile: token, whatsapp });
+    renovarTurnstile(); // cada token sirve una sola vez; el siguiente paso pide uno nuevo
+    setOcupado(false);
+
+    if (status === 409 && data.campo === 'contacto') {
+        marcarError('contacto', data.error);
+        $('contacto').focus({ preventScroll: true });
+        return;
+    }
+    whatsappVerificado = whatsapp;
+    irAPaso(PASO_EMAIL);
 }
 
 // ---------- Cuenta regresiva del reenvío ----------
@@ -264,29 +423,6 @@ function habilitarReenvio() {
 }
 
 // ---------- Acciones de cada paso ----------
-// Paso 2: comprueba el WhatsApp contra el Worker antes de dejar avanzar
-async function continuarDesdePaso2() {
-    if (!validarPaso(2)) return;
-
-    const whatsapp = validarWhatsapp(valor('contacto'));
-    // Si ya se confirmó este mismo número, no se vuelve a consultar
-    if (whatsapp !== whatsappVerificado) {
-        setOcupado(true);
-        const r = await consultarWhatsapp(whatsapp);
-        setOcupado(false);
-
-        if (!r.disponible) {
-            marcarError('contacto', r.error || 'Ya recibimos una postulación con este WhatsApp. Si ya tenés cuenta, ingresá a tu panel.');
-            const el = $('contacto');
-            el.focus({ preventScroll: true });
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
-        }
-        whatsappVerificado = whatsapp;
-    }
-    irAPaso(3);
-}
-
 async function enviarCodigo() {
     const datos = {
         nombre: valor('nombre'),
@@ -301,7 +437,7 @@ async function enviarCodigo() {
     const sinCambios = datosActuales && JSON.stringify(datos) === JSON.stringify(datosActuales);
     if (sinCambios && Date.now() - codigoEnviadoEn < VIGENCIA_CODIGO_MS) {
         $('codigo-email').textContent = datos.email;
-        irAPaso(4);
+        irAPaso(codigoVerificado ? PASO_PASSWORD : PASO_CODIGO);
         return;
     }
 
@@ -316,7 +452,7 @@ async function enviarCodigo() {
     marcarError('codigo', '');
     $('codigo-email').textContent = datos.email;
     iniciarCuentaRegresiva();
-    irAPaso(4);
+    irAPaso(PASO_CODIGO);
 }
 
 async function verificarCodigo() {
@@ -335,7 +471,7 @@ async function verificarCodigo() {
         return;
     }
     codigoVerificado = codigo;
-    irAPaso(5);
+    irAPaso(PASO_PASSWORD);
 }
 
 async function crearCuenta() {
@@ -350,6 +486,7 @@ async function crearCuenta() {
         accion: 'registro_confirmar',
         email: datosActuales.email,
         codigo: codigoVerificado,
+        usuario: $('usuario').value,
         password,
     });
     setOcupado(false);
@@ -360,9 +497,15 @@ async function crearCuenta() {
             // El código venció mientras elegía la contraseña: vuelve al paso del código
             codigoVerificado = '';
             $('codigo').value = '';
-            irAPaso(4);
+            irAPaso(PASO_CODIGO);
             marcarError('codigo', mensaje);
             habilitarReenvio();
+        } else if (data.campo === 'usuario') {
+            // Alguien tomó el link justo antes: vuelve al paso del link con alternativas
+            irAPaso(PASO_LINK);
+            usuarioEstado = { valor: $('usuario').value, listo: true, disponible: false };
+            pintarEstadoUsuario('error', mensaje);
+            pintarSugerencias(data.sugerencias);
         } else if (data.campo && irAlCampoConError(data.campo, mensaje)) {
             // volvió al paso del dato con problema (ej.: email o WhatsApp ya registrados)
         } else {
@@ -384,14 +527,16 @@ form.addEventListener('submit', async (ev) => {
     if ($('web').value) { mostrarExito(); return; }
 
     if (pasoActual === 1) {
-        if (validarPaso(1)) irAPaso(2);
-    } else if (pasoActual === 2) {
-        await continuarDesdePaso2();
-    } else if (pasoActual === 3) {
-        if (validarPaso(3)) await enviarCodigo();
-    } else if (pasoActual === 4) {
+        if (validarPaso(1)) { prepararPasoLink(); irAPaso(PASO_LINK); }
+    } else if (pasoActual === PASO_LINK) {
+        await validarYAvanzarLink();
+    } else if (pasoActual === PASO_DATOS) {
+        if (validarPaso(PASO_DATOS)) await verificarWhatsappTemprano();
+    } else if (pasoActual === PASO_EMAIL) {
+        if (validarPaso(PASO_EMAIL)) await enviarCodigo();
+    } else if (pasoActual === PASO_CODIGO) {
         await verificarCodigo();
-    } else if (pasoActual === 5) {
+    } else if (pasoActual === PASO_PASSWORD) {
         await crearCuenta();
     }
 });
@@ -399,6 +544,14 @@ form.addEventListener('submit', async (ev) => {
 form.addEventListener('input', (ev) => {
     const id = ev.target.id;
     if (!id) return;
+
+    // Link: se limpia mientras se escribe y se revisa en vivo
+    if (id === 'usuario') {
+        ev.target.value = normalizarUsuario(ev.target.value);
+        usuarioTocado = ev.target.value.length > 0;
+        programarRevisionUsuario();
+        return;
+    }
     // El campo WhatsApp solo admite números y los símbolos habituales de un teléfono
     if (id === 'contacto') ev.target.value = ev.target.value.replace(/[^\d\s()+\-.]/g, '');
     // El código son solo 6 números; al completarlo se verifica solo
@@ -471,14 +624,21 @@ function mostrarExito(usuario) {
 function registrarOtro() {
     olvidarEnvio();
     clearInterval(temporizador);
+    clearTimeout(usuarioTimer);
+    usuarioSeq++;
     datosActuales = null;
     codigoVerificado = '';
     codigoEnviadoEn = 0;
     whatsappVerificado = '';
+    usuarioTocado = false;
+    usuarioEstado = { valor: '', listo: false, disponible: false };
 
     form.reset();
     form.querySelectorAll('.msg-error').forEach((p) => p.remove());
     form.querySelectorAll('.campo.error').forEach((c) => c.classList.remove('error'));
+    pintarEstadoUsuario('info', '');
+    pintarSugerencias([]);
+    pintarPreviewUsuario();
     $('password').type = 'password';
     $('btn-ver-password').textContent = 'Mostrar';
     renovarTurnstile();
