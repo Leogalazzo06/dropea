@@ -5,71 +5,248 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comenzar prueba gratis | Dropea</title>
     <meta name="description" content="Creá tu perfil y catálogo online en Dropea en minutos. Incluye 15 días de prueba gratis.">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#050507">
     <link rel="shortcut icon" href="favicon-96x96.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            future: { hoverOnlyWhenSupported: true },
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#050507',
+                        carbon: '#0b0c0f',
+                        titanium: '#f4f4f6',
+                        electric: '#2997ff'
+                    },
+                    fontFamily: {
+                        sans: ['Satoshi', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        display: ['Cabinet Grotesk', 'Satoshi', 'sans-serif'],
+                        serif: ['Instrument Serif', 'Georgia', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Sistema Tipográfico de Estudio: Fontshare (Satoshi + Cabinet Grotesk) + Google Fonts (Instrument Serif + JetBrains Mono) -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        html { -webkit-text-size-adjust: 100%; }
+        body {
+            font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-feature-settings: "ss01" on, "cv01" on;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
         html, body { overflow-x: hidden; max-width: 100%; }
         .hidden { display: none !important; }
-        .btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .9rem 1.6rem; border-radius: 9999px; border: 2px solid #000; font-size: .75rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; transition: all .15s ease; }
-        @media (hover: hover) { .btn:hover:not(:disabled) { transform: translate(3px, 3px); box-shadow: none !important; } }
-        .btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none !important; }
-        .btn:disabled { opacity: .6; cursor: wait; }
-        .lbl { display: block; margin-bottom: .4rem; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #52525b; }
-        .campo { scroll-margin-top: 110px; -webkit-appearance: none; appearance: none; width: 100%; background: #fff; border: 2px solid #e4e4e7; border-radius: 1rem; padding: .85rem 1rem; font-size: 16px; font-weight: 600; color: #000; outline: none; transition: all .15s ease; }
-        .campo::placeholder { color: #a1a1aa; font-weight: 500; }
-        .campo:focus { border-color: #000; box-shadow: 3px 3px 0 0 #1e40af; }
-        .campo.error { border-color: #dc2626; }
-        .msg-error { margin-top: .35rem; font-size: 12px; font-weight: 700; color: #dc2626; }
+
+        /* Jerarquía Tipográfica Editorial */
+        .font-editorial-title {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            letter-spacing: -0.035em;
+            text-wrap: balance;
+        }
+        .font-editorial-serif {
+            font-family: 'Instrument Serif', serif;
+            font-style: italic;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+            padding-right: 0.06em;
+        }
+        .num-tech {
+            font-family: 'JetBrains Mono', monospace;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.04em;
+        }
+
+        /* Textura de grano fotográfico analógico */
+        .bg-noise {
+            background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+            background-size: 200px 200px;
+        }
+
+        /* Grilla arquitectónica sutil */
+        .studio-grid {
+            background-size: 56px 56px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+            mask-image: radial-gradient(ellipse 85% 65% at 50% 20%, #000 30%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse 85% 65% at 50% 20%, #000 30%, transparent 100%);
+        }
+
+        /* Acabado de hardware (luz especular en el borde superior) */
+        .apple-card-dark {
+            background: linear-gradient(180deg, #17181c 0%, #0e0f12 100%);
+            border: 1px solid rgba(255,255,255,0.09);
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.12), 0 24px 48px -12px rgba(0,0,0,0.75);
+        }
+
+        /* Botones de precisión */
+        .btn {
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .55rem;
+            padding: .85rem 1.75rem;
+            border-radius: 9999px;
+            font-size: .875rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+        @media (hover: hover) {
+            .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled { opacity: .55; cursor: wait; }
+        .btn[aria-busy="true"]:disabled { opacity: .9; }
+
+        /* Loader de los botones: anillo que gira (solo transform, no pesa) */
+        .spinner {
+            display: inline-block;
+            flex-shrink: 0;
+            width: 1.05em;
+            height: 1.05em;
+            border-radius: 9999px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            animation: girar .7s linear infinite;
+        }
+        @keyframes girar { to { transform: rotate(360deg); } }
+        #btn-reenviar[aria-busy="true"] { opacity: .85; cursor: wait; }
+        #btn-reenviar .spinner { width: .9em; height: .9em; margin-right: .45em; vertical-align: -.12em; }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.8s; } }
+        .btn:focus-visible, a:focus-visible { outline: 2px solid #2997ff; outline-offset: 3px; }
+
+        /* Etiquetas y Campos de Formulario Modo Estudio */
+        .lbl {
+            display: block;
+            margin-bottom: .5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #a1a1aa;
+        }
+        .campo {
+            scroll-margin-top: 110px;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1rem;
+            padding: .9rem 1.1rem;
+            font-size: 16px;
+            font-weight: 500;
+            color: #ffffff;
+            outline: none;
+            transition: background-color .2s cubic-bezier(0.16, 1, 0.3, 1), border-color .2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+        }
+        .campo::placeholder { color: #52525b; font-weight: 400; }
+        .campo:focus {
+            background: rgba(255, 255, 255, 0.065);
+            border-color: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+        }
+        .campo.error {
+            border-color: #f87171;
+            background: rgba(248, 113, 113, 0.05);
+        }
+        .msg-error {
+            margin-top: .45rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11.5px;
+            font-weight: 500;
+            color: #f87171;
+        }
+
+        /* Scrollbar personalizado (oscuro, fino y redondeado) */
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: #050507; }
+        ::-webkit-scrollbar-thumb {
+            background: #2b2c33;
+            border: 3px solid #050507;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #4a4b55; }
+        ::-webkit-scrollbar-corner { background: #050507; }
+        @supports not selector(::-webkit-scrollbar) {
+            * { scrollbar-width: thin; scrollbar-color: #2b2c33 #050507; }
+        }
     </style>
 </head>
-<body class="bg-white text-black">
+<body class="bg-obsidian text-white selection:bg-white selection:text-black bg-noise min-h-screen flex flex-col justify-between">
 
-    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b-2 border-black">
-        <div class="container mx-auto px-4 sm:px-6 h-16 sm:h-[72px] flex items-center justify-between gap-3">
-            <a href="index.html" aria-label="Dropea, ir al inicio" class="flex items-center flex-shrink-0">
-                <img src="dropea-logo.png" alt="Dropea" class="h-11 sm:h-[52px] w-auto object-contain"
-                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
-                <span class="hidden text-2xl font-black italic tracking-tight uppercase">Dropea</span>
-            </a>
-            <a href="index.html" class="btn bg-white text-black shadow-[3px_3px_0_0_#000] !py-2 !px-4">← Inicio</a>
+    <!-- HEADER FLOTANTE ESTILO DYNAMIC ISLAND -->
+    <header class="fixed top-3 sm:top-5 left-0 right-0 z-50 px-3 sm:px-6 pointer-events-none">
+        <div class="container mx-auto max-w-5xl pointer-events-auto">
+            <div class="h-14 sm:h-16 px-4 sm:px-6 rounded-full bg-carbon/95 border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.65)] flex items-center justify-between gap-3">
+                <a href="index.html" aria-label="Dropea, ir al inicio" class="flex items-center flex-shrink-0">
+                    <img src="dropea-logo.png" alt="Dropea" class="h-8 sm:h-9 w-auto object-contain brightness-0 invert"
+                         onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                    <span class="hidden font-editorial-title text-xl font-black text-white">Dropea</span>
+                </a>
+                <a href="index.html" class="btn bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white !py-2 !px-4 !min-h-[36px] text-xs font-semibold">
+                    ← Inicio
+                </a>
+            </div>
         </div>
     </header>
 
-    <main class="pt-16 sm:pt-[72px]">
-        <div class="container mx-auto px-5 sm:px-6 py-8 sm:py-16 max-w-2xl">
+    <main class="relative pt-24 sm:pt-32 pb-12 flex-1">
+        <!-- Iluminación cenital y grilla arquitectónica -->
+        <div class="pointer-events-none absolute inset-0 studio-grid" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[850px] h-[380px]" style="background: radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, rgba(125,211,252,0.035) 40%, transparent 70%)" aria-hidden="true"></div>
+
+        <div class="relative container mx-auto px-5 sm:px-6 max-w-xl">
 
             <div id="hero">
-                <div class="flex flex-wrap gap-2">
-                    <p class="inline-block px-3.5 py-1.5 rounded-full bg-zinc-100 text-[11px] font-black uppercase tracking-widest text-zinc-700">Solicitud de alta</p>
-                    <p class="inline-block px-3.5 py-1.5 rounded-full border-2 border-black bg-blue-800 text-[11px] font-black uppercase tracking-widest text-white">15 días de prueba gratis</p>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <p class="font-mono inline-block px-3.5 py-1 rounded-full bg-white/[0.05] border border-white/10 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
+                        Solicitud de alta
+                    </p>
+                    <p class="font-mono inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-400/10 border border-sky-400/25 text-[11px] font-semibold uppercase tracking-[0.15em] text-sky-300">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        15 días de prueba gratis
+                    </p>
                 </div>
-                <h1 class="mt-5 text-[2.2rem] sm:text-5xl font-black uppercase italic tracking-tight leading-[1]">Probá <span class="bg-blue-800 px-2 text-white">gratis</span></h1>
-                <p class="mt-4 text-[15px] sm:text-base font-semibold text-zinc-500 leading-relaxed">Tu tienda se crea al instante, en pocos pasos. Vas a tener 15 días de prueba gratis. Todos los campos son obligatorios.</p>
+                <h1 class="mt-5 font-editorial-title text-4xl sm:text-6xl font-black leading-[0.98] text-white">
+                    Probá <span class="font-editorial-serif text-sky-300 text-[1.12em]">gratis.</span>
+                </h1>
+                <p class="mt-4 text-[15px] sm:text-base font-normal text-zinc-400 leading-relaxed">
+                    Tu tienda se crea al instante, en pocos pasos. Vas a tener 15 días de prueba gratis. Todos los campos son obligatorios.
+                </p>
             </div>
 
-            <form id="form-registro" novalidate class="mt-8 rounded-3xl border-2 border-black bg-white p-4 sm:p-8 shadow-[4px_4px_0_0_#000] sm:shadow-[6px_6px_0_0_#000]">
+            <form id="form-registro" novalidate class="mt-8 rounded-[2rem] apple-card-dark p-5 sm:p-9">
 
                 <!-- Progreso -->
-                <div class="mb-6">
-                    <div class="flex items-center justify-between gap-3 min-h-[40px]">
-                        <button type="button" id="btn-atras" class="hidden -ml-2 w-10 h-10 flex items-center justify-center rounded-full text-xl font-black hover:bg-zinc-100" aria-label="Volver al paso anterior">←</button>
-                        <p id="progreso-texto" class="ml-auto text-[11px] font-black uppercase tracking-widest text-zinc-500" aria-live="polite">Paso 1 de 6</p>
+                <div class="mb-7">
+                    <div class="flex items-center justify-between gap-3 min-h-[36px]">
+                        <button type="button" id="btn-atras" class="hidden -ml-1.5 w-9 h-9 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-base font-bold text-white hover:bg-white/10 transition-colors" aria-label="Volver al paso anterior">←</button>
+                        <p id="progreso-texto" class="num-tech ml-auto text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400" aria-live="polite">Paso 1 de 6</p>
                     </div>
-                    <div class="mt-2 h-2 rounded-full bg-zinc-100 overflow-hidden" role="progressbar" aria-valuemin="1" aria-valuemax="6" aria-valuenow="1" id="progreso-aria">
-                        <div id="progreso-barra" class="h-full bg-blue-800 transition-all duration-300" style="width:16.6667%"></div>
+                    <div class="mt-2.5 h-1.5 rounded-full bg-white/[0.07] overflow-hidden" role="progressbar" aria-valuemin="1" aria-valuemax="6" aria-valuenow="1" id="progreso-aria">
+                        <div id="progreso-barra" class="h-full bg-gradient-to-r from-white to-sky-300 transition-all duration-300 rounded-full" style="width:16.6667%"></div>
                     </div>
                 </div>
 
                 <!-- Paso 1: negocio -->
                 <section data-paso="1" class="space-y-5">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight">Contanos de tu negocio</h2>
-                        <p class="mt-2 text-sm font-semibold text-zinc-500">Con esto armamos tu perfil y tu catálogo.</p>
+                        <h2 class="font-editorial-title text-2xl sm:text-3xl font-extrabold text-white">Contanos de tu negocio</h2>
+                        <p class="mt-1.5 text-sm text-zinc-400">Con esto armamos tu perfil y tu catálogo.</p>
                     </div>
                     <div>
                         <label class="lbl" for="negocio">Nombre del negocio</label>
@@ -88,24 +265,24 @@
                 <!-- Paso 2: link / usuario de la tienda -->
                 <section data-paso="2" class="hidden space-y-5">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight">Elegí el link de tu tienda</h2>
-                        <p class="mt-2 text-sm font-semibold text-zinc-500 leading-relaxed">Es la dirección que vas a compartir con tus clientes. También es tu usuario para ingresar al panel.</p>
+                        <h2 class="font-editorial-title text-2xl sm:text-3xl font-extrabold text-white">Elegí el link de tu tienda</h2>
+                        <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Es la dirección que vas a compartir con tus clientes. También es tu usuario para ingresar al panel.</p>
                     </div>
                     <div data-grupo>
                         <label class="lbl" for="usuario">Tu link</label>
-                        <input class="campo" id="usuario" name="usuario" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" enterkeyhint="next" maxlength="30" placeholder="minegocio" aria-describedby="usuario-ayuda usuario-estado">
-                        <p id="usuario-estado" class="mt-2 min-h-[1.25rem] text-sm font-bold" aria-live="polite"></p>
-                        <div id="usuario-sugerencias" class="hidden mt-2 flex flex-wrap gap-2"></div>
-                        <p id="usuario-preview" class="mt-3 text-xs font-bold text-zinc-500 break-all"></p>
-                        <p id="usuario-ayuda" class="mt-1 text-xs font-semibold text-zinc-400">Letras, números, guion (-) y guion bajo (_). Sin espacios ni tildes. Mínimo 3 caracteres.</p>
+                        <input class="campo font-mono" id="usuario" name="usuario" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" enterkeyhint="next" maxlength="30" placeholder="minegocio" aria-describedby="usuario-ayuda usuario-estado">
+                        <p id="usuario-estado" class="mt-2 min-h-[1.25rem] text-xs font-mono font-semibold" aria-live="polite"></p>
+                        <div id="usuario-sugerencias" class="hidden mt-3 flex flex-wrap gap-2"></div>
+                        <p id="usuario-preview" class="mt-3 font-mono text-xs font-medium text-sky-300 break-all"></p>
+                        <p id="usuario-ayuda" class="mt-1.5 text-xs text-zinc-500">Letras, números, guion (-) y guion bajo (_). Sin espacios ni tildes. Mínimo 3 caracteres.</p>
                     </div>
                 </section>
 
                 <!-- Paso 3: datos personales -->
                 <section data-paso="3" class="hidden space-y-5">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight">Ahora, sobre vos</h2>
-                        <p class="mt-2 text-sm font-semibold text-zinc-500">Para poder contactarte si hace falta.</p>
+                        <h2 class="font-editorial-title text-2xl sm:text-3xl font-extrabold text-white">Ahora, sobre vos</h2>
+                        <p class="mt-1.5 text-sm text-zinc-400">Para poder contactarte si hace falta.</p>
                     </div>
                     <div>
                         <label class="lbl" for="nombre">Nombre y apellido</label>
@@ -114,30 +291,30 @@
                     <div data-grupo>
                         <label class="lbl" for="contacto">WhatsApp</label>
                         <div class="relative">
-                            <span class="absolute left-4 inset-y-0 flex items-center text-base font-black text-zinc-500 select-none pointer-events-none" aria-hidden="true">+54 9</span>
-                            <input class="campo !pl-[4.6rem]" id="contacto" name="contacto" type="tel" inputmode="numeric" autocomplete="off" enterkeyhint="next" maxlength="20" placeholder="3644 123456" aria-describedby="ayuda-contacto">
+                            <span class="num-tech absolute left-4 inset-y-0 flex items-center text-sm font-semibold text-zinc-400 select-none pointer-events-none" aria-hidden="true">+54 9</span>
+                            <input class="campo num-tech !pl-[4.6rem]" id="contacto" name="contacto" type="tel" inputmode="numeric" autocomplete="off" enterkeyhint="next" maxlength="20" placeholder="3644 123456" aria-describedby="ayuda-contacto">
                         </div>
-                        <p id="ayuda-contacto" class="mt-1.5 text-xs font-semibold text-zinc-400">Característica + número, sin 0 ni 15. Se acepta una sola cuenta por número.</p>
+                        <p id="ayuda-contacto" class="mt-1.5 text-xs text-zinc-500">Característica + número, sin 0 ni 15. Se acepta una sola cuenta por número.</p>
                     </div>
                 </section>
 
                 <!-- Paso 4: email (acá se envía el código) -->
                 <section data-paso="4" class="hidden space-y-5">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight">Tu email</h2>
-                        <p class="mt-2 text-sm font-semibold text-zinc-500">Te vamos a enviar un código de 6 dígitos para confirmar que es tuyo.</p>
+                        <h2 class="font-editorial-title text-2xl sm:text-3xl font-extrabold text-white">Tu email</h2>
+                        <p class="mt-1.5 text-sm text-zinc-400">Te vamos a enviar un código de 6 dígitos para confirmar que es tuyo.</p>
                     </div>
                     <div>
                         <label class="lbl" for="email">Email</label>
                         <input class="campo" id="email" name="email" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="email" enterkeyhint="send" maxlength="120" placeholder="tu@email.com">
                     </div>
-                    <div class="rounded-2xl border-2 border-black bg-blue-50 p-4 sm:p-5">
-                        <p class="text-xs font-black uppercase tracking-widest">Antes de continuar</p>
-                        <ul class="mt-3 space-y-2 text-[13px] sm:text-sm font-medium text-zinc-700 leading-relaxed list-disc pl-5">
+                    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+                        <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">Antes de continuar</p>
+                        <ul class="mt-3 space-y-2 text-[13px] sm:text-sm text-zinc-300 leading-relaxed list-disc pl-5">
                             <li>Tus datos se usan únicamente para crear y administrar tu cuenta como emprendedor o comercio en Dropea.</li>
                             <li>No los transferimos a terceros ni los usamos para otro fin.</li>
                             <li>Nos reservamos el derecho de suspender o dar de baja cuentas que incumplan los términos y condiciones.</li>
-                            <li>Podés probar Dropea 15 días gratis. Después, el plan cuesta $10.000 por mes.</li>
+                            <li>Podés probar Dropea 15 días gratis. Después, el plan cuesta <span class="num-tech font-semibold text-white">$10.000</span> por mes.</li>
                         </ul>
                     </div>
                 </section>
@@ -145,26 +322,26 @@
                 <!-- Paso 5: código -->
                 <section data-paso="5" class="hidden space-y-5">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight">Ingresá el código</h2>
-                        <p class="mt-2 text-sm font-semibold text-zinc-500 leading-relaxed">Te enviamos un código de 6 dígitos a <span id="codigo-email" class="text-black break-all"></span>. Si no lo ves, revisá la carpeta de spam.</p>
+                        <h2 class="font-editorial-title text-2xl sm:text-3xl font-extrabold text-white">Ingresá el código</h2>
+                        <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">Te enviamos un código de 6 dígitos a <span id="codigo-email" class="font-mono text-white break-all"></span>. Si no lo ves, revisá la carpeta de spam.</p>
                     </div>
                     <div>
                         <label class="lbl" for="codigo">Código de confirmación</label>
-                        <input class="campo text-center !text-2xl tracking-[.4em]" id="codigo" name="codigo" type="text" inputmode="numeric" autocomplete="one-time-code" enterkeyhint="next" maxlength="6" placeholder="000000">
+                        <input class="campo num-tech text-center !text-2xl tracking-[.4em]" id="codigo" name="codigo" type="text" inputmode="numeric" autocomplete="one-time-code" enterkeyhint="next" maxlength="6" placeholder="000000">
                     </div>
                 </section>
 
                 <!-- Paso 6: contraseña -->
                 <section data-paso="6" class="hidden space-y-5">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight">Creá tu contraseña</h2>
-                        <p class="mt-2 text-sm font-semibold text-zinc-500">Email confirmado ✓ Con tu usuario y esta contraseña vas a ingresar a tu panel.</p>
+                        <h2 class="font-editorial-title text-2xl sm:text-3xl font-extrabold text-white">Creá tu contraseña</h2>
+                        <p class="mt-1.5 text-sm text-zinc-400">Email confirmado <span class="text-emerald-400 font-bold">✓</span> Con tu usuario y esta contraseña vas a ingresar a tu panel.</p>
                     </div>
                     <div data-grupo>
                         <label class="lbl" for="password">Contraseña</label>
                         <div class="relative">
                             <input class="campo !pr-24" id="password" name="password" type="password" autocomplete="new-password" enterkeyhint="send" minlength="8" maxlength="72" placeholder="Mínimo 8 caracteres">
-                            <button type="button" id="btn-ver-password" class="absolute right-2 inset-y-0 my-auto h-9 px-3 text-[11px] font-black uppercase tracking-widest text-zinc-500">Mostrar</button>
+                            <button type="button" id="btn-ver-password" class="font-mono absolute right-2 inset-y-0 my-auto h-9 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 transition-colors">Mostrar</button>
                         </div>
                     </div>
                 </section>
@@ -174,66 +351,88 @@
 
                 <div id="turnstile" class="mt-4 flex justify-center"></div>
 
-                <button id="btn-siguiente" type="submit" class="btn w-full !py-4 mt-6 bg-black text-white shadow-[4px_4px_0_0_#1e40af] sm:shadow-[5px_5px_0_0_#1e40af]">Continuar</button>
+                <button id="btn-siguiente" type="submit" class="btn w-full !py-4 mt-6 bg-white text-black hover:bg-zinc-200 font-bold shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]">
+                    Continuar
+                </button>
 
-                <div id="acciones-codigo" class="hidden mt-4 text-center text-sm font-bold text-zinc-500">
+                <div id="acciones-codigo" class="hidden mt-5 text-center text-xs font-mono text-zinc-400">
                     ¿No te llegó?
-                    <button type="button" id="btn-reenviar" class="min-h-[44px] px-1 underline text-black disabled:opacity-50 disabled:no-underline" disabled>Reenviar código</button>
+                    <button type="button" id="btn-reenviar" class="min-h-[40px] px-1.5 underline text-white hover:text-sky-300 disabled:opacity-40 disabled:no-underline transition-colors" disabled>Reenviar código</button>
                 </div>
             </form>
 
-            <div id="exito" class="hidden rounded-3xl border-2 border-black bg-white p-6 sm:p-10 text-center shadow-[4px_4px_0_0_#1e40af] sm:shadow-[6px_6px_0_0_#1e40af]" role="status">
-                <span class="mx-auto flex w-14 h-14 items-center justify-center rounded-full bg-black text-blue-400 text-2xl font-black">✓</span>
-                <h2 id="exito-titulo" class="mt-5 text-2xl sm:text-3xl font-black uppercase italic tracking-tight">¡Tu tienda está lista!</h2>
-                <p id="exito-texto" class="mt-3 font-semibold text-zinc-500 leading-relaxed">Ya podés ingresar a tu panel y cargar tus productos. Tenés 15 días de prueba gratis.</p>
-                <div id="exito-datos" class="hidden mt-6 rounded-2xl border-2 border-black bg-blue-50 p-4 text-left">
-                    <p class="text-[11px] font-black uppercase tracking-widest text-zinc-600">Tu usuario</p>
-                    <p id="exito-usuario" class="mt-1 text-xl font-black break-all"></p>
-                    <p class="mt-2 text-xs font-semibold text-zinc-500 leading-relaxed">Ingresás con este usuario y la contraseña que acabás de crear. También te lo enviamos por email.</p>
+            <!-- Pantalla de Éxito -->
+            <div id="exito" class="hidden rounded-[2rem] apple-card-dark p-6 sm:p-10 text-center" role="status">
+                <span class="mx-auto flex w-14 h-14 items-center justify-center rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-400 text-2xl font-bold">✓</span>
+                <h2 id="exito-titulo" class="mt-5 font-editorial-title text-2xl sm:text-4xl font-extrabold text-white">¡Tu tienda está lista!</h2>
+                <p id="exito-texto" class="mt-3 text-sm sm:text-base text-zinc-400 leading-relaxed">Ya podés ingresar a tu panel y cargar tus productos. Tenés 15 días de prueba gratis.</p>
+                <div id="exito-datos" class="hidden mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left">
+                    <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">Tu usuario</p>
+                    <p id="exito-usuario" class="mt-1 font-mono text-xl font-bold text-white break-all"></p>
+                    <p class="mt-2 text-xs text-zinc-400 leading-relaxed">Ingresás con este usuario y la contraseña que acabás de crear. También te lo enviamos por email.</p>
                 </div>
                 <div class="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
-                    <a href="https://dropea.vercel.app/login" class="btn w-full sm:w-auto bg-black text-white shadow-[4px_4px_0_0_#1e40af]">Ingresar a mi panel</a>
-                    <a id="exito-tienda" href="#" class="hidden btn w-full sm:w-auto bg-white text-black shadow-[4px_4px_0_0_#000]">Ver mi tienda</a>
+                    <a href="https://dropea.vercel.app/login" class="btn w-full sm:w-auto bg-white text-black hover:bg-zinc-200 font-bold">Ingresar a mi panel</a>
+                    <a id="exito-tienda" href="#" class="hidden btn w-full sm:w-auto border border-white/15 bg-white/[0.05] text-white hover:bg-white/10">Ver mi tienda</a>
                 </div>
-                <div class="mt-6 pt-6 border-t-2 border-zinc-100">
-                    <p class="text-sm font-semibold text-zinc-500">¿Querés sumar otro negocio o a otra persona?</p>
-                    <button type="button" id="btn-otro" class="btn mt-3 w-full sm:w-auto bg-white text-black shadow-[4px_4px_0_0_#000]">+ Registrar otro negocio</button>
+                <div class="mt-7 pt-6 border-t border-white/10">
+                    <p class="text-sm text-zinc-400">¿Querés sumar otro negocio o a otra persona?</p>
+                    <button type="button" id="btn-otro" class="btn mt-3 w-full sm:w-auto border border-white/15 bg-white/[0.04] text-white hover:bg-white/10">+ Registrar otro negocio</button>
                 </div>
-                <a href="index.html" class="mt-5 inline-block text-sm font-bold underline text-zinc-500">Volver al inicio</a>
+                <a href="index.html" class="mt-6 inline-block text-xs font-mono uppercase tracking-widest text-zinc-400 hover:text-white underline underline-offset-4">Volver al inicio</a>
             </div>
         </div>
     </main>
 
-    <footer class="relative overflow-hidden bg-zinc-950 text-white mt-16 sm:mt-24 rounded-t-[2rem] sm:rounded-t-[3rem]">
-        <div class="container mx-auto px-5 sm:px-6 pt-12 sm:pt-16 pb-8 max-w-6xl">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-9 sm:gap-10">
+    <!-- FOOTER -->
+    <footer class="bg-obsidian text-white border-t border-white/10 mt-12">
+        <div class="container mx-auto px-5 sm:px-6 pt-14 sm:pt-16 pb-10 max-w-6xl">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 sm:gap-10">
                 <div class="col-span-2 lg:col-span-1">
-                    <img src="dropea-logo.png" alt="Dropea" loading="lazy" class="h-16 w-auto object-contain -ml-1 invert"
+                    <img src="dropea-logo.png" alt="Dropea" loading="lazy" class="h-10 w-auto object-contain brightness-0 invert"
                          onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
-                    <span class="hidden text-4xl font-black italic tracking-tight uppercase">Dropea</span>
-                    <p class="mt-4 text-sm font-semibold text-zinc-400 leading-relaxed">Un catálogo online para cada comercio. Pedí el tuyo y empezá a dropearlo.</p>
-                    <a href="registro.html" class="btn mt-5 bg-white text-black shadow-[4px_4px_0_0_#60a5fa] !py-2.5">Comenzar prueba gratis</a>
+                    <span class="hidden font-editorial-title text-2xl font-black">Dropea</span>
+                    <p class="mt-4 text-sm text-zinc-400 leading-relaxed">
+                        Un catálogo online para cada comercio. Pedí el tuyo y empezá a dropearlo.
+                    </p>
+                    <a href="registro.html" class="btn mt-5 bg-white text-black hover:bg-zinc-200 !py-2.5 !px-5 text-xs font-bold">
+                        Comenzar prueba gratis
+                    </a>
                 </div>
-                <nav aria-label="Enlaces rápidos"><h2 class="font-black uppercase text-sm">Enlaces rápidos</h2>
-                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="index.html#comercios">Comercios</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="index.html#funciones">Funciones</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="index.html#precio">Precio</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="https://dropea.vercel.app/login">Ingresar</a></li>
-                    </ul></nav>
-                <nav aria-label="Legal"><h2 class="font-black uppercase text-sm">Legal</h2>
-                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="legales.html#terminos">Términos y condiciones</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400" href="legales.html#privacidad">Política de privacidad</a></li>
-                    </ul></nav>
-                <div class="col-span-2 lg:col-span-1"><h2 class="font-black uppercase text-sm">Contacto</h2>
-                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a data-wa href="#" target="_blank" rel="noopener" aria-label="Más información por WhatsApp" class="inline-flex items-center gap-3 py-1 hover:text-blue-400">
-                            <svg class="w-6 h-6 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            Más información</a></li>
-                    </ul></div>
+
+                <nav aria-label="Enlaces rápidos">
+                    <h2 class="font-mono font-semibold uppercase tracking-widest text-[11px] text-zinc-300">Enlaces rápidos</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="index.html#comercios">Comercios</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="index.html#funciones">Funciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="index.html#precio">Precio</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="https://dropea.vercel.app/login">Ingresar</a></li>
+                    </ul>
+                </nav>
+
+                <nav aria-label="Legal">
+                    <h2 class="font-mono font-semibold uppercase tracking-widest text-[11px] text-zinc-300">Legal</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="legales.html#terminos">Términos y condiciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="legales.html#privacidad">Política de privacidad</a></li>
+                    </ul>
+                </nav>
+
+                <div class="col-span-2 lg:col-span-1">
+                    <h2 class="font-mono font-semibold uppercase tracking-widest text-[11px] text-zinc-300">Contacto</h2>
+                    <ul class="mt-4 space-y-3 text-sm text-zinc-400">
+                        <li>
+                            <a data-wa href="#" target="_blank" rel="noopener" aria-label="Más información por WhatsApp" class="inline-flex items-center gap-3 py-1 hover:text-white transition-colors">
+                                <svg class="w-5 h-5 text-white flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Más información
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <p class="mt-10 pt-6 border-t border-white/10 text-[11px] font-bold tracking-wide text-zinc-500">© 2026 Dropea · Diseñado y desarrollado por Hostara · Todos los derechos reservados</p>
+            <p class="font-mono mt-12 pt-6 border-t border-white/10 text-[11px] text-zinc-500">
+                © 2026 Dropea · Diseñado y desarrollado por Hostara · Todos los derechos reservados
+            </p>
         </div>
     </footer>
 
