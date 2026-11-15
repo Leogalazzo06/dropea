@@ -112,11 +112,27 @@ let codigoEnviadoEn = 0;
 let temporizador = null;
 let whatsappVerificado = ''; // último WhatsApp que ya se comprobó que está libre
 
+// Pinta un botón con su texto; si está cargando, le suma el spinner girando adelante
+function pintarBoton(btn, texto, cargando) {
+    if (!cargando) {
+        btn.textContent = texto;
+        btn.removeAttribute('aria-busy');
+        return;
+    }
+    const giro = document.createElement('span');
+    giro.className = 'spinner';
+    giro.setAttribute('aria-hidden', 'true');
+    const t = document.createElement('span');
+    t.textContent = texto;
+    btn.replaceChildren(giro, t);
+    btn.setAttribute('aria-busy', 'true');
+}
+
 function setOcupado(si) {
     ocupado = si;
     btnSiguiente.disabled = si;
     btnAtras.disabled = si;
-    btnSiguiente.textContent = si ? (TEXTO_CARGANDO[pasoActual] || 'Un momento...') : TEXTO_BOTON[pasoActual];
+    pintarBoton(btnSiguiente, si ? (TEXTO_CARGANDO[pasoActual] || 'Un momento...') : TEXTO_BOTON[pasoActual], si);
 }
 
 function irAPaso(n, { enfocar = true } = {}) {
@@ -130,7 +146,7 @@ function irAPaso(n, { enfocar = true } = {}) {
     btnAtras.classList.toggle('hidden', n === 1);
     $('hero').classList.toggle('hidden', n !== 1);
     $('acciones-codigo').classList.toggle('hidden', n !== PASO_CODIGO);
-    btnSiguiente.textContent = TEXTO_BOTON[n];
+    pintarBoton(btnSiguiente, TEXTO_BOTON[n], false);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (enfocar) {
@@ -259,9 +275,9 @@ function usuarioDesdeNegocio(texto) {
 function pintarEstadoUsuario(tipo, texto) {
     const p = $('usuario-estado');
     p.textContent = texto || '';
-    p.className = 'mt-2 min-h-[1.25rem] text-sm font-bold ' + ({
-        ok: 'text-emerald-600',
-        error: 'text-red-600',
+    p.className = 'mt-2 min-h-[1.25rem] text-xs font-mono font-semibold ' + ({
+        ok: 'text-emerald-400',
+        error: 'text-red-400',
         info: 'text-zinc-400',
     }[tipo] || 'text-zinc-400');
     $('usuario').classList.toggle('error', tipo === 'error');
@@ -278,7 +294,7 @@ function pintarSugerencias(lista) {
     if (!lista || !lista.length) { cont.classList.add('hidden'); return; }
 
     const etiqueta = document.createElement('span');
-    etiqueta.className = 'w-full text-xs font-black uppercase tracking-widest text-zinc-500';
+    etiqueta.className = 'w-full font-mono text-[11px] font-semibold uppercase tracking-widest text-zinc-400';
     etiqueta.textContent = 'Probá con uno de estos:';
     cont.appendChild(etiqueta);
 
@@ -286,7 +302,7 @@ function pintarSugerencias(lista) {
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = sugerido;
-        b.className = 'min-h-[40px] px-4 rounded-full border-2 border-black bg-white text-sm font-black hover:bg-zinc-100 active:translate-y-px';
+        b.className = 'font-mono min-h-[38px] px-4 rounded-full border border-white/15 bg-white/[0.06] text-xs font-semibold text-white hover:bg-white hover:text-black transition-colors active:translate-y-px';
         b.addEventListener('click', () => {
             $('usuario').value = sugerido;
             usuarioTocado = true;
@@ -407,7 +423,7 @@ function iniciarCuentaRegresiva() {
     clearInterval(temporizador);
     let restante = ESPERA_REENVIO;
     btnReenviar.disabled = true;
-    const pintar = () => { btnReenviar.textContent = `Reenviar código (${restante}s)`; };
+    const pintar = () => pintarBoton(btnReenviar, `Reenviar código (${restante}s)`, false);
     pintar();
     temporizador = setInterval(() => {
         restante--;
@@ -419,7 +435,7 @@ function iniciarCuentaRegresiva() {
 function habilitarReenvio() {
     clearInterval(temporizador);
     btnReenviar.disabled = false;
-    btnReenviar.textContent = 'Reenviar código';
+    pintarBoton(btnReenviar, 'Reenviar código', false);
 }
 
 // ---------- Acciones de cada paso ----------
@@ -580,7 +596,7 @@ $('btn-ver-password').addEventListener('click', (ev) => {
 btnReenviar.addEventListener('click', async () => {
     if (!datosActuales || ocupado) return;
     btnReenviar.disabled = true;
-    btnReenviar.textContent = 'Enviando...';
+    pintarBoton(btnReenviar, 'Enviando...', true);
     const enviado = await pedirCodigo(datosActuales, true);
     if (enviado) {
         mostrarToast('Te enviamos un código nuevo.', 'success');
