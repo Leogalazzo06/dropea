@@ -30,8 +30,17 @@
            - Inter: interfaz, textos y números (precios con cifras tabulares).
            - Bricolage Grotesque (.f-display): nombres y títulos. Se escriben en minúscula normal,
              sin cursiva ni mayúsculas forzadas, y con peso <= 700 para que las letras respiren. */
-        body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-feature-settings: 'calt', 'kern'; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-        .f-display { font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif; font-optical-sizing: auto; }
+        body { font-family: var(--f-cuerpo), 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-feature-settings: 'calt', 'kern'; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        .f-display { font-family: var(--f-titulo), 'Bricolage Grotesque', 'Inter', system-ui, sans-serif; font-optical-sizing: auto; }
+        /* TEMA DE LA TIENDA: cada tienda puede elegir color y tipografía (ver aplicarTemaTienda en
+           emprendedor.js). Estos son los valores originales, que se usan si no eligió nada. */
+        :root { --t-acento: #000000; --t-acento-texto: #ffffff; --t-acento-hover: #1e40af; --t-cinta: #1e40af;
+                --f-titulo: 'Bricolage Grotesque'; --f-cuerpo: 'Inter'; }
+        /* .t-acento pinta un elemento con el color de la tienda. Los :not() le dan más prioridad que
+           las utilidades de Tailwind (bg-black, hover:bg-*) y respetan los botones deshabilitados y el
+           check verde de "agregado" (.btn-add-ok). */
+        .t-acento:not(:disabled):not(.btn-add-ok) { background-color: var(--t-acento); border-color: var(--t-acento); color: var(--t-acento-texto); }
+        .t-acento:not(:disabled):not(.btn-add-ok):hover { background-color: var(--t-acento-hover); border-color: var(--t-acento-hover); color: var(--t-acento-texto); }
         h1, h2, h3 { text-wrap: balance; }
         #perfil-bio { text-wrap: pretty; }
         /* "clip" en vez de "hidden": bloquea igual el scroll horizontal pero no crea un
@@ -68,9 +77,10 @@
 
         /* Barra de anuncio: cinta azul con rayas sutiles + megáfono que "suena" al aparecer */
         .anuncio-cinta {
-            background-color: #1e40af;
+            background-color: var(--t-cinta);
             background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.055) 0 10px, transparent 10px 20px);
         }
+        #perfil-anuncio-wrap.anuncio-cinta { color: var(--t-acento-texto); }
         @keyframes anuncioSonar {
             0%, 100% { transform: rotate(0); }
             15% { transform: rotate(-16deg) scale(1.12); }
@@ -500,8 +510,8 @@
         .pill-icon { width: 2.75rem; padding: 0; justify-content: center; color: #6b7280; }
         a.pill[href]:hover { border-color: #000; color: #000; background: #fafafa; }
         .pill:active { transform: scale(.97); }
-        .pill-primary { background: #000; border-color: #000; color: #fff; font-weight: 700; }
-        a.pill-primary[href]:hover { background: #1e40af; border-color: #1e40af; color: #fff; }
+        .pill-primary { background: var(--t-acento); border-color: var(--t-acento); color: var(--t-acento-texto); font-weight: 700; }
+        a.pill-primary[href]:hover { background: var(--t-acento-hover); border-color: var(--t-acento-hover); color: var(--t-acento-texto); }
         @media (prefers-reduced-motion: reduce) { .pill { transition: none; } }
 
         /* Chips (medios de pago, los arma el JS) */
@@ -731,7 +741,7 @@
                         <div id="perfil-avatar-wrap" class="relative flex-shrink-0">
                             <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl overflow-hidden bg-white flex items-center justify-center ring-1 ring-zinc-200 shadow-sm">
                                 <img id="perfil-logo" src="" alt="" class="hidden w-full h-full object-cover">
-                                <span id="perfil-logo-inicial" class="w-full h-full flex items-center justify-center bg-black text-white f-display text-4xl sm:text-5xl font-bold" aria-hidden="true"></span>
+                                <span id="perfil-logo-inicial" class="t-acento w-full h-full flex items-center justify-center bg-black text-white f-display text-4xl sm:text-5xl font-bold" aria-hidden="true"></span>
                             </div>
                             <span class="absolute -bottom-1.5 -right-1.5 z-10 w-6 h-6 sm:w-7 sm:h-7 bg-black text-blue-400 rounded-full border-[3px] border-white shadow-sm flex items-center justify-center pointer-events-none" title="Emprendedor Verificado">
                                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
@@ -831,14 +841,14 @@
 
                 <!-- Carrito: solo en tiendas que reciben pedidos (.solo-pedidos lo oculta en modo catálogo) -->
                 <button type="button" onclick="abrirCarrito()" aria-label="Abrir carrito"
-                        class="solo-pedidos relative inline-flex items-center justify-center gap-2 h-9 sm:h-10 min-w-[2.25rem] px-2.5 sm:px-4 rounded-full bg-zinc-900 text-white text-xs font-semibold tracking-wide transition-all hover:bg-zinc-700 active:scale-95 flex-shrink-0">
+                        class="t-acento solo-pedidos relative inline-flex items-center justify-center gap-2 h-9 sm:h-10 min-w-[2.25rem] px-2.5 sm:px-4 rounded-full bg-zinc-900 text-white text-xs font-semibold tracking-wide transition-all hover:bg-zinc-700 active:scale-95 flex-shrink-0">
                     <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/>
                         <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                         <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
                     </svg>
                     <span class="max-sm:hidden">Carrito</span>
-                    <span id="badge-carrito" class="hidden absolute -top-1.5 -right-1 bg-blue-700 text-white text-[11px] font-semibold tabular-nums rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
+                    <span id="badge-carrito" class="t-acento hidden absolute -top-1.5 -right-1 bg-blue-700 text-white text-[11px] font-semibold tabular-nums rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
                 </button>
             </div>
 
@@ -978,7 +988,7 @@
                             <span id="modal-cantidad" class="w-8 text-center text-sm font-semibold text-zinc-900 tabular-nums" aria-live="polite">1</span>
                             <button onclick="modificarCantidadModal(1)" class="w-10 h-12 rounded-r-xl text-xl leading-none text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900" aria-label="Más">+</button>
                         </div>
-                        <button id="modal-btn-agregar" onclick="agregarAlCarrito()" class="flex-1 inline-flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-zinc-900 text-white text-sm font-semibold transition-colors enabled:hover:bg-zinc-800 enabled:active:scale-[.99] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2">
+                        <button id="modal-btn-agregar" onclick="agregarAlCarrito()" class="t-acento flex-1 inline-flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-zinc-900 text-white text-sm font-semibold transition-colors enabled:hover:bg-zinc-800 enabled:active:scale-[.99] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2">
                             <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/></svg>
                             <span id="modal-btn-agregar-texto">Agregar al carrito</span>
                         </button>
@@ -1096,7 +1106,7 @@
                     <span id="carrito-total" class="text-xl font-semibold tracking-tight text-zinc-900 tabular-nums">$0.00</span>
                 </div>
             </div>
-            <button id="carrito-whatsapp-btn" onclick="irACheckout()" class="relative overflow-hidden inline-flex items-center justify-center gap-2 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+            <button id="carrito-whatsapp-btn" onclick="irACheckout()" class="t-acento relative overflow-hidden inline-flex items-center justify-center gap-2 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
                 <span class="btn-texto">Continuar</span>
                 <svg class="btn-flecha w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6" />
@@ -1166,7 +1176,7 @@
         </div>
 
         <div id="carrito-footer-paso2" class="hidden border-t border-zinc-100 px-5 sm:px-6 pt-4 pb-5 flex-shrink-0 bg-white shadow-[0_-16px_32px_-24px_rgba(0,0,0,0.25)]">
-            <button id="co-enviar-btn" onclick="enviarPedidoWhatsapp()" class="inline-flex items-center justify-center gap-2.5 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+            <button id="co-enviar-btn" onclick="enviarPedidoWhatsapp()" class="t-acento inline-flex items-center justify-center gap-2.5 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
                 <svg id="co-enviar-ico-wsp" class="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
                 <span id="co-enviar-texto">Enviar pedido por WhatsApp</span>
             </button>
@@ -1222,7 +1232,7 @@
                 Ya tengo WhatsApp Web abierto
             </button>
 
-            <button onclick="confirmarPedidoEnviadoDesdeQr()" class="mt-3 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+            <button onclick="confirmarPedidoEnviadoDesdeQr()" class="t-acento mt-3 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                 Ya envié el pedido
             </button>
 
@@ -1248,7 +1258,7 @@
                 Tu carrito ya tiene productos de <strong id="conflicto-tienda-actual" class="text-black">otra tienda</strong>. Para pedirle a otro emprendedor termina tu compra actual.
             </p>
             <div class="mt-7 flex flex-col gap-3">
-                <button onclick="confirmarReemplazoCarrito()" class="w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+                <button onclick="confirmarReemplazoCarrito()" class="t-acento w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                     Vaciar carrito y agregar este
                 </button>
                 <button onclick="cerrarConflictoCarrito()" class="w-full border-2 border-black py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all active:scale-95">
@@ -1284,7 +1294,7 @@
                 </div>
             </div>
 
-            <button type="button" onclick="cerrarPedidoConfirmado()" class="mt-6 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+            <button type="button" onclick="cerrarPedidoConfirmado()" class="t-acento mt-6 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
                 Entendido
             </button>
         </div>
@@ -1341,68 +1351,56 @@
     </div>
 
 
-    <!-- FOOTER · Dropea -->
-    <footer class="relative overflow-hidden bg-zinc-950 text-white mt-12 sm:mt-20 rounded-t-3xl sm:rounded-t-[2.5rem]">
-
-        <!-- Destellos decorativos (mismo lenguaje que el logo). En mobile queda solo uno, chico. -->
-        <svg class="pointer-events-none absolute top-5 right-5 sm:top-8 sm:right-16 w-7 h-7 sm:w-12 sm:h-12 text-blue-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
-        <svg class="max-sm:hidden pointer-events-none absolute top-24 right-36 w-5 h-5 text-white/50" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z"/></svg>
-
-        <div class="container mx-auto max-w-7xl px-5 sm:px-6 pt-9 sm:pt-14 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-8">
-
-            <!-- Marca + llamado a la acción -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 sm:gap-10">
-                <div class="max-w-sm sm:max-w-md pr-10 sm:pr-0">
+    <!-- FOOTER · Dropea (mismo lenguaje que el footer de index.html) -->
+    <footer class="bg-[#050507] text-white border-t border-white/10 mt-12 sm:mt-20">
+        <div class="container mx-auto max-w-6xl px-5 sm:px-6 pt-14 sm:pt-16 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 sm:gap-10">
+                <div class="col-span-2 lg:col-span-1">
                     <a href="index.html" aria-label="Conocé Dropea" class="inline-block">
-                        <img src="dropea-logo.png" alt="Dropea" loading="lazy"
-                         class="h-12 sm:h-20 w-auto object-contain -ml-1 invert"
-                         onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
-                        <span class="hidden text-3xl sm:text-5xl font-black italic tracking-tight uppercase">Dropea</span>
+                        <img src="dropea-logo.png" alt="Dropea" loading="lazy" class="h-10 w-auto object-contain brightness-0 invert"
+                             onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                        <span class="hidden f-display text-2xl font-bold">Dropea</span>
                     </a>
-                    <p class="mt-3 sm:mt-4 text-sm sm:text-base font-semibold text-zinc-400 leading-relaxed">
+                    <p class="mt-4 text-sm text-zinc-400 leading-relaxed">
                         Esta tienda está hecha con Dropea. Creá el catálogo online de tu comercio y probalo 15 días gratis.
                     </p>
+                    <a href="registro.html" class="mt-5 inline-flex items-center justify-center min-h-[46px] px-5 py-2.5 rounded-full bg-white text-black hover:bg-zinc-200 text-xs font-bold transition-colors">
+                        Creá tu catálogo gratis
+                    </a>
                 </div>
 
-                <a href="registro.html"
-                   class="w-full sm:w-auto flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-full bg-white text-black text-sm sm:text-base font-bold shadow-[4px_4px_0_0_#60a5fa] sm:shadow-[5px_5px_0_0_#60a5fa] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[2px_2px_0_0_#60a5fa] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
-                    Creá tu catálogo gratis
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                </a>
-            </div>
-
-            <!-- Columnas de enlaces -->
-            <div class="mt-7 sm:mt-10 pt-7 sm:pt-8 border-t border-white/10 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8">
                 <nav aria-label="Enlaces rápidos">
                     <h2 class="f-display font-bold text-base">Enlaces rápidos</h2>
-                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a class="inline-block py-0.5 hover:text-blue-400 transition-colors" href="index.html">Inicio</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400 transition-colors" href="registro.html">Quiero mi perfil</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400 transition-colors" href="https://dropea.vercel.app/login">Ingresar</a></li>
+                    <ul class="mt-4 space-y-2.5 text-sm text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="index.html">Inicio</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="registro.html">Quiero mi perfil</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="https://dropea.vercel.app/login">Ingresar</a></li>
                     </ul>
                 </nav>
+
                 <nav aria-label="Legal">
                     <h2 class="f-display font-bold text-base">Legal</h2>
-                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a class="inline-block py-0.5 hover:text-blue-400 transition-colors" href="legales.html#terminos">Términos y condiciones</a></li>
-                        <li><a class="inline-block py-0.5 hover:text-blue-400 transition-colors" href="legales.html#privacidad">Política de privacidad</a></li>
+                    <ul class="mt-4 space-y-2.5 text-sm text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="legales.html#terminos">Términos y condiciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="legales.html#privacidad">Política de privacidad</a></li>
                     </ul>
                 </nav>
-                <div class="col-span-2 sm:col-span-1">
+
+                <div class="col-span-2 lg:col-span-1">
                     <h2 class="f-display font-bold text-base">Seguinos</h2>
-                    <ul class="mt-4 space-y-2.5 text-sm font-semibold text-zinc-400">
-                        <li><a href="https://www.instagram.com/dropea.app" target="_blank" rel="noopener" aria-label="Seguinos en Instagram" class="inline-flex items-center gap-3 py-1 hover:text-blue-400 transition-colors">
-                            <svg class="w-6 h-6 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" stroke="none"/></svg>
-                            @dropea.app</a></li>
+                    <ul class="mt-4 space-y-3 text-sm text-zinc-400">
+                        <li>
+                            <a href="https://www.instagram.com/dropea.app" target="_blank" rel="noopener" aria-label="Seguinos en Instagram" class="inline-flex items-center gap-3 py-1 hover:text-white transition-colors">
+                                <svg class="w-5 h-5 text-white flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" stroke="none"/></svg>
+                                @dropea.app
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
-
-            <!-- Créditos -->
-            <div class="mt-8 pt-5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs font-medium text-zinc-400">
-                <p>© 2026 Dropea. Todos los derechos reservados.</p>
-                <p>Diseñado y desarrollado por Hostara</p>
-            </div>
+            <p class="mt-12 pt-6 border-t border-white/10 text-xs text-zinc-500">
+                © 2026 Dropea · Diseñado y desarrollado por Hostara · Todos los derechos reservados
+            </p>
         </div>
     </footer>
 
