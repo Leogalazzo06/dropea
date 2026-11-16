@@ -30,6 +30,96 @@ function obtenerSlug() {
 
 // Los comercios escriben sus propios links (redes, mapa, logo, portada):
 // solo se aceptan http/https para que nadie pueda colar un "javascript:".
+// ============================================================
+// PORTADA: 1 imagen fija o hasta 3 que van rotando (con puntitos y swipe en mobile)
+// ============================================================
+let portadaTimer = null;
+
+function renderPortada(e) {
+    const cont = $('perfil-banner');
+    const marco = cont.parentElement;
+    const patron = $('perfil-banner-patron');
+    const skBanner = $('perfil-banner-skeleton');
+
+    clearInterval(portadaTimer);
+    portadaTimer = null;
+    cont.replaceChildren();
+    cont.style.backgroundImage = '';
+    const dotsViejos = document.getElementById('perfil-banner-dots');
+    if (dotsViejos) dotsViejos.remove();
+    marco.ontouchstart = marco.ontouchend = null;
+
+    const urls = bannersDeEmprendedor(e).map(urlSegura).filter(Boolean);
+    patron.classList.toggle('hidden', urls.length > 0);
+    if (!urls.length) { skBanner.classList.add('hidden'); return; }
+
+    // El shimmer sigue hasta que la primera imagen termine de cargar (o falle)
+    const pre = new Image();
+    pre.onload = pre.onerror = () => skBanner.classList.add('hidden');
+    pre.src = urls[0];
+
+    if (urls.length === 1) {
+        cont.style.backgroundImage = `url("${urls[0]}")`;
+        return;
+    }
+
+    // Varias: cada una es una capa; se muestran de a una con un fundido suave.
+    // Las 2 y 3 se piden recién cuando la primera ya cargó, para no frenarla.
+    const slides = urls.map((u, i) => {
+        const d = document.createElement('div');
+        d.className = 'absolute inset-0 bg-cover bg-center';
+        d.style.transition = 'opacity .7s ease';
+        d.style.opacity = i === 0 ? '1' : '0';
+        if (i === 0) d.style.backgroundImage = `url("${u}")`;
+        cont.appendChild(d);
+        return d;
+    });
+    const cargarResto = () => slides.forEach((d, i) => { if (i > 0) d.style.backgroundImage = `url("${urls[i]}")`; });
+    if (pre.complete) cargarResto(); else pre.addEventListener('load', cargarResto);
+
+    const dots = document.createElement('div');
+    dots.id = 'perfil-banner-dots';
+    dots.className = 'absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-10 flex items-center gap-1.5 px-2 py-1.5 rounded-full bg-black/35 backdrop-blur-sm';
+    const botones = urls.map((_, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('aria-label', `Ver imagen ${i + 1} de ${urls.length}`);
+        b.className = 'h-2 rounded-full bg-white transition-all';
+        b.onclick = (ev) => { ev.stopPropagation(); ir(i); reiniciar(); };
+        dots.appendChild(b);
+        return b;
+    });
+    marco.appendChild(dots);
+
+    let actual = 0;
+    function ir(n) {
+        actual = (n + slides.length) % slides.length;
+        slides.forEach((d, i) => { d.style.opacity = i === actual ? '1' : '0'; });
+        botones.forEach((b, i) => {
+            b.style.width = i === actual ? '1.25rem' : '0.5rem';
+            b.style.opacity = i === actual ? '1' : '0.55';
+        });
+    }
+    function reiniciar() {
+        clearInterval(portadaTimer);
+        portadaTimer = null;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        portadaTimer = setInterval(() => { if (!document.hidden) ir(actual + 1); }, 5000);
+    }
+    ir(0);
+    reiniciar();
+
+    // Swipe en mobile
+    let x0 = null;
+    marco.ontouchstart = (ev) => { x0 = ev.touches[0].clientX; };
+    marco.ontouchend = (ev) => {
+        if (x0 === null) return;
+        const dx = ev.changedTouches[0].clientX - x0;
+        x0 = null;
+        if (Math.abs(dx) > 45) { ir(actual + (dx < 0 ? 1 : -1)); reiniciar(); }
+    };
+}
+
 function urlSegura(valor) {
     let v = String(valor || '').trim();
     if (!v) return '';
@@ -218,7 +308,70 @@ async function refrescarPerfil(id) {
 // (todo el texto del comercio entra con textContent: nada de innerHTML
 // con datos que escribió otra persona)
 // ------------------------------------------------------------
+// ============================================================
+// TEMA DE LA TIENDA: color de acento + tipografía
+// ============================================================
+// Cada tienda puede elegir un color principal y una combinación de fuentes.
+// Se guardan en emprendedores.tema_color (hex) y emprendedores.tema_fuente (clave).
+// Si no hay nada guardado, la tienda se ve como siempre.
+const TEMA_FUENTES = {
+    actual:   { nombre: 'Actual',   titulo: "'Bricolage Grotesque'", cuerpo: "'Inter'",  css: null },
+    moderna:  { nombre: 'Moderna',  titulo: "'Plus Jakarta Sans'",   cuerpo: "'Inter'",  css: 'family=Plus+Jakarta+Sans:wght@500..800' },
+    elegante: { nombre: 'Elegante', titulo: "'Playfair Display'",    cuerpo: "'Inter'",  css: 'family=Playfair+Display:wght@500..800' },
+    amigable: { nombre: 'Amigable', titulo: "'Poppins'",             cuerpo: "'Nunito'", css: 'family=Poppins:wght@500;600;700&family=Nunito:wght@400;500;600;700' },
+    urbana:   { nombre: 'Urbana',   titulo: "'Space Grotesk'",       cuerpo: "'Inter'",  css: 'family=Space+Grotesk:wght@500..700' }
+};
+
+function temaHexValido(h) { return typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h); }
+
+function temaLuminancia(hex) {
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map(v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// Mezcla el color con negro (con=0) o blanco (con=255) en la proporción f (0 a 1)
+function temaMezclar(hex, con, f) {
+    const c = [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - f) + con * f));
+    return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+// Colores derivados del acento: texto legible encima (blanco u oscuro), hover y cinta.
+// Sin color elegido devuelve los valores originales de la tienda.
+function temaCalcular(hex) {
+    if (!temaHexValido(hex)) return { acento: '#000000', texto: '#ffffff', hover: '#1e40af', cinta: '#1e40af' };
+    const lum = temaLuminancia(hex);
+    const h = hex.toLowerCase();
+    return {
+        acento: h,
+        texto: lum > 0.4 ? '#111111' : '#ffffff',
+        hover: lum < 0.08 ? temaMezclar(h, 255, 0.25) : temaMezclar(h, 0, 0.18),
+        cinta: h
+    };
+}
+
+// Aplica el tema de la tienda (variables CSS definidas en tienda.html) y carga la fuente elegida
+function aplicarTemaTienda(e) {
+    const t = temaCalcular(e && e.tema_color);
+    const f = TEMA_FUENTES[e && e.tema_fuente] || TEMA_FUENTES.actual;
+    const s = document.documentElement.style;
+    s.setProperty('--t-acento', t.acento);
+    s.setProperty('--t-acento-texto', t.texto);
+    s.setProperty('--t-acento-hover', t.hover);
+    s.setProperty('--t-cinta', t.cinta);
+    s.setProperty('--f-titulo', f.titulo);
+    s.setProperty('--f-cuerpo', f.cuerpo);
+    if (f.css && !document.getElementById('tema-fuente-link')) {
+        const l = document.createElement('link');
+        l.id = 'tema-fuente-link';
+        l.rel = 'stylesheet';
+        l.href = 'https://fonts.googleapis.com/css2?' + f.css + '&display=swap';
+        document.head.appendChild(l);
+    }
+}
+
 function renderPerfil(e) {
+    aplicarTemaTienda(e);
     const nombre = (e.nombre_tienda || '').trim() || 'Tienda';
     const bio = (e.bio || '').trim();
     const pedidos = pedidosActivos(e);
@@ -244,19 +397,8 @@ function renderPerfil(e) {
     $('perfil-anuncio-texto').textContent = anuncio;
     $('perfil-anuncio-wrap').classList.toggle('hidden', !anuncio);
 
-    // Portada (si no hay, se muestra el fondo por defecto de marca)
-    const banner = urlSegura(e.banner_url);
-    $('perfil-banner').style.backgroundImage = banner ? `url("${banner}")` : '';
-    $('perfil-banner-patron').classList.toggle('hidden', !!banner);
-    // El shimmer de la portada sigue hasta que la imagen termine de cargar (o falle)
-    const skBanner = $('perfil-banner-skeleton');
-    if (banner) {
-        const pre = new Image();
-        pre.onload = pre.onerror = () => skBanner.classList.add('hidden');
-        pre.src = banner;
-    } else {
-        skBanner.classList.add('hidden');
-    }
+    // Portada: hasta 3 imágenes en rotación (si no hay, se muestra el fondo por defecto de marca)
+    renderPortada(e);
 
     // Logo (si no hay o no carga, se muestra la inicial)
     const logoImg = $('perfil-logo');
@@ -1201,12 +1343,19 @@ function crearCardProducto(p) {
     }
 
     const badges = el('div', 'absolute top-2 left-2 flex flex-col items-start gap-1');
-    if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 'bg-blue-800 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
+    if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 't-acento bg-blue-800 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
     if (!sinStock && pct > 0) badges.appendChild(el('span', 'bg-red-600 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', `-${pct}%`));
+    // Carteles propios del comercio (Promoción, 2x1...): los 3 en una sola fila al pie de la foto
+    const badgesPropios = !sinStock ? normalizarBadges(p.badges) : [];
+    if (badgesPropios.length) {
+        const fila = el('div', 'absolute bottom-2 left-2 right-2 flex flex-nowrap items-center gap-1');
+        badgesPropios.forEach(b => fila.appendChild(crearElementoBadge(b, 'card')));
+        wrap.appendChild(fila);
+    }
     if (badges.children.length) wrap.appendChild(badges);
 
     if (p.destacado && !sinStock) {
-        const star = el('span', 'absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md shadow-blue-800/40');
+        const star = el('span', 't-acento absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md shadow-blue-800/40');
         star.title = 'Destacado';
         star.innerHTML = '<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 2.5z"/></svg>';
         wrap.appendChild(star);
@@ -1237,7 +1386,7 @@ function crearCardProducto(p) {
         return card;
     }
 
-    const add = el('button', 'solo-pedidos flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-blue-800 hover:text-white transition-all active:scale-90');
+    const add = el('button', 't-acento solo-pedidos flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-blue-800 hover:text-white transition-all active:scale-90');
     add.type = 'button';
     add.setAttribute('aria-label', `Agregar ${p.nombre || 'producto'} al carrito`);
     add.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>';
@@ -1387,6 +1536,11 @@ function abrirModalProducto(id) {
     $('modal-categoria').textContent = nombreCategoriaProducto(p);
     const sinStock = productoSinStock(p);
     $('modal-badge-nuevo').classList.toggle('hidden', sinStock || !esProductoNuevoVigente(p));
+    const contBadges = $('modal-badges-custom');
+    if (contBadges) {
+        contBadges.replaceChildren();
+        if (!sinStock) normalizarBadges(p.badges).forEach(b => contBadges.appendChild(crearElementoBadge(b, 'modal')));
+    }
     $('modal-badge-sin-stock').classList.toggle('hidden', !sinStock);
     const dest = $('modal-badge-destacado');
     dest.classList.toggle('hidden', !p.destacado || sinStock);
@@ -1434,7 +1588,7 @@ function abrirModalProducto(id) {
         link.innerHTML = iconoWsp + '<span>¿Dudas? Consultar por el producto</span>';
         link.className = conCarrito
             ? 'mt-3 inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-zinc-300 bg-white text-zinc-800 text-sm font-semibold hover:bg-zinc-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2'
-            : 'inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2';
+            : 't-acento inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2';
         link.rel = 'noopener';
     } else {
         link.removeAttribute('href');
@@ -1603,7 +1757,7 @@ function renderVariantesModal() {
                 'min-w-[2.75rem] px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ' +
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 ' +
                 (sinStock ? 'border-zinc-200 bg-zinc-50 text-zinc-300 line-through cursor-not-allowed'
-                    : activa ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : activa ? 't-acento border-zinc-900 bg-zinc-900 text-white'
                     : 'border-zinc-300 bg-white text-zinc-800 hover:border-zinc-900'),
                 (v.valor || '').trim() || '—');
             b.type = 'button';
@@ -2215,7 +2369,7 @@ function renderMediosPagoCheckout() {
     medios.forEach(id => {
         const activo = medioPagoElegido === id;
         const b = el('button', 'flex items-center justify-center gap-2 rounded-xl border py-3 px-2 text-xs font-semibold transition-all [&>span>svg]:w-4 [&>span>svg]:h-4 ' +
-            (activo ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'));
+            (activo ? 't-acento border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'));
         b.type = 'button';
         b.setAttribute('role', 'radio');
         b.setAttribute('aria-checked', activo ? 'true' : 'false');
