@@ -292,6 +292,74 @@ function diasRestantesNuevo(p) {
 
 
 // ============================================================
+// CARTELES (BADGES) PERSONALIZADOS: los crea cada comercio para sus
+// productos ("Promoción", "2x1", "Últimas unidades"...). Se guardan en
+// productos.badges (jsonb): [{ "texto": "2x1", "color": "#dc2626" }]
+// ============================================================
+const MAX_BADGES_PRODUCTO = 3;
+const MAX_LARGO_BADGE = 18;
+const BADGE_COLORES = ['#dc2626', '#ea580c', '#d97706', '#16a34a', '#0d9488', '#2563eb', '#7c3aed', '#db2777', '#18181b'];
+const BADGES_SUGERIDOS = [
+    { texto: 'Promoción',        color: '#dc2626' },
+    { texto: '2x1',              color: '#ea580c' },
+    { texto: 'Oferta',           color: '#16a34a' },
+    { texto: 'Últimas unidades', color: '#7c3aed' },
+    { texto: 'Envío gratis',     color: '#2563eb' },
+    { texto: 'Liquidación',      color: '#18181b' }
+];
+
+// Limpia lo que viene de la base (o del formulario): texto acotado, color hex válido, máximo 3.
+function normalizarBadges(lista) {
+    if (!Array.isArray(lista)) return [];
+    return lista
+        .map(b => ({
+            texto: String((b && b.texto) || '').replace(/\s+/g, ' ').trim().slice(0, MAX_LARGO_BADGE),
+            color: /^#[0-9a-f]{6}$/i.test((b && b.color) || '') ? b.color.toLowerCase() : '#18181b'
+        }))
+        .filter(b => b.texto)
+        .slice(0, MAX_BADGES_PRODUCTO);
+}
+
+// Blanco o casi negro según qué tan claro es el fondo, para que el texto siempre se lea.
+function colorTextoParaFondo(hex) {
+    const h = String(hex || '').replace('#', '');
+    if (h.length !== 6) return '#ffffff';
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 170 ? '#18181b' : '#ffffff';
+}
+
+// Crea el elemento de un cartel para la tienda. variante: 'card' (sobre la foto) o 'modal' (detalle).
+function crearElementoBadge(b, variante = 'card') {
+    const span = document.createElement('span');
+    span.className = variante === 'modal'
+        ? 'px-2.5 py-1 rounded-md text-xs font-semibold'
+        : 'min-w-0 truncate text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow-sm';
+    span.style.backgroundColor = b.color;
+    span.style.color = colorTextoParaFondo(b.color);
+    span.textContent = b.texto;
+    return span;
+}
+
+
+// ============================================================
+// PORTADA CON HASTA 3 IMÁGENES
+// La primera sigue guardándose en emprendedores.banner_url (así todo lo que ya la usa
+// sigue funcionando) y las otras en emprendedores.banners_extra (jsonb: ["url2", "url3"]).
+// ============================================================
+const MAX_BANNERS_PORTADA = 3;
+
+function bannersDeEmprendedor(e) {
+    if (!e) return [];
+    const extra = Array.isArray(e.banners_extra) ? e.banners_extra : [];
+    const vistos = new Set();
+    return [e.banner_url, ...extra]
+        .map(u => String(u || '').trim())
+        .filter(u => u && !vistos.has(u) && vistos.add(u))
+        .slice(0, MAX_BANNERS_PORTADA);
+}
+
+
+// ============================================================
 // VARIOS
 // ============================================================
 function debounce(fn, espera = 350) {
