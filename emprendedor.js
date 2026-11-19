@@ -198,7 +198,11 @@ function mostrarError(tipo) {
         $('error-texto').textContent = 'Revisá que el link esté bien escrito o pedile uno nuevo al comercio.';
         $('error-reintentar').classList.add('hidden');
     }
-    // Con error no hay catálogo que mostrar: se saca también el skeleton
+    // La promo de Dropea no va si el problema es la conexión (ahí lo único útil es reintentar)
+    const promo = $('error-promo');
+    if (promo) promo.classList.toggle('hidden', tipo === 'conexion');
+    // Con error no hay catálogo ni portada que mostrar: solo queda el aviso
+    $('perfil-portada').classList.add('hidden');
     $('seccion-catalogo').classList.add('hidden');
     ocultarSkeletonCatalogo();
     mostrarEstado('error');
