@@ -3,6 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link directo a un producto (?producto=<id>): se marca el <html> desde el primer instante para que el splash
+         "Cargando producto" aparezca antes de que lleguen los datos. emprendedor.js lo quita (con un tiempo mínimo
+         para que se vea completo) al abrir el modal, o enseguida si el producto no existe. El timeout es solo una
+         red de seguridad si algo falla. -->
+    <script>
+        (function () {
+            var h = document.documentElement, meta = null, orig = null;
+            if (!new URLSearchParams(location.search).has('producto')) return;
+            h.classList.add('cargando-producto');
+            // La barra de estado del celular toma el color del splash mientras está visible
+            document.addEventListener('DOMContentLoaded', function () {
+                meta = document.querySelector('meta[name="theme-color"]');
+                if (meta && h.classList.contains('cargando-producto')) { orig = meta.content; meta.content = '#000000'; }
+            });
+            window.__splashProducto = {
+                inicio: Date.now(),
+                quitar: function () {
+                    h.classList.remove('cargando-producto');
+                    if (meta && orig !== null) { meta.content = orig; orig = null; }
+                }
+            };
+            setTimeout(window.__splashProducto.quitar, 15000);
+        })();
+    </script>
     <title>Tienda | Dropea</title>
     <meta name="description" content="Catálogo online">
     <meta name="theme-color" content="#ffffff">
@@ -636,11 +660,87 @@
         .banner-default .bn-titilar-2 { animation-delay: -2.4s; animation-duration: 6.5s; }
         @media (prefers-reduced-motion: reduce) { .banner-default .bn-titilar { animation: none; } }
 
+        /* SPLASH DE PRODUCTO (link directo ?producto=<id>)
+           Pantalla completa sobria y neutra, para que sirva a cualquier comercio: negro puro, logo de Dropea en
+           blanco, título, tres puntos y una barra de carga blanca. Aparece desde el primer pintado (CSS propio,
+           sin Tailwind) y se desvanece cuando el modal del producto está listo para abrirse. */
+        html.cargando-producto, html.cargando-producto body { overflow: hidden; }
+        #splash-producto {
+            position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+            background: #000; color: #fff; overflow: hidden;
+            opacity: 0; visibility: hidden; pointer-events: none; transform: scale(1.025);
+            transition: opacity .5s ease, transform .6s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .6s;
+        }
+        html.cargando-producto #splash-producto { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: none; }
+        .sp-centro { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 1.5rem; margin-top: -4vh; }
+        .sp-marca { display: flex; align-items: center; justify-content: center; margin-bottom: 1.75rem; }
+        .sp-logo { height: 2.75rem; width: auto; max-width: 62vw; object-fit: contain; filter: brightness(0) invert(1); animation: spFlota 3.2s ease-in-out infinite; }
+        .sp-logo-txt { font-size: 2.25rem; font-weight: 700; letter-spacing: -.02em; }
+        .sp-titulo { position: relative; margin: 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
+        .sp-puntos { position: absolute; left: 100%; top: 58%; translate: 0 -50%; display: inline-flex; gap: .22em; margin-left: .3em; }
+        .sp-puntos i { display: block; width: .28em; height: .28em; border-radius: 9999px; background: #fff; animation: spPunto 1.2s ease-in-out infinite; }
+        .sp-puntos i:nth-child(2) { animation-delay: .15s; }
+        .sp-puntos i:nth-child(3) { animation-delay: .3s; }
+        .sp-barra { position: relative; margin-top: 1.5rem; width: 11rem; height: 2px; border-radius: 9999px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+        .sp-barra span { position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: inherit; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .75), #fff); animation: spBarra 1.35s cubic-bezier(.65, 0, .35, 1) infinite; }
+        .sp-sub { margin: 1rem 0 0; font-size: .8125rem; font-weight: 500; color: #a1a1aa; }
+        .sp-saltar {
+            position: absolute; left: 50%; translate: -50% 0; bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            min-height: 2.75rem; padding: 0 1.25rem; border-radius: 9999px; cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .06); color: #d4d4d8;
+            font-size: .8125rem; font-weight: 600; opacity: 0;
+        }
+        .sp-saltar:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+        .sp-saltar:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, .35); }
+        html.cargando-producto .sp-centro > * { animation: spSube .75s cubic-bezier(.16, 1, .3, 1) both; }
+        html.cargando-producto .sp-centro > :nth-child(2) { animation-delay: .1s; }
+        html.cargando-producto .sp-centro > :nth-child(3) { animation-delay: .18s; }
+        html.cargando-producto .sp-centro > :nth-child(4) { animation-delay: .26s; }
+        html.cargando-producto .sp-saltar { animation: spAparece .5s ease 6s both; }
+        @keyframes spSube { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes spAparece { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes spFlota { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes spPunto { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-.22em); } }
+        @keyframes spBarra { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+        @media (min-width: 640px) {
+            .sp-logo { height: 3.25rem; }
+            .sp-titulo { font-size: 2.25rem; }
+            .sp-sub { font-size: .875rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .sp-logo, .sp-puntos i { animation: none; }
+            .sp-barra span { animation: none; left: 30%; }
+            html.cargando-producto .sp-centro > * { animation: none; }
+            html.cargando-producto .sp-saltar { animation-duration: .01s; }
+            #splash-producto { transition-duration: .01s; }
+        }
+
         /* Tarjeta de producto */
         .prod-card { transition: box-shadow .45s cubic-bezier(.16, 1, .3, 1), border-color .25s ease; }
         @media (hover: hover) {
             .prod-card:hover { border-color: #d1d5db; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
         }
+
+        /* Botón "Ver producto" de la card: mismo lenguaje que los .pill (borde fino, redondeado, Inter semibold).
+           En reposo es discreto; al pasar el mouse toma el color de la tienda. */
+        .pc-ver {
+            display: flex; align-items: center; justify-content: center; gap: .375rem;
+            width: 100%; min-height: 2.5rem; margin-top: .75rem; padding: 0 1rem;
+            border: 1.5px solid #e4e4e7; border-radius: 9999px; background: #fff; color: #18181b;
+            font-size: .8125rem; font-weight: 600; letter-spacing: .01em; line-height: 1;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .15s ease;
+        }
+        .pc-ver svg { width: .8rem; height: .8rem; flex-shrink: 0; transition: transform .25s cubic-bezier(.16, 1, .3, 1); }
+        .pc-ver:active { transform: scale(.97); }
+        .pc-ver:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(24,24,27,.18); }
+        @media (hover: hover) {
+            .prod-card:hover .pc-ver { border-color: #a1a1aa; }
+            .pc-ver:hover { background: var(--t-acento); border-color: var(--t-acento); color: var(--t-acento-texto); }
+            .pc-ver:hover svg { transform: translateX(3px); }
+        }
+        @media (min-width: 640px) { .pc-ver { min-height: 2.75rem; font-size: .875rem; } }
+        @media (prefers-reduced-motion: reduce) { .pc-ver, .pc-ver svg { transition: none; } }
 
         /* Botón flotante "subir": aparece mientras se scrollea y se oculta al frenar.
            Usa las propiedades individuales translate/scale para no pisar el hover (transform) */
@@ -659,6 +759,21 @@
     </style>
 </head>
 <body class="bg-white text-black overflow-x-clip modo-catalogo min-h-screen min-h-[100dvh] flex flex-col">
+
+    <!-- SPLASH DE PRODUCTO: solo se ve con ?producto=<id> hasta que abre el modal (ver CSS "SPLASH DE PRODUCTO") -->
+    <div id="splash-producto" role="status" aria-live="polite" aria-label="Cargando producto">
+        <div class="sp-centro">
+            <div class="sp-marca">
+                <img class="sp-logo" src="dropea-logo.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <span class="sp-logo-txt f-display" style="display:none">Dropea</span>
+            </div>
+            <p class="sp-titulo f-display">Cargando producto<span class="sp-puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>
+            <div class="sp-barra" aria-hidden="true"><span></span></div>
+            <p class="sp-sub">Estamos preparando las fotos y los detalles</p>
+        </div>
+        <!-- Si tarda mucho (aparece a los 6 s), se puede entrar directo a la tienda -->
+        <button type="button" class="sp-saltar" onclick="cerrarModal()">Ir a la tienda</button>
+    </div>
 
     <!-- BARRA DE ANUNCIO (solo si el comercio cargó un texto) -->
     <div id="perfil-anuncio-wrap" class="hidden anuncio-cinta anuncio-entra border-b-2 border-black text-white" role="status" aria-live="polite">
