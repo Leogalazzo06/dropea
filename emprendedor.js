@@ -205,6 +205,7 @@ function mostrarError(tipo) {
     $('perfil-portada').classList.add('hidden');
     $('seccion-catalogo').classList.add('hidden');
     ocultarSkeletonCatalogo();
+    quitarCargandoProducto();
     mostrarEstado('error');
 }
 
@@ -604,6 +605,8 @@ async function cargarCatalogo(emprendedorId) {
         v.classList.remove('hidden');
         $('catalogo-contenido').replaceChildren();
         ocultarSkeletonCatalogo();
+        productoDeLaURL = null;
+        quitarCargandoProducto();
         return;
     }
 
@@ -662,7 +665,15 @@ async function cargarCatalogo(emprendedorId) {
     if (productoDeLaURL) {
         const id = productoDeLaURL;
         productoDeLaURL = null;
-        if (productosTienda.some(p => String(p.id) === String(id))) abrirModalProducto(id);
+        const existe = productosTienda.some(p => String(p.id) === String(id));
+        // Con el splash en pantalla se espera lo justo para que se vea completo; si lo cancelaron
+        // con "Ir a la tienda" mientras tanto, no se abre nada.
+        if (splashProductoActivo()) {
+            await esperarSplashMinimo();
+            if (!splashProductoActivo()) return;
+        }
+        if (existe) abrirModalProducto(id);
+        else productoNoDisponibleDeLaURL();
     }
 }
 
@@ -1310,6 +1321,18 @@ function agregarLoaderLogo(wrap, img) {
     img.addEventListener('error', () => { if (++errores >= 2) quitar(); });
 }
 
+// Botón "Ver producto": abre el modal con descripción, fotos y variantes. Se muestra siempre
+// (también sin stock y en modo catálogo) para que el cliente sepa que la card tiene detalle.
+function crearBotonVerProducto(p) {
+    const b = el('button', 'pc-ver');
+    b.type = 'button';
+    b.setAttribute('aria-label', `Ver detalle de ${p.nombre || 'producto'}`);
+    b.innerHTML = '<span>Ver producto</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
+    b.onclick = (ev) => { ev.stopPropagation(); abrirModalProducto(p.id); };
+    b.onkeydown = (ev) => ev.stopPropagation();   // Enter/espacio los resuelve el propio botón
+    return b;
+}
+
 function crearCardProducto(p) {
     const pct = calcularDescuentoPorcentaje(p.precio_anterior, p.precio);
 
@@ -1386,6 +1409,7 @@ function crearCardProducto(p) {
     // Sin stock: no hay botón de agregar (la card igual abre el detalle)
     if (sinStock) {
         body.appendChild(fila);
+        body.appendChild(crearBotonVerProducto(p));
         card.append(wrap, body);
         return card;
     }
@@ -1398,6 +1422,7 @@ function crearCardProducto(p) {
     fila.appendChild(add);
 
     body.appendChild(fila);
+    body.appendChild(crearBotonVerProducto(p));
     card.append(wrap, body);
     return card;
 }
@@ -1489,6 +1514,32 @@ function textoVariantes(elegidas) {
 // Poné 0 para que el loader solo aparezca si la foto realmente tarda.
 const MODAL_IMG_LOADER_MIN_MS = 700;
 let modalImgToken = 0;
+
+// ---- Link directo a un producto (?producto=<id>) ----
+// tienda.html marca <html class="cargando-producto"> desde el primer pintado y muestra el splash
+// "Cargando producto". Se quita al abrir el modal real, si el producto no existe, o si la tienda falla.
+const SPLASH_PRODUCTO_MIN_MS = 1000;   // tiempo mínimo en pantalla, para que no parpadee si el catálogo llega rápido
+function quitarCargandoProducto() {
+    if (window.__splashProducto) window.__splashProducto.quitar();   // también devuelve el color de la barra de estado
+    else document.documentElement.classList.remove('cargando-producto');
+}
+function splashProductoActivo() {
+    return document.documentElement.classList.contains('cargando-producto');
+}
+function esperarSplashMinimo() {
+    const inicio = (window.__splashProducto && window.__splashProducto.inicio) || 0;
+    const falta = SPLASH_PRODUCTO_MIN_MS - (Date.now() - inicio);
+    return falta > 0 ? new Promise(r => setTimeout(r, falta)) : Promise.resolve();
+}
+function productoNoDisponibleDeLaURL() {
+    quitarCargandoProducto();
+    try {
+        const u = new URL(window.location.href);
+        u.searchParams.delete('producto');
+        history.replaceState(null, '', u.href);
+    } catch { /* noop */ }
+    mostrarToastCarrito('Ese producto ya no está disponible', { aviso: true, detalle: 'Puede que se haya eliminado o que el link esté incompleto.' });
+}
 
 function abrirModalProducto(id) {
     const p = productosTienda.find(x => String(x.id) === String(id));
@@ -1602,6 +1653,7 @@ function abrirModalProducto(id) {
 
     $('modal-producto-overlay').classList.add('abierto');
     $('modal-producto').classList.add('abierto');
+    quitarCargandoProducto();   // si venía de un link directo, el splash se desvanece mientras sube el modal
     actualizarBloqueoScroll();
 
     // Link compartible
@@ -1613,6 +1665,9 @@ function abrirModalProducto(id) {
 }
 
 function cerrarModal() {
+    // También cancela el splash "Cargando producto" (link directo): si el catálogo llega después, no se abre solo
+    productoDeLaURL = null;
+    quitarCargandoProducto();
     $('modal-producto-overlay').classList.remove('abierto');
     $('modal-producto').classList.remove('abierto');
     productoAbierto = null;
