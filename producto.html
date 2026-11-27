@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producto | Dropea</title>
+    <meta name="description" content="Detalle de producto">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="shortcut icon" href="favicon-96x96.png">
+    <link rel="preload" as="image" href="dropea-logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4VW1XRETH4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-4VW1XRETH4');
+    </script>
+
+    <style>
+        body {
+            font-family: var(--f-cuerpo), 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            font-feature-settings: 'calt', 'kern';
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+        .f-display {
+            font-family: var(--f-titulo), 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+            font-optical-sizing: auto;
+        }
+        :root {
+            --t-acento: #000000;
+            --t-acento-texto: #ffffff;
+            --t-acento-hover: #1e40af;
+            --t-cinta: #1e40af;
+            --f-titulo: 'Bricolage Grotesque';
+            --f-cuerpo: 'Inter';
+        }
+        .t-acento:not(:disabled):not(.btn-add-ok) {
+            background-color: var(--t-acento);
+            border-color: var(--t-acento);
+            color: var(--t-acento-texto);
+        }
+        .t-acento:not(:disabled):not(.btn-add-ok):hover {
+            background-color: var(--t-acento-hover);
+            border-color: var(--t-acento-hover);
+            color: var(--t-acento-texto);
+        }
+
+        h1, h2, h3 { text-wrap: balance; }
+        html, body { overflow-x: clip; max-width: 100%; }
+        @supports not (overflow: clip) { html, body { overflow-x: hidden; } }
+        .hidden { display: none !important; }
+
+        /* Scrollbars discretas */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #d4d4d8; border: 3px solid transparent; background-clip: content-box; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #a1a1aa; }
+        @supports (-moz-appearance: none) { * { scrollbar-width: thin; scrollbar-color: #d4d4d8 transparent; } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn .45s cubic-bezier(.16, 1, .3, 1) forwards; }
+
+        /* Modo catálogo (sin carrito) */
+        .modo-catalogo .solo-pedidos { display: none !important; }
+
+        /* Cinta de anuncio */
+        .anuncio-cinta {
+            background-color: var(--t-cinta);
+            background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.055) 0 10px, transparent 10px 20px);
+        }
+        #perfil-anuncio-wrap.anuncio-cinta { color: var(--t-acento-texto); }
+
+        /* Skeleton con shimmer */
+        .cp-skeleton { position: relative; overflow: hidden; background-color: #e2e4e8; }
+        .cp-skeleton::after {
+            content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.75) 50%, rgba(255,255,255,0) 100%);
+            animation: cpShimmer 1.4s ease-in-out infinite;
+        }
+        @keyframes cpShimmer { 100% { transform: translateX(100%); } }
+        @media (prefers-reduced-motion: reduce) { .cp-skeleton::after { animation: none; } }
+
+        /* Loader imagen principal */
+        #prod-img.cargando { opacity: 0; }
+        #prod-img-loader {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none; transition: opacity .3s ease;
+        }
+        #prod-img-loader.oculto { opacity: 0; }
+        @keyframes logoPulso { 0%, 100% { transform: scale(.92); opacity: .35; } 50% { transform: scale(1); opacity: .85; } }
+        #prod-img-loader .logo-pulso {
+            position: relative; z-index: 1; height: 2.5rem; width: auto; max-width: 45%; object-fit: contain;
+            animation: logoPulso 1.3s ease-in-out infinite;
+        }
+
+        /* Botón agregado al carrito */
+        .btn-add-ok { background-color: #16a34a !important; border-color: #16a34a !important; color: #fff !important; animation: addPopAncho .35s ease-out, addRing .6s ease-out; }
+        .btn-add-ok path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: addCheck .3s .08s ease-out forwards; }
+        @keyframes addPopAncho { 0% { transform: scale(.96); } 100% { transform: scale(1); } }
+        @keyframes addRing { from { box-shadow: 0 0 0 0 rgba(22,163,74,.55); } to { box-shadow: 0 0 0 12px rgba(22,163,74,0); } }
+        @keyframes addCheck { to { stroke-dashoffset: 0; } }
+
+        /* Banner "Ya está en tu carrito" */
+        .mec { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px 10px 10px 12px; border-radius: 14px; background: #eff6ff; border: 1px solid #dbeafe; animation: tcIn .25s ease-out; }
+        .mec-ico { width: 28px; height: 28px; border-radius: 999px; background: #1e40af; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .mec-ico svg { width: 14px; height: 14px; color: #fff; }
+        .mec-txt { flex: 1; min-width: 0; }
+        .mec-t { font-size: 14px; font-weight: 600; line-height: 1.3; color: #18181b; }
+        .mec-d { margin-top: 2px; font-size: 13px; line-height: 1.35; color: #52525b; white-space: pre-line; overflow-wrap: anywhere; }
+        .mec-d:empty { display: none; }
+        .mec-ver { flex-shrink: 0; height: 32px; padding: 0 12px; border-radius: 10px; background: #fff; border: 1px solid #bfdbfe; color: #1e40af; font-size: 12px; font-weight: 600; transition: background .15s, transform .15s; }
+        .mec-ver:hover { background: #dbeafe; }
+        .mec-ver:active { transform: scale(.96); }
+
+        /* Chips (medios de pago) */
+        .chip {
+            white-space: nowrap; display: inline-flex; align-items: center; gap: .35rem;
+            padding: .3rem .65rem; border-radius: 9999px; background: #fff; border: 1px solid #e5e7eb;
+            font-size: 12px; font-weight: 600; color: #18181b;
+        }
+
+        /* Zoom en galería */
+        .zoom-badge { transition: opacity .25s ease, transform .25s ease; }
+        @media (hover: hover) {
+            .zoom-trigger:hover .zoom-badge { opacity: 1; transform: scale(1); }
+            .zoom-trigger:hover .zoom-img { transform: scale(1.03); }
+        }
+
+        /* Lightbox */
+        #lightbox-imagen-overlay { background: rgba(0,0,0,0.55); opacity: 0; transition: opacity .25s ease; }
+        #lightbox-imagen.abierto #lightbox-imagen-overlay { opacity: 1; }
+        #lightbox-imagen-viewport {
+            position: relative; z-index: 5; flex: 1 1 auto; min-height: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+            padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
+            overflow: hidden; touch-action: none; user-select: none;
+        }
+        #lightbox-imagen-marco {
+            position: relative; display: flex; background: #fff; border-radius: 16px; overflow: hidden;
+            opacity: 0; transform: translateY(12px) scale(0.97);
+            transition: opacity .35s ease, transform .45s cubic-bezier(.16,1,.3,1);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.45);
+        }
+        #lightbox-imagen.abierto #lightbox-imagen-marco { opacity: 1; transform: translateY(0) scale(1); }
+        #lightbox-imagen-img {
+            display: block; width: auto; height: auto;
+            max-width: min(calc(100vw - 2rem), 1100px);
+            max-height: calc(100dvh - 11rem);
+            min-width: min(78vw, 320px); min-height: min(44vh, 280px);
+            object-fit: contain; opacity: 0; transition: opacity .32s ease; touch-action: none; will-change: transform;
+        }
+        #lightbox-imagen-img.abierto { opacity: 1; }
+        #lightbox-imagen-img.lb-transicion { transition: opacity .28s ease, transform .28s cubic-bezier(.16,1,.3,1); }
+        .lightbox-btn-cerrar {
+            position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;
+            width: 2.5rem; height: 2.5rem; border-radius: 9999px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; background: #1d4ed8; border: 2px solid #fff;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35); cursor: pointer; transition: background .2s, transform .2s;
+        }
+        .lightbox-btn-cerrar:hover { background: #1e40af; }
+        .lightbox-btn-cerrar:active { transform: scale(0.92); }
+        .lightbox-chrome {
+            position: relative; flex: 0 0 auto; max-width: 100%; z-index: 20;
+            display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 0 1rem;
+            pointer-events: none; opacity: 0; transform: translateY(10px);
+            transition: opacity .35s ease .08s, transform .4s cubic-bezier(.16,1,.3,1) .08s;
+        }
+        #lightbox-imagen.abierto .lightbox-chrome { opacity: 1; transform: translateY(0); }
+        .lightbox-titulo {
+            max-width: 100%; padding: 0.55rem 1rem; border-radius: 9999px; color: #fff;
+            background: rgba(24,24,27,0.66); border: 1px solid rgba(255,255,255,0.14);
+            font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .lightbox-titulo:empty { display: none; }
+        .lightbox-zoom-bar {
+            pointer-events: auto; display: flex; align-items: center; gap: 2px; padding: 4px;
+            border-radius: 9999px; background: rgba(24,24,27,0.66); border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .lightbox-zoom-btn {
+            width: 2.5rem; height: 2.5rem; border-radius: 9999px;
+            display: flex; align-items: center; justify-content: center; color: #fff; transition: background .2s, transform .2s;
+        }
+        .lightbox-zoom-btn:hover { background: rgba(255,255,255,0.12); }
+        .lightbox-zoom-sep { width: 1px; height: 1.25rem; background: rgba(255,255,255,0.16); margin: 0 2px; }
+        #lightbox-zoom-reset { min-width: 3.5rem; padding: 0 0.5rem; width: auto; font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        /* Carrito y Checkout */
+        .co-input {
+            width: 100%; border: 1px solid #e5e7eb; background: #fff; border-radius: .75rem;
+            padding: .75rem 1rem; font-size: .875rem; font-weight: 500; color: #18181b;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .co-input::placeholder { color: #a1a1aa; }
+        .co-input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 3px rgba(0,0,0,.06); }
+        .co-input.co-error { border-color: #f87171; }
+        .modalidad-error > button { border-color: #f87171; }
+        .co-label { display: block; margin-bottom: .375rem; font-size: 13px; font-weight: 600; color: #3f3f46; }
+        .co-label small { font-weight: 500; color: #a1a1aa; }
+        @media (max-width: 767px) { .co-input { font-size: 16px; } }
+
+        #carrito-overlay { background: rgba(9, 9, 11, 0.55); animation: carritoOverlayIn .25s ease; }
+        @keyframes carritoOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+        #carrito-drawer { transition-duration: .55s; transition-timing-function: cubic-bezier(.16, 1, .3, 1); }
+        #carrito-drawer.translate-x-full { transition-duration: .32s; transition-timing-function: cubic-bezier(.4, 0, .2, 1); }
+
+        /* Toast del carrito */
+        #toast-carrito { pointer-events: none; }
+        .tc-card { position: relative; overflow: hidden; pointer-events: auto; width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 18px; background: #18181b; color: #fff; box-shadow: 0 18px 40px -12px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08); animation: tcIn .28s cubic-bezier(.16,1,.3,1) both; }
+        .tc-card.saliendo { animation: tcOut .18s ease-in both; }
+        .tc-foto { width: 46px; height: 46px; border-radius: 12px; background: #fff; flex-shrink: 0; object-fit: contain; padding: 3px; }
+        .tc-ico { width: 30px; height: 30px; margin-left: 2px; border-radius: 999px; background: #22c55e; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tc-ico.aviso { background: #f59e0b; }
+        .tc-ico svg { width: 16px; height: 16px; color: #fff; }
+        .tc-txt { flex: 1; min-width: 0; }
+        .tc-titulo { font-size: 14px; font-weight: 600; line-height: 1.25; }
+        .tc-detalle { margin-top: 2px; font-size: 12px; color: #a1a1aa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tc-ver { flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 12px; background: #fff; color: #18181b; font-size: 12px; font-weight: 600; transition: background .15s, transform .15s; }
+        .tc-ver:hover { background: #e4e4e7; }
+        .tc-barra { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #60a5fa; transform-origin: left; animation: tcBarra var(--tc-ms, 2200ms) linear forwards; }
+        .tc-card:hover .tc-barra { display: none; }
+        @keyframes tcIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+        @keyframes tcOut { to { opacity: 0; transform: translateY(8px) scale(.98); } }
+        @keyframes tcBarra { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+        /* Cards de productos relacionados */
+        .prod-card { transition: box-shadow .4s cubic-bezier(.16, 1, .3, 1), border-color .25s ease; }
+        @media (hover: hover) {
+            .prod-card:hover { border-color: #d4d4d8; box-shadow: 0 12px 30px rgba(0,0,0,.07); }
+        }
+/* Botón "Continuar" del carrito: barra de carga de color mientras se verifica el stock */
+        .btn-barra {
+            position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+            background: rgba(255,255,255,.2); opacity: 0; transition: opacity .2s ease; pointer-events: none;
+        }
+        .btn-barra-relleno {
+            display: block; height: 100%; width: 0; border-radius: 0 4px 4px 0;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa 65%, #bfdbfe);
+            box-shadow: 0 0 10px rgba(96,165,250,.85);
+        }
+        #carrito-whatsapp-btn.cargando { background-color: #1e40af; pointer-events: none; }
+        #carrito-whatsapp-btn.cargando .btn-flecha { display: none; }
+        #carrito-whatsapp-btn.cargando .btn-barra { opacity: 1; }
+        #carrito-whatsapp-btn.cargando .btn-barra-relleno { width: 85%; transition: width 1.6s cubic-bezier(.1,.7,.2,1); }
+        #carrito-whatsapp-btn.cargando.completo .btn-barra-relleno { width: 100%; transition-duration: .18s; }
+        #carrito-whatsapp-btn.cargando::after {
+            content: ''; position: absolute; inset: 0; transform: translateX(-100%); pointer-events: none;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.22) 50%, rgba(255,255,255,0));
+            animation: btnBarrido 1.1s ease-in-out infinite;
+        }
+        @keyframes btnBarrido { to { transform: translateX(100%); } }
+        @media (prefers-reduced-motion: reduce) { #carrito-whatsapp-btn.cargando::after { animation: none; } }
+
+        
+        .co-shake { animation: coShake .4s ease-in-out; }
+        @keyframes coShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+        @media (prefers-reduced-motion: reduce) { .co-shake { animation: none; } }
+        .btn-add-ok.ok-ancho { animation: addPopAncho .35s ease-out, addRing .6s ease-out; }
+        #toast-carrito .hidden { display: none !important; }
+    
+    </style>
+</head>
+<body class="bg-white text-black overflow-x-clip modo-catalogo min-h-screen min-h-[100dvh] flex flex-col">
+
+    <!-- BARRA DE ANUNCIO (solo si el comercio cargó un texto) -->
+    <div id="perfil-anuncio-wrap" class="hidden anuncio-cinta border-b-2 border-black text-white" role="status" aria-live="polite">
+        <div class="container mx-auto max-w-6xl px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-center gap-2 sm:gap-3">
+            <span class="inline-flex items-center justify-center flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black text-blue-400" aria-hidden="true">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+            </span>
+            <p id="perfil-anuncio-texto" class="min-w-0 text-[13px] sm:text-sm font-semibold leading-snug text-center break-words"></p>
+        </div>
+    </div>
+
+    <!-- BARRA SUPERIOR DE LA TIENDA -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200/80">
+        <div class="container mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <!-- Volver + Identidad del comercio -->
+            <a id="link-volver-tienda" href="index.html" class="group inline-flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <span class="w-9 h-9 rounded-full border border-zinc-200 bg-white group-hover:border-zinc-900 group-hover:bg-zinc-50 flex items-center justify-center text-zinc-700 transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </span>
+                <div id="nav-tienda-marco" class="cp-skeleton w-9 h-9 rounded-xl overflow-hidden text-white flex items-center justify-center ring-1 ring-zinc-200 flex-shrink-0">
+                    <img id="nav-tienda-logo" src="" alt="" class="hidden w-full h-full object-cover">
+                    <span id="nav-tienda-inicial" class="f-display text-base font-bold"></span>
+                </div>
+                <div class="min-w-0">
+                    <div id="nav-tienda-skeleton" class="h-4 w-28 rounded cp-skeleton mb-1" aria-hidden="true"></div>
+                    <p id="nav-tienda-nombre" class="hidden f-display text-sm sm:text-base font-bold text-zinc-900 leading-tight truncate"></p>
+                    <p class="text-[11px] font-medium text-zinc-500 leading-tight">Volver al catálogo</p>
+                </div>
+            </a>
+
+            <!-- Acciones derechas: Compartir + Carrito -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button type="button" id="btn-compartir-producto" onclick="compartirProducto()" aria-label="Compartir producto" title="Compartir producto"
+                        class="w-10 h-10 rounded-full border border-zinc-200 bg-white hover:border-zinc-900 hover:bg-zinc-50 text-zinc-700 flex items-center justify-center transition-all active:scale-95">
+                    <svg class="icono-compartir w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+                    <svg class="icono-ok hidden w-[18px] h-[18px] text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+
+                <button type="button" onclick="abrirCarrito()" aria-label="Abrir carrito"
+                        class="t-acento solo-pedidos relative inline-flex items-center justify-center gap-2 h-10 min-w-[2.5rem] px-3 sm:px-4 rounded-full bg-zinc-900 text-white text-xs font-semibold tracking-wide transition-all hover:bg-zinc-700 active:scale-95">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/>
+                        <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                        <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                    </svg>
+                    <span class="max-sm:hidden">Carrito</span>
+                    <span id="badge-carrito" class="t-acento hidden absolute -top-1.5 -right-1 bg-blue-700 text-white text-[11px] font-semibold tabular-nums rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ring-2 ring-white">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="container mx-auto max-w-6xl px-4 sm:px-6 pt-4 sm:pt-8 pb-28 sm:pb-16 flex-1">
+
+        <!-- ESTADO: CARGANDO (SKELETON) -->
+        <div id="estado-cargando" aria-live="polite" aria-busy="true">
+            <div class="h-4 w-48 rounded cp-skeleton mb-5"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
+                <div class="lg:col-span-6">
+                    <div class="aspect-square rounded-3xl cp-skeleton"></div>
+                    <div class="mt-3 flex gap-2.5">
+                        <div class="w-16 h-16 rounded-xl cp-skeleton"></div>
+                        <div class="w-16 h-16 rounded-xl cp-skeleton"></div>
+                        <div class="w-16 h-16 rounded-xl cp-skeleton"></div>
+                    </div>
+                </div>
+                <div class="lg:col-span-6 space-y-4">
+                    <div class="h-5 w-32 rounded-md cp-skeleton"></div>
+                    <div class="h-10 w-5/6 rounded-xl cp-skeleton"></div>
+                    <div class="h-9 w-40 rounded-xl cp-skeleton mt-2"></div>
+                    <div class="h-24 w-full rounded-2xl cp-skeleton"></div>
+                    <div class="h-12 w-full rounded-xl cp-skeleton"></div>
+                    <div class="h-28 w-full rounded-2xl cp-skeleton"></div>
+                </div>
+            </div>
+            <span class="sr-only">Cargando producto…</span>
+        </div>
+
+        <!-- ESTADO: ERROR / PRODUCTO NO ENCONTRADO -->
+        <div id="estado-error" class="hidden my-6 sm:my-12 max-w-xl mx-auto bg-white rounded-[2rem] shadow-xl border border-zinc-100 p-8 sm:p-14 flex flex-col items-center justify-center text-center">
+            <span class="w-16 h-16 rounded-full bg-zinc-50 flex items-center justify-center mb-5 ring-4 ring-zinc-50 text-zinc-300">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+            </span>
+            <h1 id="error-titulo" class="f-display text-2xl sm:text-3xl font-bold tracking-[-0.02em]">Producto no disponible</h1>
+            <p id="error-texto" class="text-zinc-500 mt-2.5 text-sm sm:text-base max-w-sm">Puede que se haya eliminado o que el enlace esté incompleto.</p>
+            <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
+                <button id="error-reintentar" type="button" onclick="location.reload()" class="hidden inline-flex items-center gap-2 bg-black text-white px-7 py-3.5 rounded-full font-semibold text-sm hover:bg-blue-800 transition-all active:scale-95">Reintentar</button>
+                <a id="error-ir-tienda" href="index.html" class="inline-flex items-center gap-2 bg-zinc-100 text-zinc-900 px-7 py-3.5 rounded-full font-semibold text-sm hover:bg-zinc-200 transition-colors">Volver a la tienda</a>
+            </div>
+        </div>
+
+        <!-- ESTADO: PRODUCTO CARGADO -->
+        <div id="producto-contenido" class="hidden animate-fade-in">
+
+            <!-- GRID PRINCIPAL: Galería (izq) + Info y compra (der) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
+
+                <!-- COLUMNA IZQUIERDA: GALERÍA STICKY -->
+                <div class="lg:col-span-6 lg:sticky lg:top-24">
+                    <div class="zoom-trigger group relative aspect-square bg-zinc-50 rounded-3xl border border-zinc-200/80 overflow-hidden flex items-center justify-center cursor-zoom-in"
+                         onclick="abrirLightboxImagen()" role="button" tabindex="0" aria-label="Ampliar imagen del producto"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirLightboxImagen();}">
+
+                        <img id="prod-img" src="" alt="" class="zoom-img w-full h-full object-contain p-5 sm:p-10 transition-[transform,opacity] duration-300 pointer-events-none">
+
+                        <!-- Loader de la imagen -->
+                        <div id="prod-img-loader" aria-hidden="true">
+                            <div class="cp-skeleton" style="position:absolute;inset:0"></div>
+                            <img src="dropea-logo.png" alt="" class="logo-pulso" onerror="this.classList.add('hidden')">
+                        </div>
+
+                        <!-- Badge flotante de oferta -->
+                        <span id="prod-img-oferta" class="hidden absolute top-3.5 left-3.5 px-2.5 py-1 rounded-full bg-red-600 text-white text-xs font-bold tabular-nums shadow-sm">-0%</span>
+
+                        <!-- Indicador de zoom -->
+                        <span class="zoom-badge opacity-90 sm:opacity-0 scale-100 sm:scale-90 absolute bottom-3.5 right-3.5 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white/95 border border-zinc-200 shadow-sm text-zinc-700 text-xs font-semibold pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                                <circle cx="10.5" cy="10.5" r="6.5"/>
+                                <path stroke-linecap="round" d="M20 20l-4.35-4.35"/>
+                                <path stroke-linecap="round" d="M10.5 8v5M8 10.5h5"/>
+                            </svg>
+                            <span class="hidden sm:inline">Ampliar</span>
+                        </span>
+                    </div>
+
+                    <!-- Miniaturas (se rellenan por JS si hay varias fotos) -->
+                    <div id="prod-thumbs" class="mt-3 flex gap-2.5 overflow-x-auto scrollbar-hide pb-1 empty:hidden"></div>
+                </div>
+
+                <!-- COLUMNA DERECHA: INFORMACIÓN Y COMPRA -->
+                <div class="lg:col-span-6 min-w-0 flex flex-col">
+
+                    <!-- Etiquetas superiores -->
+                    <div class="flex flex-wrap items-center gap-1.5 empty:hidden">
+                        <span id="prod-categoria" class="empty:hidden px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-600 text-xs font-medium"></span>
+                        <span id="prod-badge-nuevo" class="hidden px-2.5 py-1 rounded-md bg-zinc-900 text-white text-xs font-medium">Nuevo</span>
+                        <span id="prod-badges-custom" class="contents"></span>
+                        <span id="prod-badge-sin-stock" class="hidden px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-500 text-xs font-medium">Sin stock</span>
+                        <span id="prod-badge-destacado" class="hidden items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 text-blue-800 text-xs font-medium">
+                            <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.8l-5.2 2.72.99-5.8-4.21-4.1 5.82-.85L12 2.5z"/></svg>
+                            Destacado
+                        </span>
+                    </div>
+
+                    <!-- Nombre del producto -->
+                    <h1 id="prod-nombre" class="f-display mt-2.5 text-2xl sm:text-4xl font-bold tracking-[-0.025em] leading-[1.1] text-zinc-900 break-words [overflow-wrap:anywhere]">Nombre del producto</h1>
+
+                    <!-- PRECIO + COMPARATIVA VISUAL DE MEDIOS DE PAGO (Opción 4) -->
+                    <div class="mt-5">
+                        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                            <p id="prod-precio" class="text-3xl sm:text-[2.25rem] font-bold tracking-tight leading-none text-zinc-900 tabular-nums">$0</p>
+                            <p id="prod-precio-anterior" class="hidden text-base sm:text-lg text-zinc-400 line-through tabular-nums">$0</p>
+                            <span id="prod-badge-oferta" class="hidden px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold">-0%</span>
+                        </div>
+
+                        <!-- Comparativa visual (se muestra solo si algún medio tiene recargo) -->
+                        <div id="prod-precios-medios" class="hidden mt-4 space-y-2" aria-label="Precio según el medio de pago"></div>
+
+                        <!-- Link "Ver medios de pago" (se muestra solo si NO hay recargos) -->
+                        <button type="button" id="prod-medios-pago-wrap" onclick="abrirModalMediosPago()" class="hidden items-center gap-1.5 mt-3 text-[13px] font-medium text-zinc-600 hover:text-zinc-900 transition-colors focus-visible:outline-none focus-visible:underline">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/>
+                                <path stroke-linecap="round" d="M2.5 9.5h19"/>
+                            </svg>
+                            <span class="underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900">Ver medios de pago</span>
+                        </button>
+                        <p id="prod-medios-aviso" class="hidden mt-3 text-xs text-zinc-500 leading-snug">El medio de pago se elige en el carrito, al finalizar tu pedido.</p>
+                    </div>
+
+                    <!-- Aviso: ya está en tu carrito -->
+                    <div id="prod-en-carrito" class="mec hidden" role="status">
+                        <span class="mec-ico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>
+                        <div class="mec-txt">
+                            <p id="prod-en-carrito-texto" class="mec-t"></p>
+                            <p id="prod-en-carrito-detalle" class="mec-d"></p>
+                        </div>
+                        <button type="button" class="mec-ver" onclick="abrirCarrito()">Ver carrito</button>
+                    </div>
+
+                    <!-- VARIANTES -->
+                    <div id="prod-variantes" class="mt-6 space-y-5 empty:hidden"></div>
+
+                    <!-- AVISO SIN STOCK -->
+                    <p id="prod-aviso-sin-stock" class="hidden mt-6 rounded-xl bg-zinc-100 text-zinc-600 text-[13px] font-medium leading-snug px-4 py-3"></p>
+
+                    <!-- ACCIONES DE COMPRA (DESKTOP Y TABLET) -->
+                    <div id="prod-acciones" class="mt-6 pt-6 border-t border-zinc-100 space-y-3">
+                        <div id="prod-fila-carrito" class="solo-pedidos max-sm:hidden flex items-stretch gap-3">
+                            <div class="inline-flex items-center rounded-xl border border-zinc-300 bg-white flex-shrink-0">
+                                <button type="button" onclick="modificarCantidad(-1)" class="w-11 h-12 rounded-l-xl text-xl leading-none text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors" aria-label="Menos">−</button>
+                                <span id="prod-cantidad" class="w-9 text-center text-sm font-semibold text-zinc-900 tabular-nums" aria-live="polite">1</span>
+                                <button type="button" onclick="modificarCantidad(1)" class="w-11 h-12 rounded-r-xl text-xl leading-none text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors" aria-label="Más">+</button>
+                            </div>
+                            <button type="button" id="prod-btn-agregar" onclick="agregarAlCarrito()" class="t-acento flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-xl bg-zinc-900 text-white text-sm font-semibold transition-all enabled:hover:bg-zinc-800 enabled:active:scale-[.99] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed">
+                                <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/></svg>
+                                <span id="prod-btn-agregar-texto">Agregar al carrito</span>
+                            </button>
+                        </div>
+
+                        <a id="prod-whatsapp" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-zinc-300 bg-white text-zinc-800 text-sm font-semibold hover:bg-zinc-50 transition-colors">
+                            <svg class="w-[18px] h-[18px] flex-shrink-0 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+                            <span>¿Dudas? Consultar por WhatsApp</span>
+                        </a>
+                    </div>
+
+                    <!-- DESCRIPCIÓN -->
+                    <div id="prod-desc-wrap" class="hidden mt-7 pt-6 border-t border-zinc-100">
+                        <h2 class="text-sm font-semibold text-zinc-900">Descripción</h2>
+                        <p id="prod-desc" class="mt-2.5 text-zinc-600 leading-relaxed text-sm sm:text-[15px] whitespace-pre-line break-words [overflow-wrap:anywhere]"></p>
+                    </div>
+
+                    <!-- INFORMACIÓN DE ENTREGA Y HORARIO DEL COMERCIO -->
+                    <div id="prod-info-local" class="hidden mt-6 rounded-2xl border border-zinc-200 bg-zinc-50/70 divide-y divide-zinc-200/70">
+                        <div id="prod-info-envio-wrap" class="hidden flex items-center gap-3 p-3.5">
+                            <span class="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-zinc-700 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v8H3V7zm11 3h4l3 3v2h-7v-5zM5.5 20a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm12 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-zinc-900">Envío a domicilio · <span id="prod-info-envio" class="tabular-nums"></span></p>
+                                <p class="text-xs text-zinc-500">También podés retirar sin costo por el local.</p>
+                            </div>
+                        </div>
+                        <div id="prod-info-horario-wrap" class="hidden flex items-center gap-3 p-3.5">
+                            <span class="w-9 h-9 rounded-xl bg-white border border-zinc-200 text-zinc-700 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-zinc-900">Horario de atención</p>
+                                <p id="prod-info-horario" class="text-xs text-zinc-500 truncate"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PRODUCTOS RELACIONADOS ("Más de esta tienda") -->
+            <section id="prod-relacionados-wrap" class="hidden mt-14 sm:mt-20 pt-10 border-t border-zinc-200/80">
+                <div class="flex items-end justify-between gap-4 mb-5 sm:mb-6">
+                    <div>
+                        <h2 class="f-display text-xl sm:text-2xl font-bold tracking-[-0.02em] text-zinc-900">Te podría interesar</h2>
+                        <p class="text-xs sm:text-sm text-zinc-500 mt-0.5">Más productos de esta tienda para descubrir</p>
+                    </div>
+                    <a id="link-ver-todo-catalogo" href="index.html" class="text-xs sm:text-sm font-semibold text-zinc-700 hover:text-black underline underline-offset-4 decoration-zinc-300 hover:decoration-black transition-colors whitespace-nowrap">Ver todo</a>
+                </div>
+                <div id="prod-relacionados" class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- BARRA INFERIOR FIJA EN MOBILE -->
+    <div id="mobile-sticky-bar" class="solo-pedidos sm:hidden hidden fixed inset-x-0 bottom-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_24px_-12px_rgba(0,0,0,0.18)]">
+        <div class="flex items-stretch gap-2.5">
+            <div class="inline-flex items-center rounded-xl border border-zinc-300 bg-white flex-shrink-0">
+                <button type="button" onclick="modificarCantidad(-1)" class="w-9 h-12 rounded-l-xl text-lg text-zinc-600 active:bg-zinc-100" aria-label="Menos">−</button>
+                <span id="mobile-cantidad" class="w-7 text-center text-sm font-semibold text-zinc-900 tabular-nums">1</span>
+                <button type="button" onclick="modificarCantidad(1)" class="w-9 h-12 rounded-r-xl text-lg text-zinc-600 active:bg-zinc-100" aria-label="Más">+</button>
+            </div>
+            <button type="button" id="mobile-btn-agregar" onclick="agregarAlCarrito()" class="t-acento flex-1 inline-flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-zinc-900 text-white text-sm font-semibold transition-all active:scale-[.98] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed">
+                <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/></svg>
+                <span id="mobile-btn-agregar-texto">Agregar al carrito</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX: imagen ampliada con zoom y desplazamiento -->
+    <div id="lightbox-imagen" class="fixed inset-0 z-[120] hidden flex-col" role="dialog" aria-modal="true" aria-label="Imagen ampliada del producto">
+        <div id="lightbox-imagen-overlay" class="absolute inset-0" onclick="cerrarLightboxImagen()"></div>
+        <div id="lightbox-imagen-viewport">
+            <div id="lightbox-imagen-marco">
+                <img id="lightbox-imagen-img" src="" alt="" draggable="false">
+                <button type="button" onpointerdown="event.stopPropagation()" onclick="cerrarLightboxImagen()" aria-label="Cerrar imagen" class="lightbox-btn-cerrar">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="lightbox-chrome" onpointerdown="event.stopPropagation()">
+                <p id="lightbox-imagen-titulo" class="lightbox-titulo"></p>
+                <div class="lightbox-zoom-bar" role="group" aria-label="Controles de zoom">
+                    <button type="button" onclick="lightboxZoomOut()" aria-label="Alejar" class="lightbox-zoom-btn">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" d="M5 12h14"/></svg>
+                    </button>
+                    <span class="lightbox-zoom-sep" aria-hidden="true"></span>
+                    <button type="button" id="lightbox-zoom-reset" onclick="lightboxZoomReset()" aria-label="Restablecer zoom" class="lightbox-zoom-btn opacity-40 pointer-events-none">100%</button>
+                    <span class="lightbox-zoom-sep" aria-hidden="true"></span>
+                    <button type="button" onclick="lightboxZoomIn()" aria-label="Acercar" class="lightbox-zoom-btn">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER CARRITO (mismos IDs que tienda.html) -->
+    <div id="carrito-overlay" class="fixed inset-0 z-[80] hidden" onclick="cerrarCarrito()"></div>
+    <div id="carrito-drawer" class="fixed top-0 right-0 h-full w-full max-w-[440px] bg-white z-[90] shadow-[-24px_0_60px_-24px_rgba(0,0,0,0.35)] sm:rounded-l-[28px] translate-x-full transition-transform duration-300 will-change-transform flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between gap-3 px-5 sm:px-6 h-[72px] border-b border-zinc-100 flex-shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" id="carrito-volver" onclick="volverAlCarrito()" aria-label="Volver al carrito" class="hidden w-9 h-9 rounded-full border border-zinc-200 hover:bg-zinc-100 items-center justify-center text-zinc-600 transition-colors flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <span id="carrito-icono" class="w-9 h-9 rounded-xl bg-zinc-100 text-zinc-800 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/>
+                        <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                        <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                    </svg>
+                </span>
+                <div class="min-w-0">
+                    <h2 id="carrito-titulo" class="f-display text-[17px] font-bold tracking-[-0.01em] text-zinc-900 leading-none">Tu carrito</h2>
+                    <p id="carrito-subtitulo" class="text-xs font-medium text-zinc-500 mt-1.5 truncate">Vacío</p>
+                </div>
+            </div>
+            <button onclick="cerrarCarrito()" aria-label="Cerrar carrito" class="w-9 h-9 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 transition-colors flex-shrink-0">
+                <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+
+        <div id="carrito-items" class="flex-1 overflow-y-auto px-5 sm:px-6 divide-y divide-zinc-100"></div>
+
+        <div id="carrito-footer-paso1" class="border-t border-zinc-100 px-5 sm:px-6 pt-4 pb-5 flex-shrink-0 bg-white shadow-[0_-16px_32px_-24px_rgba(0,0,0,0.25)]">
+            <div id="carrito-modalidad-envio" class="mb-4 hidden">
+                <p class="text-xs font-semibold text-zinc-500 mb-2">¿Cómo lo recibís?</p>
+                <div id="carrito-modalidad-botones" class="grid grid-cols-2 gap-2">
+                    <button type="button" id="btn-modalidad-envio" onclick="seleccionarModalidadEntrega(true)" class="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 py-3 px-2 text-xs font-semibold transition-all hover:border-zinc-400">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v8H3V7zm11 3h4l3 3v2h-7v-5zM5.5 20a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm12 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg>
+                        Envío a domicilio
+                    </button>
+                    <button type="button" id="btn-modalidad-retiro" onclick="seleccionarModalidadEntrega(false)" class="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 py-3 px-2 text-xs font-semibold transition-all hover:border-zinc-400">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1v-9.5z"/></svg>
+                        Retiro en el local
+                    </button>
+                </div>
+                <p id="co-error-modalidad" role="alert" class="hidden mt-2 text-xs font-semibold text-red-600"></p>
+            </div>
+            <div class="mb-4 space-y-2">
+                <div id="carrito-fila-subtotal" class="flex items-center justify-between hidden">
+                    <span class="text-sm text-zinc-500">Subtotal</span>
+                    <span id="carrito-subtotal" class="text-sm font-medium text-zinc-700 tabular-nums">$0</span>
+                </div>
+                <div id="carrito-fila-envio" class="flex items-center justify-between hidden">
+                    <span class="text-sm text-zinc-500">Envío</span>
+                    <span id="carrito-envio" class="text-sm font-medium text-zinc-700 tabular-nums">$0</span>
+                </div>
+                <div class="flex items-baseline justify-between pt-3 border-t border-zinc-100">
+                    <span class="text-sm font-medium text-zinc-900">Total</span>
+                    <span id="carrito-total" class="text-xl font-semibold tracking-tight text-zinc-900 tabular-nums">$0</span>
+                </div>
+                <p id="carrito-nota-recargo" class="hidden text-xs text-zinc-500 leading-snug"></p>
+            </div>
+            <button id="carrito-whatsapp-btn" onclick="irACheckout()" class="t-acento relative overflow-hidden inline-flex items-center justify-center gap-2 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+                <span class="btn-texto">Continuar</span>
+                <svg class="btn-flecha w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/></svg>
+                <span class="btn-barra" aria-hidden="true"><span class="btn-barra-relleno"></span></span>
+            </button>
+            <button onclick="vaciarCarrito()" class="w-full mt-3 text-center text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">Vaciar carrito</button>
+        </div>
+
+        <!-- PASO 2: datos del cliente -->
+        <div id="carrito-checkout" class="hidden flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5">
+            <div id="co-resumen" class="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-2"></div>
+            <div>
+                <label for="co-nombre" class="co-label">Nombre y apellido</label>
+                <input id="co-nombre" type="text" maxlength="60" autocomplete="name" placeholder="Ej: Leandro Paredes" class="co-input">
+                <p id="co-error-nombre" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+            </div>
+            <div id="co-bloque-telefono" class="hidden">
+                <label for="co-telefono" class="co-label">Teléfono de contacto</label>
+                <input id="co-telefono" type="tel" inputmode="tel" maxlength="20" autocomplete="tel-national" placeholder="Ej: 3644123456" class="co-input">
+                <p id="co-error-telefono" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+            </div>
+            <div id="co-bloque-envio" class="hidden space-y-5">
+                <div>
+                    <label for="co-calle" class="co-label">Calle y número</label>
+                    <input id="co-calle" type="text" maxlength="80" autocomplete="address-line1" placeholder="Ej: Belgrano 450" class="co-input">
+                    <p id="co-error-calle" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+                </div>
+                <div>
+                    <label for="co-localidad" class="co-label">Localidad o barrio</label>
+                    <input id="co-localidad" type="text" maxlength="60" autocomplete="address-level2" placeholder="Ej: Villa Ángela" class="co-input">
+                    <p id="co-error-localidad" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+                </div>
+                <div>
+                    <label for="co-referencia" class="co-label">Piso, depto o referencias <small>(opcional)</small></label>
+                    <input id="co-referencia" type="text" maxlength="100" autocomplete="address-line2" placeholder="Ej: 3°B, portón negro" class="co-input">
+                </div>
+            </div>
+            <div id="co-pago-wrap" class="hidden">
+                <span class="co-label">¿Cómo vas a pagar?</span>
+                <div id="co-pago-opciones" role="radiogroup" aria-label="Medio de pago" class="grid grid-cols-2 gap-2"></div>
+                <p id="co-error-pago" class="hidden mt-1.5 text-xs font-semibold text-red-600"></p>
+            </div>
+            <div>
+                <label for="co-notas" class="co-label">Aclaraciones <small>(opcional)</small></label>
+                <textarea id="co-notas" rows="2" maxlength="200" placeholder="Ej: tocar timbre, entregar después de las 18" class="co-input resize-none"></textarea>
+            </div>
+            <div class="pt-1">
+                <label class="flex items-start gap-2.5 cursor-pointer">
+                    <input id="co-recordar" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-black focus:ring-black">
+                    <span class="text-xs font-medium text-gray-500 leading-snug">Recordar mis datos en este dispositivo para la próxima compra.</span>
+                </label>
+                <button type="button" id="co-borrar-datos" onclick="borrarDatosGuardados()" class="hidden mt-2 ml-6 text-xs font-semibold text-gray-500 hover:text-black underline underline-offset-2 transition-colors">Borrar mis datos guardados</button>
+                <p id="co-nota-privacidad" class="mt-3 text-xs font-medium text-gray-500 leading-snug">Tus datos no se guardan en nuestros servidores: se envían únicamente al comercio dentro del mensaje de WhatsApp.</p>
+            </div>
+        </div>
+
+        <div id="carrito-footer-paso2" class="hidden border-t border-zinc-100 px-5 sm:px-6 pt-4 pb-5 flex-shrink-0 bg-white shadow-[0_-16px_32px_-24px_rgba(0,0,0,0.25)]">
+            <button id="co-enviar-btn" onclick="enviarPedidoWhatsapp()" class="t-acento inline-flex items-center justify-center gap-2.5 bg-zinc-900 text-white w-full h-12 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all active:scale-[0.98]">
+                <svg id="co-enviar-ico-wsp" class="w-[18px] h-[18px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+                <span id="co-enviar-texto">Enviar pedido por WhatsApp</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL MEDIOS DE PAGO (cuando el producto no tiene recargos) -->
+    <div id="modal-medios-pago-modal" class="fixed inset-0 z-[65] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarModalMediosPago()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="f-display text-lg font-bold tracking-[-0.01em] leading-tight">Medios de pago disponibles</h3>
+                <button onclick="cerrarModalMediosPago()" class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors" aria-label="Cerrar">✕</button>
+            </div>
+            <div id="modal-medios-pago-lista" class="flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+
+    <!-- MODAL QR PEDIDO: en PC, escaneás con el celular para abrir WhatsApp -->
+    <div id="modal-qr-pedido" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85" onclick="intentarCerrarModalQr()"></div>
+        <div class="bg-white w-full max-w-[440px] rounded-3xl relative z-10 p-8 shadow-2xl animate-fade-in text-center">
+            <button onclick="intentarCerrarModalQr()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
+
+            <h3 class="f-display text-xl font-bold tracking-[-0.02em] leading-tight pr-6">Escaneá y enviá tu pedido</h3>
+            <p class="text-gray-400 text-xs font-semibold leading-snug mt-1.5">
+                Apuntá la cámara del celular al código
+            </p>
+
+            <div class="mt-6 flex items-center justify-center">
+                <!-- Marco decorativo tipo "visor de escaneo" alrededor del QR -->
+                <div class="relative p-5 bg-white rounded-2xl border border-gray-100">
+                    <span class="absolute -top-0.5 -left-0.5 w-7 h-7 border-t-[3px] border-l-[3px] border-black rounded-tl-xl"></span>
+                    <span class="absolute -top-0.5 -right-0.5 w-7 h-7 border-t-[3px] border-r-[3px] border-black rounded-tr-xl"></span>
+                    <span class="absolute -bottom-0.5 -left-0.5 w-7 h-7 border-b-[3px] border-l-[3px] border-black rounded-bl-xl"></span>
+                    <span class="absolute -bottom-0.5 -right-0.5 w-7 h-7 border-b-[3px] border-r-[3px] border-black rounded-br-xl"></span>
+                    <div id="qr-pedido-canvas" class="w-[260px] h-[260px] flex items-center justify-center bg-white rounded-lg">
+                        <!-- loader o canvas del QR, generado por JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 my-6">
+                <div class="flex-1 h-px bg-gray-100"></div>
+                <span class="text-xs font-medium text-gray-400">o</span>
+                <div class="flex-1 h-px bg-gray-100"></div>
+            </div>
+
+            <button onclick="abrirWhatsappWebPedido()" class="w-full inline-flex items-center justify-center gap-2 border-2 border-black py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all active:scale-95">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4l16 8-16 8 4-8-4-8z" />
+                </svg>
+                Ya tengo WhatsApp Web abierto
+            </button>
+
+            <button onclick="confirmarPedidoEnviadoDesdeQr()" class="t-acento mt-3 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+                Ya envié el pedido
+            </button>
+
+            <button onclick="volverAlCarritoDesdeQr()" class="mt-3.5 text-sm font-semibold text-gray-500 hover:text-black transition-colors">
+                Me olvidé de agregar algo
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL CONFLICTO CARRITO -->
+    <div id="modal-conflicto-carrito" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarConflictoCarrito()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
+            <span class="w-14 h-14 rounded-full bg-blue-800 text-white inline-flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6" />
+                    <circle cx="9.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                    <circle cx="16.5" cy="19.5" r="1.4" fill="currentColor" stroke="none"/>
+                </svg>
+            </span>
+            <h3 class="f-display text-xl font-bold tracking-[-0.02em] mt-4 leading-tight">Un emprendedor<br>por carrito</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mt-3">
+                Tu carrito ya tiene productos de <strong id="conflicto-tienda-actual" class="text-black">otra tienda</strong>. Para pedirle a otro emprendedor termina tu compra actual.
+            </p>
+            <div class="mt-7 flex flex-col gap-3">
+                <button onclick="confirmarReemplazoCarrito()" class="t-acento w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+                    Vaciar carrito y agregar este
+                </button>
+                <button onclick="cerrarConflictoCarrito()" class="w-full border-2 border-black py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all active:scale-95">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PEDIDO CONFIRMADO (modo "pedidos en el panel") -->
+    <div id="modal-pedido-confirmado" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pc-titulo">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarPedidoConfirmado()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
+            <button type="button" onclick="cerrarPedidoConfirmado()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
+
+            <span class="w-16 h-16 rounded-full bg-emerald-500 text-white inline-flex items-center justify-center ring-8 ring-emerald-500/20">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+
+            <h3 id="pc-titulo" class="f-display text-xl font-bold tracking-[-0.02em] mt-5 leading-tight">¡Pedido enviado!</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mt-3">
+                <strong id="pc-tienda" class="text-black">El comercio</strong> recibió tu pedido <strong id="pc-numero" class="text-black"></strong> y te va a contactar al <strong id="pc-telefono" class="text-black"></strong>.
+            </p>
+
+            <div class="mt-5 rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2 text-left">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm text-zinc-500">Entrega</span>
+                    <span id="pc-entrega" class="text-sm font-medium text-zinc-700"></span>
+                </div>
+                <div class="flex items-center justify-between gap-3 pt-2 border-t border-zinc-200/70">
+                    <span class="text-sm font-medium text-zinc-900">Total</span>
+                    <span id="pc-total" class="text-lg font-semibold tracking-tight text-zinc-900 tabular-nums"></span>
+                </div>
+            </div>
+
+            <button type="button" onclick="cerrarPedidoConfirmado()" class="t-acento mt-6 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL SIN WHATSAPP: el emprendedor todavía no cargó un número para recibir pedidos -->
+    <div id="modal-sin-whatsapp" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="sin-whatsapp-titulo">
+        <div class="absolute inset-0 bg-black/85" onclick="cerrarModalSinWhatsapp()"></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl relative z-10 p-6 sm:p-8 shadow-2xl animate-fade-in text-center">
+            <button type="button" onclick="cerrarModalSinWhatsapp()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors text-sm">✕</button>
+
+            <span class="w-16 h-16 rounded-full bg-blue-800 text-white inline-flex items-center justify-center ring-8 ring-blue-800/20">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                    <path d="M12 8v3.5"/>
+                    <path d="M12 14.6h.01"/>
+                </svg>
+            </span>
+
+            <h3 id="sin-whatsapp-titulo" class="f-display text-xl font-bold tracking-[-0.02em] mt-5 leading-tight">Todavía no recibe<br>pedidos por acá</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mt-3">
+                <strong id="sin-whatsapp-tienda" class="text-black">Este emprendedor</strong> todavía no cargó un número de WhatsApp para recibir pedidos.
+            </p>
+
+            <div class="mt-5 flex items-start gap-3 bg-gray-50 border border-gray-100 rounded-2xl p-3.5 text-left">
+                <span class="w-6 h-6 rounded-full bg-black text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+                </span>
+                <p class="text-xs text-gray-500 font-semibold leading-snug">
+                    Tu carrito no se borró. Fijate si tiene redes u otra forma de contacto en su perfil, o probá de nuevo más tarde.
+                </p>
+            </div>
+
+            <button type="button" id="sin-whatsapp-btn-ok" onclick="cerrarModalSinWhatsapp()" class="mt-6 w-full bg-black text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-blue-800 hover:text-white transition-all active:scale-95">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+        <!-- TOAST -->
+    <div id="toast-carrito" class="fixed bottom-20 sm:bottom-5 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 mx-auto sm:w-[400px] sm:max-w-[calc(100vw-2rem)] z-[110] hidden" role="status" aria-live="polite">
+        <div id="toast-card" class="tc-card">
+            <img id="toast-foto" class="tc-foto hidden" alt="">
+            <span id="toast-ico" class="tc-ico">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true"><path id="toast-ico-path" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <div class="tc-txt">
+                <p id="toast-carrito-texto" class="tc-titulo">Agregado al carrito</p>
+                <p id="toast-carrito-detalle" class="tc-detalle hidden"></p>
+            </div>
+            <button type="button" id="toast-carrito-ver" class="tc-ver hidden" onclick="abrirCarrito()">Ver carrito</button>
+            <span class="tc-barra" aria-hidden="true"></span>
+        </div>
+    </div>
+
+    <!-- FOOTER · Dropea (mismo lenguaje que el footer de index.html) -->
+    <footer class="bg-[#050507] text-white border-t border-white/10">
+        <div class="container mx-auto max-w-6xl px-5 sm:px-6 pt-14 sm:pt-16 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 sm:gap-10">
+                <div class="col-span-2 lg:col-span-1">
+                    <a href="index.html" aria-label="Conocé Dropea" class="inline-block">
+                        <img src="dropea-logo.png" alt="Dropea" loading="lazy" class="h-10 w-auto object-contain brightness-0 invert"
+                             onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+                        <span class="hidden f-display text-2xl font-bold">Dropea</span>
+                    </a>
+                    <p class="mt-4 text-sm text-zinc-400 leading-relaxed">
+                        Esta tienda está hecha con Dropea. Creá el catálogo online de tu comercio y probalo 15 días gratis.
+                    </p>
+                    <a href="registro.html" class="mt-5 inline-flex items-center justify-center min-h-[46px] px-5 py-2.5 rounded-full bg-white text-black hover:bg-zinc-200 text-xs font-bold transition-colors">
+                        Creá tu catálogo gratis
+                    </a>
+                </div>
+
+                <nav aria-label="Enlaces rápidos">
+                    <h2 class="f-display font-bold text-base">Enlaces rápidos</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="index.html">Inicio</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="registro.html">Quiero mi perfil</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="https://dropea.vercel.app/login">Ingresar</a></li>
+                    </ul>
+                </nav>
+
+                <nav aria-label="Legal">
+                    <h2 class="f-display font-bold text-base">Legal</h2>
+                    <ul class="mt-4 space-y-2.5 text-sm text-zinc-400">
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="legales.html#terminos">Términos y condiciones</a></li>
+                        <li><a class="inline-block py-0.5 hover:text-white transition-colors" href="legales.html#privacidad">Política de privacidad</a></li>
+                    </ul>
+                </nav>
+
+                <div class="col-span-2 lg:col-span-1">
+                    <h2 class="f-display font-bold text-base">Seguinos</h2>
+                    <ul class="mt-4 space-y-3 text-sm text-zinc-400">
+                        <li>
+                            <a href="https://www.instagram.com/dropea.app" target="_blank" rel="noopener" aria-label="Seguinos en Instagram" class="inline-flex items-center gap-3 py-1 hover:text-white transition-colors">
+                                <svg class="w-5 h-5 text-white flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" stroke="none"/></svg>
+                                @dropea.app
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <p class="mt-12 pt-6 border-t border-white/10 text-xs text-zinc-500">
+                © 2026 Dropea · Diseñado y desarrollado por Hostara · Todos los derechos reservados
+            </p>
+        </div>
+    </footer>
+
+    <script defer src="supabase-client.js"></script>
+    <script defer src="producto.js"></script>
+</body>
+</html>
