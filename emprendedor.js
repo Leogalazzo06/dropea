@@ -1558,7 +1558,9 @@ function productoNoDisponibleDeLaURL() {
 
 // El detalle de cada producto vive en su propia página (producto.html)
 function urlPaginaProducto(id) {
-    return `/producto.html?t=${encodeURIComponent(obtenerSlug() || '')}&p=${encodeURIComponent(id)}`;
+    // En producción la URL va sin ".html" (/producto); en local (Live Server) hace falta el .html.
+    const local = typeof ES_ENTORNO_LOCAL !== 'undefined' && ES_ENTORNO_LOCAL;
+    return `/producto${local ? '.html' : ''}?t=${encodeURIComponent(obtenerSlug() || '')}&p=${encodeURIComponent(id)}`;
 }
 function irAProducto(id) {
     window.location.href = urlPaginaProducto(id);
