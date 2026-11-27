@@ -1478,7 +1478,9 @@ function urlTienda() {
     return esLocal() ? `tienda.html?t=${s}` : `/tienda?t=${s}`;
 }
 function urlPaginaProducto(id) {
-    return `${location.pathname}?t=${encodeURIComponent(obtenerSlug() || '')}&p=${encodeURIComponent(id)}`;
+    // En producción siempre sin ".html" (/producto); en local hace falta el .html
+    const ruta = esLocal() ? location.pathname : '/producto';
+    return `${ruta}?t=${encodeURIComponent(obtenerSlug() || '')}&p=${encodeURIComponent(id)}`;
 }
 // Link completo (para mensajes de WhatsApp y compartir)
 function urlProductoTienda(id) {
@@ -1695,11 +1697,11 @@ function renderTienda(e) {
         inicial.classList.remove('hidden');
     }
 
-    const u = urlTienda();
-    $('link-volver-tienda').href = u;
-    // "Ver todo" lleva directo a la grilla de productos (emprendedor.js lee el #productos)
-    const sl = encodeURIComponent(obtenerSlug() || '');
-    $('link-ver-todo-catalogo').href = (esLocal() ? `tienda.html?t=${sl}` : `/tienda?t=${sl}`) + '#productos';
+    // "Volver" y "Ver todo" llevan al mismo lugar: la grilla de productos de la tienda
+    // (emprendedor.js lee el #productos)
+    const urlCatalogo = urlTienda() + '#productos';
+    $('link-volver-tienda').href = urlCatalogo;
+    $('link-ver-todo-catalogo').href = urlCatalogo;
 
     const anuncio = (e.anuncio || '').trim();
     $('perfil-anuncio-texto').textContent = anuncio;
