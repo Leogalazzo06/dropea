@@ -213,7 +213,6 @@ function calcularDescuentoPorcentaje(precioAnterior, precioActual) {
     return Math.round((1 - actual / anterior) * 100);
 }
 
-
 // ============================================================
 // IMÁGENES
 // ============================================================
@@ -260,14 +259,63 @@ const MEDIOS_PAGO = [
     { id: 'otro',          label: 'Otro',               icon: ICONO_SVG_OTRO },
 ];
 
-function nombreMedioPago(id) {
-    const m = MEDIOS_PAGO.find(m => m.id === id);
+// El comercio puede definir medios de pago propios y un recargo (%) por medio.
+// Se guarda en emprendedores.medios_pago_config:
+//   { "recargos": { "<id del medio>": 10 }, "propios": [ { "id": "c_ab12cd", "nombre": "Crédito de la casa" } ] }
+// emprendedores.medios_pago sigue siendo la lista de ids que acepta (fijos y propios).
+// crear_pedido (SQL) aplica la misma regla y el mismo redondeo: precio unitario * (100 + %) / 100, al peso.
+function emprendedorDeContexto() {
+    return (typeof emprendedorActual !== 'undefined' && emprendedorActual) ? emprendedorActual : null;
+}
+
+function configMediosPago(e) {
+    const c = e && e.medios_pago_config && typeof e.medios_pago_config === 'object' ? e.medios_pago_config : {};
+    const recargos = c.recargos && typeof c.recargos === 'object' && !Array.isArray(c.recargos) ? c.recargos : {};
+    const propios = Array.isArray(c.propios)
+        ? c.propios.filter(x => x && typeof x.id === 'string' && x.id && typeof x.nombre === 'string' && x.nombre.trim())
+        : [];
+    return { recargos, propios };
+}
+
+// Medios fijos + los propios de ese comercio
+function listaMediosPago(e = emprendedorDeContexto()) {
+    const { propios } = configMediosPago(e);
+    return [
+        ...MEDIOS_PAGO,
+        ...propios.map(p => ({ id: p.id, label: p.nombre, icon: ICONO_SVG_OTRO, propio: true })),
+    ];
+}
+
+function nombreMedioPago(id, e = emprendedorDeContexto()) {
+    const m = listaMediosPago(e).find(m => m.id === id);
     return m ? m.label : id;
 }
 
-function iconoMedioPago(id) {
-    const m = MEDIOS_PAGO.find(m => m.id === id);
+function iconoMedioPago(id, e = emprendedorDeContexto()) {
+    const m = listaMediosPago(e).find(m => m.id === id);
     return m ? m.icon : ICONO_SVG_TARJETA;
+}
+
+// Recargo (%) de un medio de pago: 0 si no tiene o si el comercio no lo acepta
+function recargoMedioPago(id, e = emprendedorDeContexto()) {
+    if (!e || !id || !Array.isArray(e.medios_pago) || !e.medios_pago.includes(id)) return 0;
+    const n = Number(configMediosPago(e).recargos[id]);
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 100) : 0;
+}
+
+function precioConRecargo(precio, pct) {
+    const p = Number(precio) || 0;
+    return pct > 0 ? Math.round(p * (100 + pct) / 100) : p;
+}
+
+function formatoPorcentaje(n) {
+    return String(Number(n)).replace('.', ',');
+}
+
+// "Tarjeta de crédito +15%" (o solo el nombre si no tiene recargo)
+function textoMedioPago(id, e = emprendedorDeContexto()) {
+    const pct = recargoMedioPago(id, e);
+    return pct > 0 ? `${nombreMedioPago(id, e)} +${formatoPorcentaje(pct)}%` : nombreMedioPago(id, e);
 }
 
 
