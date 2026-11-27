@@ -7,6 +7,15 @@
     <meta name="description" content="Detalle de producto">
     <meta name="theme-color" content="#ffffff">
     <link rel="shortcut icon" href="favicon-96x96.png">
+    <script>
+        // En producción la URL se muestra sin ".html": /producto.html?t=..&p=.. -> /producto?t=..&p=..
+        (function () {
+            var local = location.protocol === 'file:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) !== -1;
+            if (!local && /\/producto\.html$/i.test(location.pathname)) {
+                try { history.replaceState(null, '', '/producto' + location.search + location.hash); } catch (e) {}
+            }
+        })();
+    </script>
     <link rel="preload" as="image" href="dropea-logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
