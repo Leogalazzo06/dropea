@@ -25,6 +25,21 @@ var SUPABASE_ANON_KEY = "sb_publishable_tWjhlwAFPcUPcLG3l_9U1Q_GkpfT3R9";
 // que arma el dashboard: SITIO_PUBLICO + "/tienda?t=<usuario>"
 var SITIO_PUBLICO = 'https://dropea.com.ar';
 
+// ¿Se está abriendo desde la compu (Live Server, localhost o archivo)?
+var ES_ENTORNO_LOCAL = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+
+// Link público de la tienda de un usuario.
+//  - Producción: https://dropea.com.ar/tienda?t=<usuario>   (o /tienda/<usuario> con rutaLimpia)
+//  - Local:      <origen actual>/tienda.html?t=<usuario>    (ej: http://127.0.0.1:5500/tienda.html?t=amatestore)
+function urlTiendaDe(usuario, rutaLimpia) {
+    const u = encodeURIComponent(String(usuario || '').trim().toLowerCase());
+    if (ES_ENTORNO_LOCAL) {
+        const base = location.protocol === 'file:' ? '' : location.origin + '/';
+        return `${base}tienda.html?t=${u}`;
+    }
+    return rutaLimpia ? `${SITIO_PUBLICO}/tienda/${u}` : `${SITIO_PUBLICO}/tienda?t=${u}`;
+}
+
 // Imagen que se usa cuando un producto no tiene foto
 // (archivo incluido: sin-foto.svg, en la raíz del sitio)
 const IMAGEN_PRODUCTO_DEFAULT = "https://res.cloudinary.com/dloroyhev/image/upload/v1790991951/pgz08fcyrkfgahez4l3f.webp";
