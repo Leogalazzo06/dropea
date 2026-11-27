@@ -1472,10 +1472,10 @@ function obtenerIdProducto() {
 function esLocal() {
     return location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
 }
-// Link a la tienda: /tienda/<usuario> en producción, tienda.html?t=<usuario> en local
+// Link a la tienda: /tienda?t=<usuario> en producción, tienda.html?t=<usuario> en local
 function urlTienda() {
     const s = encodeURIComponent(obtenerSlug() || '');
-    return esLocal() ? `tienda.html?t=${s}` : `/tienda/${s}`;
+    return esLocal() ? `tienda.html?t=${s}` : `/tienda?t=${s}`;
 }
 function urlPaginaProducto(id) {
     return `${location.pathname}?t=${encodeURIComponent(obtenerSlug() || '')}&p=${encodeURIComponent(id)}`;
