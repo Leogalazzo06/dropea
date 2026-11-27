@@ -236,6 +236,8 @@ function pedirPorId(id) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const slug = obtenerSlug();
+    // Links compartidos antes del cambio (tienda?producto=<id>): se llevan a la página del producto
+    if (slug && productoDeLaURL) { window.location.replace(urlPaginaProducto(productoDeLaURL)); return; }
     if (!slug) { mostrarError('no-encontrada'); return; }
 
     const { data, error } = await pedirPorSlug(slug);
@@ -446,7 +448,7 @@ function renderPerfil(e) {
     $('perfil-compartir').classList.add('flex');
 
     renderInfoLocal(e, pedidos);
-    if (window.Historias) Historias.enlazarAvatar(document.getElementById('perfil-avatar-wrap'), e.id, { onProducto: (id) => abrirModalProducto(id) });
+    if (window.Historias) Historias.enlazarAvatar(document.getElementById('perfil-avatar-wrap'), e.id, { onProducto: (id) => irAProducto(id) });
     if (typeof actualizarCarritoUI === 'function') actualizarCarritoUI();
 }
 
@@ -524,9 +526,9 @@ function renderInfoLocal(e, pedidos) {
         chip.className = 'chip';
         const icono = document.createElement('span');
         icono.className = 'inline-flex';
-        icono.innerHTML = iconoMedioPago(id);
+        icono.innerHTML = iconoMedioPago(id, e);
         const texto = document.createElement('span');
-        texto.textContent = nombreMedioPago(id);
+        texto.textContent = textoMedioPago(id, e);
         chip.append(icono, texto);
         contMedios.appendChild(chip);
     });
@@ -588,6 +590,7 @@ function el(tag, clase, texto) {
 }
 
 let firmaCatalogo = null;   // huella del último catálogo dibujado
+let irAProductosHecho = false;
 async function cargarCatalogo(emprendedorId) {
     if (tiendaInactiva(emprendedorActual)) return;
     const { data, error } = await supabase
@@ -661,6 +664,13 @@ async function cargarCatalogo(emprendedorId) {
     actualizarCarritoUI();
     sincronizarModalConCatalogo();
 
+    // Link con #productos (ej. "Ver todo" desde la página de un producto): baja a la grilla
+    // en vez de quedarse al inicio del perfil. Se hace una sola vez, con el catálogo ya dibujado.
+    if (location.hash === '#productos' && !productoDeLaURL && !irAProductosHecho) {
+        irAProductosHecho = true;
+        requestAnimationFrame(() => irAlCatalogo(false));
+    }
+
     // Link directo a un producto (?producto=<id>)
     if (productoDeLaURL) {
         const id = productoDeLaURL;
@@ -672,7 +682,7 @@ async function cargarCatalogo(emprendedorId) {
             await esperarSplashMinimo();
             if (!splashProductoActivo()) return;
         }
-        if (existe) abrirModalProducto(id);
+        if (existe) irAProducto(id);
         else productoNoDisponibleDeLaURL();
     }
 }
@@ -988,7 +998,7 @@ function crearFilaSugerencia(p) {
     const fila = el('button', 'group/sug w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-900/[0.04] focus-visible:bg-zinc-900/[0.04] focus-visible:outline-none transition-colors text-left');
     fila.type = 'button';
     fila.setAttribute('role', 'option');
-    fila.onclick = () => { cerrarSugerencias(); abrirModalProducto(p.id); };
+    fila.onclick = () => { cerrarSugerencias(); irAProducto(p.id); };
 
     const img = el('img', 'w-11 h-11 rounded-lg object-contain p-0.5 flex-shrink-0 bg-zinc-100/70');
     img.alt = '';
@@ -1048,13 +1058,13 @@ function mostrarSugerencias() {
 
 // Lleva el catálogo al inicio de la grilla, dejando lugar al buscador pegado arriba
 // (el header ya no acompaña el scroll, así que no suma al tope)
-function irAlCatalogo() {
+function irAlCatalogo(suave = true) {
     const cats = $('catalogo-categorias');
     const destino = cats && !cats.classList.contains('hidden') ? cats : $('catalogo-contenido');
     const barra = $('catalogo-filtros');
     const tope = (barra ? barra.offsetHeight : 0) + 24;
     const y = destino.getBoundingClientRect().top + window.scrollY - tope;
-    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    window.scrollTo({ top: Math.max(0, y), behavior: suave ? 'smooth' : 'auto' });
 }
 
 // Recién acá el catálogo se filtra por el texto buscado
@@ -1328,7 +1338,7 @@ function crearBotonVerProducto(p) {
     b.type = 'button';
     b.setAttribute('aria-label', `Ver detalle de ${p.nombre || 'producto'}`);
     b.innerHTML = '<span>Ver producto</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
-    b.onclick = (ev) => { ev.stopPropagation(); abrirModalProducto(p.id); };
+    b.onclick = (ev) => { ev.stopPropagation(); irAProducto(p.id); };
     b.onkeydown = (ev) => ev.stopPropagation();   // Enter/espacio los resuelve el propio botón
     return b;
 }
@@ -1343,9 +1353,9 @@ function crearCardProducto(p) {
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Ver ${p.nombre || 'producto'}`);
     card.dataset.pid = String(p.id);
-    card.onclick = () => abrirModalProducto(p.id);
+    card.onclick = () => irAProducto(p.id);
     card.onkeydown = (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abrirModalProducto(p.id); }
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); irAProducto(p.id); }
     };
 
     // Imagen + badges
@@ -1373,11 +1383,16 @@ function crearCardProducto(p) {
     if (!sinStock && esProductoNuevoVigente(p)) badges.appendChild(el('span', 't-acento bg-blue-800 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', 'Nuevo'));
     if (!sinStock && pct > 0) badges.appendChild(el('span', 'bg-red-600 text-white text-[11px] sm:text-xs font-bold tabular-nums px-2 py-0.5 rounded-full shadow-sm', `-${pct}%`));
     // Carteles propios del comercio (Promoción, 2x1...): los 3 en una sola fila al pie de la foto
+    // Van en el mismo contenedor que la pastilla "En tu carrito" (pie), apilados: la pastilla
+    // arriba y los carteles abajo, así no se tapan entre sí.
+    // Con "Sin stock" el pie sube para quedar por encima del cartel negro.
+    const pie = el('div', 'absolute left-2 right-2 z-[2] flex flex-col items-start gap-1 ' + (sinStock ? 'bottom-[34px] sm:bottom-[38px]' : 'bottom-2'));
+    wrap.appendChild(pie);
     const badgesPropios = !sinStock ? normalizarBadges(p.badges) : [];
     if (badgesPropios.length) {
-        const fila = el('div', 'absolute bottom-2 left-2 right-2 flex flex-nowrap items-center gap-1');
+        const fila = el('div', 'order-2 w-full flex flex-nowrap items-center gap-1');
         badgesPropios.forEach(b => fila.appendChild(crearElementoBadge(b, 'card')));
-        wrap.appendChild(fila);
+        pie.appendChild(fila);
     }
     if (badges.children.length) wrap.appendChild(badges);
 
@@ -1389,9 +1404,9 @@ function crearCardProducto(p) {
     }
 
     // Pastilla "En tu carrito · N" (se actualiza sola cuando cambia el carrito)
-    const pill = el('span', 'pc-pill' + (sinStock ? ' sobre-cartel' : ''));
+    const pill = el('span', 'pc-pill order-1');
     pill.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h1.5l1.6 9.6a2 2 0 002 1.65h8.4a2 2 0 002-1.65L20 7.5H6"/></svg><span></span>';
-    wrap.appendChild(pill);
+    pie.appendChild(pill);
     card._pill = pill;
     pintarPillCarrito(card, unidadesPorProducto().get(String(p.id)) || 0);
 
@@ -1430,7 +1445,7 @@ function crearCardProducto(p) {
 // Sin variantes se agrega directo; con variantes hay que elegir en el modal.
 function agregarRapido(p, boton) {
     if (!pedidosActivos() || productoSinStock(p)) return;
-    if (p.variantes && p.variantes.length) { abrirModalProducto(p.id); return; }
+    if (p.variantes && p.variantes.length) { irAProducto(p.id); return; }
     if (agregarItem(p, 1, []) && boton) confirmarAgregadoBoton(boton);
 }
 
@@ -1475,7 +1490,7 @@ function sincronizarModalConCatalogo() {
     const viejo = productoAbierto;
     const nuevo = productosTienda.find(x => String(x.id) === String(viejo.id));
     if (!nuevo) { cerrarModal(); return; }                                  // el producto se eliminó
-    if (productoSinStock(nuevo) !== productoSinStock(viejo)) { abrirModalProducto(nuevo.id); return; }
+    if (productoSinStock(nuevo) !== productoSinStock(viejo)) { irAProducto(nuevo.id); return; }
     productoAbierto = nuevo;
     Object.keys(seleccionVariantes).forEach(g => {
         const v = (nuevo.variantes || []).find(x => String(x.id) === String(seleccionVariantes[g]));
@@ -1541,127 +1556,12 @@ function productoNoDisponibleDeLaURL() {
     mostrarToastCarrito('Ese producto ya no está disponible', { aviso: true, detalle: 'Puede que se haya eliminado o que el link esté incompleto.' });
 }
 
-function abrirModalProducto(id) {
-    const p = productosTienda.find(x => String(x.id) === String(id));
-    if (!p) return;
-    productoAbierto = p;
-    seleccionVariantes = {};
-    variantePreferidaFoto = null;
-    cantidadModal = 1;
-    actualizarAvisoEnCarritoModal();
-
-    // Variantes: si un grupo tiene una sola opción disponible, queda elegida
-    // (antes de pintar la imagen, porque esa opción puede tener su propia foto)
-    if (!productoSinStock(p)) {
-        gruposDeVariantes(p).forEach((lista, g) => {
-            const disp = lista.filter(v => v.disponible !== false);
-            if (disp.length === 1) seleccionVariantes[g] = String(disp[0].id);
-        });
-    }
-
-    const e = emprendedorActual || {};
-    const pedidos = pedidosActivos();
-    const pct = calcularDescuentoPorcentaje(p.precio_anterior, p.precio);
-
-    const img = $('modal-img');
-    img.alt = p.nombre || '';
-    // Loader: se oculta la foto anterior y se muestra el skeleton + spinner hasta que cargue la nueva
-    const loaderImg = $('modal-img-loader');
-    const token = ++modalImgToken;
-    const inicioCarga = performance.now();
-    const mostrarImg = () => {
-        img.onload = null;
-        const espera = Math.max(0, MODAL_IMG_LOADER_MIN_MS - (performance.now() - inicioCarga));
-        setTimeout(() => {
-            if (token !== modalImgToken) return;   // mientras tanto se abrió otro producto
-            img.classList.remove('cargando');
-            loaderImg.classList.add('oculto');
-        }, espera);
-    };
-    img.classList.add('cargando');
-    loaderImg.classList.remove('oculto');
-    img.onload = mostrarImg;
-    // Si falla, se prueba con la imagen por defecto; si también falla, se saca el loader igual
-    img.onerror = () => { img.onerror = mostrarImg; img.src = IMAGEN_PRODUCTO_DEFAULT; };
-    destinoImagenModal = urlImagenModal();
-    img.src = destinoImagenModal;
-
-    $('modal-tienda').textContent = (e.nombre_tienda || 'Tienda').trim();
-    $('modal-nombre').textContent = formatoNombre(p.nombre || '');
-    $('modal-categoria').textContent = nombreCategoriaProducto(p);
-    const sinStock = productoSinStock(p);
-    $('modal-badge-nuevo').classList.toggle('hidden', sinStock || !esProductoNuevoVigente(p));
-    const contBadges = $('modal-badges-custom');
-    if (contBadges) {
-        contBadges.replaceChildren();
-        if (!sinStock) normalizarBadges(p.badges).forEach(b => contBadges.appendChild(crearElementoBadge(b, 'modal')));
-    }
-    $('modal-badge-sin-stock').classList.toggle('hidden', !sinStock);
-    const dest = $('modal-badge-destacado');
-    dest.classList.toggle('hidden', !p.destacado || sinStock);
-    dest.classList.toggle('inline-flex', !!p.destacado && !sinStock);
-
-    const desc = (p.descripcion || '').trim();
-    $('modal-desc').textContent = desc;
-    $('modal-desc').classList.add('whitespace-pre-line');
-    $('modal-desc-wrap').classList.toggle('hidden', !desc);
-
-    // Medios de pago: los del producto, o los de la tienda si no definió
-    const medios = mediosDelProducto(p);
-    const wrapMedios = $('modal-medios-pago-wrap');
-    wrapMedios.classList.toggle('hidden', medios.length === 0);
-    wrapMedios.classList.toggle('inline-flex', medios.length > 0);
-
-    renderVariantesModal();
-
-    $('modal-cantidad').textContent = '1';
-    actualizarPrecioModal();
-
-    // Acciones: pedidos = carrito + consulta; catálogo = solo consulta.
-    // Sin stock: no hay carrito, solo la consulta por WhatsApp.
-    const conCarrito = pedidos && !sinStock;
-    const wsp = soloDigitos(e.whatsapp);
-    const filaCarrito = $('modal-btn-agregar').parentElement;
-    filaCarrito.classList.toggle('hidden', !conCarrito);
-    let avisoSinStock = $('modal-aviso-sin-stock');
-    if (!avisoSinStock) {
-        avisoSinStock = el('p', 'mb-3 rounded-xl bg-zinc-100 text-zinc-600 text-[13px] font-medium leading-snug px-3.5 py-2.5');
-        avisoSinStock.id = 'modal-aviso-sin-stock';
-        $('modal-acciones').prepend(avisoSinStock);
-    }
-    avisoSinStock.textContent = wsp
-        ? 'Este producto está sin stock por el momento. Podés consultar si va a volver a estar disponible.'
-        : 'Este producto está sin stock por el momento.';
-    avisoSinStock.classList.toggle('hidden', !sinStock);
-    const link = $('modal-whatsapp');
-    if (wsp) {
-        const msg = `Hola ${(e.nombre_tienda || '').trim()}, vi "${p.nombre}" en su catálogo online y quiero consultarles.\n${urlProductoTienda(p.id)}`;
-        link.href = `https://wa.me/${wsp}?text=${encodeURIComponent(msg)}`;
-        // Con pedidos: botón secundario (la acción principal es "Agregar al carrito").
-        // Solo catálogo: la consulta por WhatsApp pasa a ser la acción principal.
-        const iconoWsp = '<svg class="w-[18px] h-[18px] flex-shrink-0' + (conCarrito ? ' text-[#25D366]' : '') + '" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.48 1.32 4.99L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2zm5.8 14.13c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.61-.6-2.83-1.22-4.67-4.06-4.81-4.25-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.26-.28.56-.35.75-.35h.53c.17 0 .4-.02.62.48.24.55.81 1.9.88 2.04.07.14.11.3.02.49-.09.19-.14.31-.28.48-.14.16-.29.36-.42.48-.14.14-.28.29-.13.57.16.28.7 1.16 1.51 1.88 1.04.93 1.92 1.22 2.2 1.36.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.1 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>';
-        link.innerHTML = iconoWsp + '<span>¿Dudas? Consultar por el producto</span>';
-        link.className = conCarrito
-            ? 'mt-3 inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl border border-zinc-300 bg-white text-zinc-800 text-sm font-semibold hover:bg-zinc-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2'
-            : 't-acento inline-flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2';
-        link.rel = 'noopener';
-    } else {
-        link.removeAttribute('href');
-        link.classList.add('hidden');
-    }
-    $('modal-acciones').classList.toggle('hidden', !conCarrito && !wsp && !sinStock);
-
-    $('modal-producto-overlay').classList.add('abierto');
-    $('modal-producto').classList.add('abierto');
-    quitarCargandoProducto();   // si venía de un link directo, el splash se desvanece mientras sube el modal
-    actualizarBloqueoScroll();
-
-    // Link compartible
-    try {
-        const u = new URL(window.location.href);
-        u.searchParams.set('producto', p.id);
-        history.replaceState(null, '', u.href);
-    } catch { /* noop */ }
+// El detalle de cada producto vive en su propia página (producto.html)
+function urlPaginaProducto(id) {
+    return `/producto.html?t=${encodeURIComponent(obtenerSlug() || '')}&p=${encodeURIComponent(id)}`;
+}
+function irAProducto(id) {
+    window.location.href = urlPaginaProducto(id);
 }
 
 function cerrarModal() {
@@ -1681,9 +1581,15 @@ function cerrarModal() {
     } catch { /* noop */ }
 }
 
+// Medios que acepta el producto: los suyos (si marcó alguno) o los del comercio.
+// Solo cuentan los que el comercio acepta hoy (si sacó o borró un medio, deja de valer en los productos).
 function mediosDelProducto(p) {
-    if (Array.isArray(p.medios_pago) && p.medios_pago.length) return p.medios_pago;
-    return Array.isArray(emprendedorActual?.medios_pago) ? emprendedorActual.medios_pago : [];
+    const comercio = Array.isArray(emprendedorActual?.medios_pago) ? emprendedorActual.medios_pago : [];
+    if (Array.isArray(p.medios_pago) && p.medios_pago.length) {
+        const propios = p.medios_pago.filter(id => comercio.includes(id));
+        if (propios.length) return propios;
+    }
+    return comercio;
 }
 
 // Foto de una variante: la suya, o la del producto si está marcada con "usa la foto del producto"
@@ -1853,6 +1759,73 @@ function actualizarPrecioModal() {
     $('modal-badge-oferta').textContent = `-${pct}%`;
     $('modal-badge-oferta').classList.toggle('hidden', !oferta);
 
+    // Comparativa visual según el medio de pago (solo si algún medio tiene recargo)
+    const cont = $('modal-precios-medios');
+    const wrapMedios = $('modal-medios-pago-wrap');
+    const medios = mediosDelProducto(p);
+    const sinRecargo = medios.filter(id => !(recargoMedioPago(id) > 0));
+    const conRecargo = medios
+        .map(id => ({ id, pct: recargoMedioPago(id) }))
+        .filter(m => m.pct > 0);
+
+    cont.replaceChildren();
+
+    if (conRecargo.length > 0) {
+        // 1) Bloque "Sin recargo" (destaca el precio base / ahorro)
+        if (sinRecargo.length > 0) {
+            const boxSin = el('div', 'rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3');
+            const headSin = el('div', 'flex items-center justify-between gap-2');
+            const badgeSin = el('span', 'inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700');
+            badgeSin.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Sin recargo';
+            headSin.append(
+                badgeSin,
+                el('span', 'text-sm font-bold text-emerald-900 tabular-nums', formatoPrecio(final))
+            );
+            boxSin.appendChild(headSin);
+
+            const chipsSin = el('div', 'mt-2 flex flex-wrap gap-1.5');
+            sinRecargo.forEach(id => {
+                const chip = el('span', 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-emerald-200/70 text-xs font-medium text-zinc-700');
+                const ic = el('span', 'inline-flex text-emerald-700');
+                ic.innerHTML = iconoMedioPago(id);
+                chip.append(ic, el('span', null, nombreMedioPago(id)));
+                chipsSin.appendChild(chip);
+            });
+            boxSin.appendChild(chipsSin);
+            cont.appendChild(boxSin);
+        }
+
+        // 2) Bloque "Con recargo"
+        const boxCon = el('div', 'rounded-xl border border-zinc-200 bg-zinc-50/70 p-3');
+        boxCon.appendChild(el('p', 'text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2', 'Con recargo'));
+
+        const listaCon = el('div', 'space-y-1.5');
+        conRecargo.forEach(m => {
+            const fila = el('div', 'flex items-center justify-between gap-2 text-xs sm:text-[13px]');
+            const izq = el('div', 'flex items-center gap-1.5 min-w-0 text-zinc-700');
+            const ic = el('span', 'inline-flex flex-shrink-0 text-zinc-500');
+            ic.innerHTML = iconoMedioPago(m.id);
+            const nom = el('span', 'font-medium truncate', nombreMedioPago(m.id));
+            const pctTag = el('span', 'flex-shrink-0 px-1.5 py-0.5 rounded bg-zinc-200/80 text-[10px] font-semibold text-zinc-600 tabular-nums', `+${formatoPorcentaje(m.pct)}%`);
+            izq.append(ic, nom, pctTag);
+
+            const precioEl = el('span', 'font-semibold text-zinc-900 tabular-nums flex-shrink-0', formatoPrecio(precioConRecargo(final, m.pct)));
+            fila.append(izq, precioEl);
+            listaCon.appendChild(fila);
+        });
+        boxCon.appendChild(listaCon);
+        cont.appendChild(boxCon);
+
+        cont.classList.remove('hidden');
+        // Como ya se muestran todos los medios en la comparativa, ocultamos el link redundante
+        wrapMedios.classList.add('hidden');
+        wrapMedios.classList.remove('inline-flex');
+    } else {
+        cont.classList.add('hidden');
+        wrapMedios.classList.toggle('hidden', medios.length === 0);
+        wrapMedios.classList.toggle('inline-flex', medios.length > 0);
+    }
+
     const completa = seleccionCompleta();
     $('modal-btn-agregar').disabled = !completa || productoSinStock(p);
     if (!$('modal-btn-agregar').classList.contains('btn-add-ok')) {
@@ -1912,7 +1885,7 @@ function abrirModalMediosPago() {
         const chip = el('span', 'chip');
         const ic = el('span', 'inline-flex');
         ic.innerHTML = iconoMedioPago(id);
-        chip.append(ic, el('span', null, nombreMedioPago(id)));
+        chip.append(ic, el('span', null, textoMedioPago(id)));
         lista.appendChild(chip);
     });
     $('modal-medios-pago-modal').classList.remove('hidden');
@@ -2173,7 +2146,21 @@ function itemsSinStock() { return carrito.items.filter(itemSinStock); }
 function hayItemsSinStock() { return carrito.items.some(itemSinStock); }
 
 // Los productos sin stock quedan en el carrito pero no cuentan en el total
-function subtotalCarrito() { return carrito.items.filter(i => !itemSinStock(i)).reduce((s, i) => s + i.precio * i.cantidad, 0); }
+// El carrito guarda siempre el precio base. El recargo del medio de pago se suma recién en el paso 2,
+// cuando el cliente elige cómo paga: cada precio unitario se recalcula y se redondea al peso
+// (igual que crear_pedido en SQL, así el total de la web coincide con el del pedido).
+function pctRecargoVigente() {
+    if (pasoCarrito !== 2 || !medioPagoElegido) return 0;
+    if (!mediosDelCarrito().includes(medioPagoElegido)) return 0;
+    return recargoMedioPago(medioPagoElegido);
+}
+function itemsDisponiblesCarrito() { return carrito.items.filter(i => !itemSinStock(i)); }
+function subtotalBase() { return itemsDisponiblesCarrito().reduce((s, i) => s + i.precio * i.cantidad, 0); }
+function subtotalCarrito() {
+    const pct = pctRecargoVigente();
+    return itemsDisponiblesCarrito().reduce((s, i) => s + precioConRecargo(i.precio, pct) * i.cantidad, 0);
+}
+function recargoCarrito() { return subtotalCarrito() - subtotalBase(); }
 function totalCarrito() { return subtotalCarrito() + (modalidadEnvio === true ? costoEnvio() : 0); }
 
 function seleccionarModalidadEntrega(envio) {
@@ -2202,7 +2189,40 @@ function pedirModalidadEntrega() {
     marcarErrorModalidad('Elegí cómo querés recibir tu pedido.');
 }
 
+// El carrito guarda el precio con el que se agregó cada producto. Si el comercio lo cambió
+// después, se compara con el catálogo actual y se actualiza el ítem. Guarda en
+// `precioAnterior` el precio que el cliente vio primero, para avisárselo en el carrito.
+// Los ítems sin stock se saltean (ya salen marcados como "Sin stock").
+// Devuelve la lista de ítems cuyo precio cambió en esta pasada.
+function sincronizarPreciosCarrito() {
+    if (!catalogoCargado) return [];
+    const cambiados = [];
+    carrito.items.forEach(it => {
+        if (itemSinStock(it)) return;
+        const p = productosTienda.find(x => String(x.id) === String(it.productoId));
+        if (!p) return;
+        const ids = idsVariantesDeItem(it);
+        const elegidas = (p.variantes || []).filter(v => ids.includes(String(v.id)));
+        const nuevo = precioUnitario(p, elegidas);
+        if (!Number.isFinite(nuevo) || nuevo === Number(it.precio)) return;
+        const referencia = it.precioAnterior != null ? Number(it.precioAnterior) : Number(it.precio);
+        cambiados.push({ nombre: it.nombre, antes: Number(it.precio), ahora: nuevo });
+        it.precio = nuevo;
+        if (referencia !== nuevo) it.precioAnterior = referencia;
+        else delete it.precioAnterior;   // volvió al precio con el que lo agregó
+    });
+    return cambiados;
+}
+
 function actualizarCarritoUI() {
+    // Precios al día respecto del catálogo antes de calcular totales o dibujar nada
+    const preciosCambiados = sincronizarPreciosCarrito();
+    if (preciosCambiados.length) {
+        guardarCarrito();   // sin toast: el cambio se ve con la flecha junto al precio del ítem
+        // Si estaba cargando sus datos, vuelve al carrito para revisar los importes nuevos
+        if (pasoCarrito === 2) { mostrarPasoCarrito(1); return; }
+    }
+
     const cant = carrito.items.reduce((s, i) => s + i.cantidad, 0);
     const badge = $('badge-carrito');
     badge.textContent = String(cant);
@@ -2255,7 +2275,20 @@ function actualizarCarritoUI() {
         mas.onclick = () => cambiarCantidadItem(it.key, 1);
         if (agotado) { mas.disabled = true; mas.classList.add('opacity-30', 'cursor-not-allowed'); }
         stepper.append(menos, el('span', 'min-w-[1.75rem] text-center text-xs font-semibold tabular-nums text-zinc-900', String(it.cantidad)), mas);
-        pie.append(stepper, el('span', 'text-sm font-semibold tabular-nums ' + (agotado ? 'text-zinc-400 line-through' : 'text-zinc-900'), formatoPrecio(it.precio * it.cantidad)));
+        const precioFila = el('span', 'inline-flex items-center gap-1.5');
+        // Flecha junto al precio si cambió desde que se agregó: verde hacia arriba si subió, roja hacia abajo si bajó
+        if (!agotado && it.precioAnterior != null && Number(it.precioAnterior) !== Number(it.precio)) {
+            const subio = Number(it.precio) > Number(it.precioAnterior);
+            const flecha = el('span', 'inline-flex flex-shrink-0 ' + (subio ? 'text-emerald-600' : 'text-red-600'));
+            flecha.setAttribute('role', 'img');
+            flecha.setAttribute('aria-label', subio ? 'El precio subió' : 'El precio bajó');
+            flecha.innerHTML = subio
+                ? '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'
+                : '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>';
+            precioFila.appendChild(flecha);
+        }
+        precioFila.appendChild(el('span', 'text-sm font-semibold tabular-nums ' + (agotado ? 'text-zinc-400 line-through' : 'text-zinc-900'), formatoPrecio(it.precio * it.cantidad)));
+        pie.append(stepper, precioFila);
         centro.appendChild(pie);
 
         const quitar = el('button', 'self-start w-9 h-9 -mt-1.5 -mr-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-600 active:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors');
@@ -2288,9 +2321,21 @@ function actualizarCarritoUI() {
     const conEnvio = modalidadEnvio === true && hayEnvio;
     $('carrito-fila-subtotal').classList.toggle('hidden', !conEnvio);
     $('carrito-fila-envio').classList.toggle('hidden', !conEnvio);
-    $('carrito-subtotal').textContent = formatoPrecio(subtotalCarrito());
+    $('carrito-subtotal').textContent = formatoPrecio(subtotalBase());
     $('carrito-envio').textContent = formatoPrecio(envio);
     $('carrito-total').textContent = formatoPrecio(totalCarrito());
+
+    // Si algún medio de pago del carrito tiene recargo, se avisa antes del checkout
+    const notaRecargo = $('carrito-nota-recargo');
+    if (notaRecargo) {
+        const conRecargo = pasoCarrito === 1 && carrito.items.length
+            ? mediosDelCarrito().filter(id => recargoMedioPago(id) > 0)
+            : [];
+        notaRecargo.textContent = conRecargo.length
+            ? `Recargo según el medio de pago: ${conRecargo.map(id => textoMedioPago(id)).join(', ')}. Lo ves al elegir cómo pagás.`
+            : '';
+        notaRecargo.classList.toggle('hidden', !conRecargo.length);
+    }
 
     // Aviso arriba del pie + botón "Continuar" bloqueado mientras haya productos sin stock
     let aviso = $('carrito-aviso-stock');
@@ -2321,6 +2366,11 @@ function abrirCarrito() {
     actualizarBloqueoScroll();
 }
 function cerrarCarrito() {
+    // Los avisos de "precio actualizado" ya se mostraron: no se repiten la próxima vez que abra el carrito
+    if (carrito.items.some(i => i.precioAnterior != null)) {
+        carrito.items.forEach(i => { delete i.precioAnterior; });
+        guardarCarrito();
+    }
     $('carrito-drawer').classList.add('translate-x-full');
     $('carrito-overlay').classList.add('hidden');
     actualizarBloqueoScroll();
@@ -2355,6 +2405,7 @@ function borrarDatosGuardados() {
     ['co-nombre', 'co-telefono', 'co-calle', 'co-localidad', 'co-referencia', 'co-notas'].forEach(id => { $(id).value = ''; });
     medioPagoElegido = '';
     renderMediosPagoCheckout();
+    renderResumenCheckout();
     $('co-borrar-datos').classList.add('hidden');
     mostrarToastCarrito('Datos borrados');
 }
@@ -2435,7 +2486,7 @@ function renderMediosPagoCheckout() {
         const ic = el('span', 'inline-flex flex-shrink-0');
         ic.innerHTML = iconoMedioPago(id);
         b.append(ic, el('span', 'truncate', nombreMedioPago(id)));
-        b.onclick = () => { medioPagoElegido = id; marcarErrorCheckout('pago', ''); renderMediosPagoCheckout(); };
+        b.onclick = () => { medioPagoElegido = id; marcarErrorCheckout('pago', ''); renderMediosPagoCheckout(); renderResumenCheckout(); };
         cont.appendChild(b);
     });
 }
@@ -2453,7 +2504,10 @@ function renderResumenCheckout() {
     };
     const cant = carrito.items.reduce((s, i) => s + i.cantidad, 0);
     if (costoEnvio() > 0) fila('Entrega', conEnvioADomicilio() ? 'Envío a domicilio' : 'Retiro en el local');
-    fila(`${cant} producto${cant === 1 ? '' : 's'}`, formatoPrecio(subtotalCarrito()));
+    const pctRecargo = pctRecargoVigente();
+    const textoProductos = `${cant} producto${cant === 1 ? '' : 's'}`;
+    fila(pctRecargo > 0 || conEnvioADomicilio() ? `Subtotal (${textoProductos})` : textoProductos, formatoPrecio(subtotalBase()));
+    if (pctRecargo > 0) fila(`Recargo ${nombreMedioPago(medioPagoElegido)} (${formatoPorcentaje(pctRecargo)}% sobre ${formatoPrecio(subtotalBase())})`, formatoPrecio(recargoCarrito()));
     if (conEnvioADomicilio()) fila('Envío', formatoPrecio(costoEnvio()));
     fila('Total', formatoPrecio(totalCarrito()), true);
 }
@@ -2585,16 +2639,7 @@ let urlPedidoWeb = '';
 // el modal. Parte de la URL actual para respetar tanto /tienda/<usuario> como
 // el ?t=<usuario> de desarrollo, y descarta cualquier otro parámetro o #hash.
 function urlProductoTienda(id) {
-    try {
-        const actual = new URL(window.location.href);
-        const u = new URL(actual.origin + actual.pathname);
-        const t = actual.searchParams.get('t');
-        if (t) u.searchParams.set('t', t);
-        u.searchParams.set('producto', id);
-        return u.href;
-    } catch {
-        return '';
-    }
+    return location.origin + urlPaginaProducto(id);
 }
 
 function armarMensajePedido() {
@@ -2607,12 +2652,13 @@ function armarMensajePedido() {
         if (link) lineas.push(`  ${link}`);
     });
     lineas.push('');
-    if (costoEnvio() > 0) {
-        lineas.push(modalidadEnvio ? 'Entrega: envío a domicilio' : 'Entrega: retiro en el local');
-        if (modalidadEnvio) {
-            lineas.push(`Subtotal: ${formatoPrecio(subtotalCarrito())}`);
-            lineas.push(`Envío: ${formatoPrecio(costoEnvio())}`);
-        }
+    if (costoEnvio() > 0) lineas.push(modalidadEnvio ? 'Entrega: envío a domicilio' : 'Entrega: retiro en el local');
+    const pctRecargo = pctRecargoVigente();
+    const conEnvio = costoEnvio() > 0 && modalidadEnvio;
+    if (conEnvio || pctRecargo > 0) {
+        lineas.push(`Subtotal: ${formatoPrecio(subtotalBase())}`);
+        if (pctRecargo > 0) lineas.push(`Recargo ${nombreMedioPago(medioPagoElegido)} (${formatoPorcentaje(pctRecargo)}% sobre ${formatoPrecio(subtotalBase())}): ${formatoPrecio(recargoCarrito())}`);
+        if (conEnvio) lineas.push(`Envío: ${formatoPrecio(costoEnvio())}`);
     }
     lineas.push(`Total: ${formatoPrecio(totalCarrito())}`);
 
